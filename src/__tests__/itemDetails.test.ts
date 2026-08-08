@@ -31,7 +31,7 @@ describe('item tooltip details', () => {
     expect(details.description).toContain('Punitive');
     expect(details.description).toContain('Short Sprint');
     expect(details.effect).toBe(
-      'Generation quality: 9 (Short Sprint 5 + Punitive +4). Contributes 9 to the loadout, which shortens encounters; damage is not modeled.',
+      'Generation quality: 9 (Short Sprint 5 + Punitive +4). Contributes 9 to the loadout total, which is what shortens encounters; damage is not modeled.',
     );
   });
 
@@ -440,9 +440,14 @@ describe('the boundary between what a thing is and what it does', () => {
   // `sim.ts` multiplies every kill's duration by `encounterSpeedMultiplier(loadoutQuality)`.
   // Still pinned to a mechanical shape rather than left free, because an effects column is the
   // failure this surface exists to avoid.
-  // Widened once more for the second effect equipment has. Optional, and only the padding slot ever
-  // carries it — a carrying-capacity sentence on a helm would be both an effects column and a lie.
-  const EQUIPMENT_EFFECT = /^Generation quality: [-\d,]+ \([^)]*\)\. Contributes (?:[\d,]+ to the loadout, which shortens encounters|nothing to the loadout, so encounters are unaffected); damage is (?:not modeled|[a-z ]+)\.(?: Padding the hero out by [\d,]+ cubits of carrying capacity\.)?(?: Standing here is worth [\d,]+% better terms at market\.)?$/u;
+  // Widened twice more, for the two slots that carry a second effect of their own. Both groups are
+  // optional and each appears on one slot only — a carrying-capacity sentence on a helm, or a
+  // market-terms sentence on a gauntlet, would be both an effects column and a lie.
+  //
+  // The contribution clause itself was corrected at the same time: it says what the item puts into
+  // the loadout total and names the total as the thing that shortens encounters, rather than
+  // claiming an outcome a single slot cannot see.
+  const EQUIPMENT_EFFECT = /^Generation quality: [-\d,]+ \([^)]*\)\. (?:Contributes (?:[\d,]+|nothing) to|Takes [\d,]+ off) the loadout total, which is what shortens encounters; damage is (?:not modeled|[a-z ]+)\.(?: Padding the hero out by [\d,]+ cubits of carrying capacity\.)?(?: Standing here is worth [\d,]+% better terms at market\.)?$/u;
   // Still pinned to a mechanical shape, widened for two facts the line never carried: what a rank
   // counts, and the wisdom-plus-level threshold at which a spell enters the curriculum at all.
   const SPELL_EFFECT = /^Spell rank: [-\d,]+, meaning it has been awarded (?:once|[\d,]+ times)\.(?: Enters the curriculum at wisdom plus level [\d,]+\.)? Combat contribution: [a-z ]+; encounters are unaffected\.$/u;
@@ -594,14 +599,25 @@ describe('provenance acquires an industrial edge as acts accumulate', () => {
     expect(effect).not.toMatch(/Infinity|NaN|e\+/);
   });
 
-  it('promises no reduction from an item that contributes nothing', () => {
-    // The starting hauberk totals zero — Boilerplate 3 with a -3 mark. "Contributes 0 to the
-    // loadout, which shortens encounters" would be a promise the arithmetic does not keep, and
-    // `encounterSpeedMultiplier(0)` is exactly 1.
-    const effect = describeEquipment('-3 Boilerplate', 'Hauberk').effect;
+  it('says what an item does to the total, never what the total does for the hero', () => {
+    // The correction. `loadoutQuality` floors the sum at zero, so a positive item inside a
+    // net-negative loadout shortens nothing — and a new character wears a `-3 Burlap`, so the old
+    // wording was false for the whole early game while the world console next to it correctly
+    // reported a reduction of zero. This function sees one slot and cannot know the outcome, so it
+    // no longer claims one.
+    const helm = describeEquipment('Lanyard', 'Helm').effect;
+    expect(helm).toContain('Contributes 1 to the loadout total, which is what shortens encounters');
+    expect(helm).not.toMatch(/Contributes 1 to the loadout, which shortens/);
 
-    expect(effect).toContain('Contributes nothing to the loadout, so encounters are unaffected');
-    expect(effect).not.toContain('shortens encounters');
+    // Zero contributes nothing, and says so.
+    expect(describeEquipment('-3 Boilerplate', 'Hauberk').effect)
+      .toContain('Contributes nothing to the loadout total');
+
+    // Negative is the second correction: "contributes nothing" was said of an item that drags the
+    // rest of the loadout down with it.
+    const threadbare = describeEquipment('-30 Cover Note', 'Hauberk').effect;
+    expect(threadbare).toContain('Takes 29 off the loadout total');
+    expect(threadbare).not.toContain('Contributes nothing');
   });
 
   it('says what a spell rank counts, singular and plural', () => {
