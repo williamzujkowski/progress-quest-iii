@@ -6,6 +6,7 @@ import { storageAllowance } from './storage';
 import { marketFavour } from './marketFavour';
 import { clawbackPerMille } from './clawback';
 import { bulkStacks } from './bulkDisposal';
+import { hagglingFavour, nimbleStacks } from './heroAptitude';
 import { calculateEncumbranceMax, generateName, levelUpTime } from './math';
 import type { RandomGenerator } from './prng';
 import { formatGameNumber, indefinite, plural } from './text';
@@ -412,7 +413,9 @@ export function advanceGame(state: GameTransitionState, elapsedMs: number, rng: 
       // branch did before: an empty selling task still reported a sale of nothing, and a restored
       // save can hold one. Only the extra passes stop early. At one stack the loop is the original
       // straight-line code, executed once, which is what keeps every recorded market trip identical.
-      const stacks = bulkStacks(equip);
+      // What the shoulders authorise, plus what a quick pair of hands manages on top. Two sources,
+      // added rather than folded into one function, so each can be attributed separately.
+      const stacks = bulkStacks(equip) + nimbleStacks(stats);
       for (let pass = 0; pass < stacks; pass += 1) {
         const [soldItem, ...remainingInventory] = inventory;
         if (pass > 0 && !soldItem) break;
@@ -424,7 +427,7 @@ export function advanceGame(state: GameTransitionState, elapsedMs: number, rng: 
         // Applied after the draws, never instead of one, so the multiplier cannot move the RNG
         // stream. Floored rather than rounded: the hero should never be paid a fraction of a gold
         // piece, and rounding up would let a `Desk Space` add a coin to a sale worth nothing.
-        earned = Math.floor(earned * marketFavour(equip));
+        earned = Math.floor(earned * marketFavour(equip) * hagglingFavour(stats));
         inventory = remainingInventory;
         // Sheds a decade rather than saturating, so a sale past the cap still pays. The earning is
         // reported from what was asked for, not from the change in the stored figure — once a decade
