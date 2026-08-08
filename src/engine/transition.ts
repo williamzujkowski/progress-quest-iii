@@ -5,6 +5,7 @@ import { earnGold, goldEarnedBetween } from './gold';
 import { storageAllowance } from './storage';
 import { marketFavour } from './marketFavour';
 import { clawbackPerMille } from './clawback';
+import { bulkStacks } from './bulkDisposal';
 import { calculateEncumbranceMax, generateName, levelUpTime } from './math';
 import type { RandomGenerator } from './prng';
 import { formatGameNumber, indefinite, plural } from './text';
@@ -405,27 +406,43 @@ export function advanceGame(state: GameTransitionState, elapsedMs: number, rng: 
       }
       if (cinematicOpening) pendingTasks.push(...finishInterplotCinematic(rng, plot.act, traits.Level, cinematicOpening));
     } else if (task.type === 'selling') {
-      const [soldItem, ...remainingInventory] = inventory;
-      let earned = soldItem ? soldItem.qty * traits.Level : 0;
-      if (soldItem?.name.includes(' of ')) {
-        earned *= (1 + Math.min(rng.random(10), rng.random(10)))
-          * (1 + Math.min(rng.random(traits.Level), rng.random(traits.Level)));
+      // One pass always, then as many more as the shoulders carry authority for.
+      //
+      // The first pass runs unconditionally, including on an empty bag, because that is what this
+      // branch did before: an empty selling task still reported a sale of nothing, and a restored
+      // save can hold one. Only the extra passes stop early. At one stack the loop is the original
+      // straight-line code, executed once, which is what keeps every recorded market trip identical.
+      const stacks = bulkStacks(equip);
+      for (let pass = 0; pass < stacks; pass += 1) {
+        const [soldItem, ...remainingInventory] = inventory;
+        if (pass > 0 && !soldItem) break;
+        let earned = soldItem ? soldItem.qty * traits.Level : 0;
+        if (soldItem?.name.includes(' of ')) {
+          earned *= (1 + Math.min(rng.random(10), rng.random(10)))
+            * (1 + Math.min(rng.random(traits.Level), rng.random(traits.Level)));
+        }
+        // Applied after the draws, never instead of one, so the multiplier cannot move the RNG
+        // stream. Floored rather than rounded: the hero should never be paid a fraction of a gold
+        // piece, and rounding up would let a `Desk Space` add a coin to a sale worth nothing.
+        earned = Math.floor(earned * marketFavour(equip));
+        inventory = remainingInventory;
+        // Sheds a decade rather than saturating, so a sale past the cap still pays. The earning is
+        // reported from what was asked for, not from the change in the stored figure — once a decade
+        // is shed the balance falls even though the player gained.
+        const before = { gold, decades: goldDecades };
+        const after = earnGold(before, earned);
+        gold = after.gold;
+        goldDecades = after.decades;
+        const receivedGold = goldEarnedBetween(before, after, earned);
+        // Last stack wins, as it did when a task only ever sold one. The quartermaster names a thing
+        // and its price, and a bulk pass has several — naming the last is at least a true sentence,
+        // where a total attributed to one item would not be.
+        if (soldItem) marketSale = { name: soldItem.name, quantity: soldItem.qty, gold: receivedGold };
+        // One line per stack, worded exactly as before. The trip gets shorter; the sentences do not
+        // change. This log is compared string for string by the goldens and read aloud through an
+        // `aria-live` region, so a summarising line would be a separate decision from this one.
+        events.push({ type: 'inventory_sold', gold: receivedGold });
       }
-      // Applied after the draws, never instead of one, so the multiplier cannot move the RNG stream.
-      // Floored rather than rounded: the hero should never be paid a fraction of a gold piece, and
-      // rounding up would let a `Desk Space` add a coin to a sale worth nothing.
-      earned = Math.floor(earned * marketFavour(equip));
-      inventory = remainingInventory;
-      // Sheds a decade rather than saturating, so a sale past the cap still pays. The earning is
-      // reported from what was asked for, not from the change in the stored figure — once a decade
-      // is shed the balance falls even though the player gained.
-      const before = { gold, decades: goldDecades };
-      const after = earnGold(before, earned);
-      gold = after.gold;
-      goldDecades = after.decades;
-      const receivedGold = goldEarnedBetween(before, after, earned);
-      if (soldItem) marketSale = { name: soldItem.name, quantity: soldItem.qty, gold: receivedGold };
-      events.push({ type: 'inventory_sold', gold: receivedGold });
     } else if (task.type === 'buying') {
       const price = equipPrice(traits.Level);
       if (gold >= price) {
