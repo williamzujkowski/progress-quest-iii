@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { ARMOUR_BY_SLOT, armourNameForSlot, armourTableForSlot } from '../../data/armourBySlot';
 import { ARMORS, DEFENSE_ATTRIB, DEFENSE_BAD, EQUIP_SLOTS } from '../../data/traits';
 import { analyzeItemMechanics } from '../../engine/itemMechanics';
-import type { EquipSlot } from '../../engine/types';
+import type { ArmourSlot } from '../../engine/types';
 
-const ARMOUR_SLOTS = EQUIP_SLOTS.filter((slot) => slot !== 'Weapon' && slot !== 'Shield');
+const ARMOUR_SLOTS = EQUIP_SLOTS.filter((slot): slot is ArmourSlot => slot !== 'Weapon' && slot !== 'Shield');
 
 describe('armour named by where it is worn', () => {
   it('answers position for position, at the shared rating', () => {
@@ -66,11 +66,23 @@ describe('armour named by where it is worn', () => {
     }
   });
 
-  it('leaves the weapon and shield tables alone', () => {
-    // Both already have their own vocabularies and neither collides with anything.
-    for (const slot of ['Weapon', 'Shield'] as EquipSlot[]) {
-      expect(armourTableForSlot(slot)).toBe(ARMORS);
-      expect(armourNameForSlot(slot, 0)).toBe(ARMORS[0]![0]);
+  it('refuses the two slots that have no armour vocabulary', () => {
+    // These used to answer, and the answer was plausible and wrong: `armourNameForSlot('Weapon', 3)`
+    // returned `Charter` where `WEAPONS` holds `Stub`, and `armourTableForSlot('Weapon')` returned
+    // `ARMORS`. Harmless only because both callers branch on those slots before arriving — and the
+    // test that stood here asserted the wrong answer was correct, so a future caller would have
+    // inherited a real-looking table for the wrong slot with a green suite behind it.
+    //
+    // The refusal is at the type, which is the only kind that cannot be ignored at a call site.
+    // @ts-expect-error Weapon is not an armour slot.
+    expect(() => armourTableForSlot('Weapon')).toBeDefined();
+    // @ts-expect-error Shield is not an armour slot.
+    expect(() => armourNameForSlot('Shield', 0)).toBeDefined();
+
+    // And every slot that does have one is still answered, or the refusal would be over-broad.
+    for (const slot of ARMOUR_SLOTS) {
+      expect(armourTableForSlot(slot)).toHaveLength(ARMORS.length);
+      expect(armourNameForSlot(slot, 0)).not.toBe('');
     }
   });
 

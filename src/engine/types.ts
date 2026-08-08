@@ -24,6 +24,17 @@ export type EquipSlot =
   | 'Greaves'
   | 'Sollerets';
 
+/**
+ * The nine slots that have a per-slot vocabulary.
+ *
+ * `Weapon` and `Shield` draw from `WEAPONS` and `SHIELDS` and have no armour table of their own, so
+ * the helpers in `armourBySlot.ts` take this rather than `EquipSlot`. They used to take the wider
+ * type and answer with armour data for those two — plausible, wrong, and pinned as correct by a
+ * test. A caller that reached for it got a real-looking table for the wrong slot; the type now
+ * refuses instead, because a wrong answer that looks right is worse than no answer.
+ */
+export type ArmourSlot = Exclude<EquipSlot, 'Weapon' | 'Shield'>;
+
 export type EquipmentMap = Record<EquipSlot, string>;
 
 export interface InventoryItem {

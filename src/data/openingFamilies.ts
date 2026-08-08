@@ -1,5 +1,5 @@
 import { SHIELDS, WEAPONS } from './traits';
-import type { EquipSlot } from '../engine/types';
+
 
 /**
  * Which family of opening line a base noun belongs to.
@@ -67,15 +67,6 @@ const lookup = <T extends string>(families: Readonly<Record<T, readonly string[]
 export const weaponFamily = lookup(WEAPON_FAMILIES, 'trifle');
 export const shieldFamily = lookup(SHIELD_FAMILIES, 'provisional');
 
-/**
- * Armour needs no list at all: the slot is the family.
- *
- * Each of the nine vocabularies in `armourBySlot.ts` is one idea, documented there — identity,
- * coverage, escalation, handling, access, contingency, mobility, liability, footprint. Keying the
- * copy to the slot rather than to the noun means the families cannot go empty when the nouns change,
- * which is exactly how the previous version rotted.
- */
-export type ArmourSlot = Exclude<EquipSlot, 'Weapon' | 'Shield'>;
 
 export const CATALOGUED_WEAPONS: readonly string[] = WEAPONS.map(([name]) => name);
 export const CATALOGUED_SHIELDS: readonly string[] = SHIELDS.map(([name]) => name);
