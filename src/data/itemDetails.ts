@@ -1,5 +1,7 @@
 import { MAX_PERSISTED_GOLD } from './limits';
 import { ARMORS, BORING_ITEMS, SPELLS, DEFENSE_ATTRIB, DEFENSE_BAD, ITEM_ATTRIB, ITEM_OFS, MONSTERS, OFFENSE_ATTRIB, OFFENSE_BAD, SHIELDS, SPECIALS, WEAPONS } from './traits';
+import { armourTableForSlot } from './armourBySlot';
+import { shieldFamily, weaponFamily, type ArmourSlot, type ShieldFamily, type WeaponFamily } from './openingFamilies';
 import { analyzeItemMechanics } from '../engine/itemMechanics';
 import { storageAllowance } from '../engine/storage';
 import { marketFavour } from '../engine/marketFavour';
@@ -73,91 +75,134 @@ const dossierBeat = (index: number, fallbackKey: string, salt = 0, stage = 0): s
   return `${actions[position % actions.length]} ${conditions[Math.floor(position / actions.length)]}`;
 };
 
-// ponytail: lexical families cover the finite legacy catalog; add per-item exceptions only when the copy needs them.
+/**
+ * The opening sentence, chosen by what kind of thing the base noun is.
+ *
+ * Families come from `openingFamilies.ts`, which lists membership rather than matching it. The
+ * previous version tested the name against regular expressions written for the original catalogue,
+ * and when the vocabulary was replaced five of the eight families stopped matching anything —
+ * measured over all 200 catalogued armour names, `soft` and `mail` matched none, and `advanced`
+ * matched exactly one, by accident: `/ABS/i` fires inside "ABSolute Privilege". A legal doctrine was
+ * being described as unserviceable technology.
+ *
+ * Armour needs no list at all, because the slot is already the family. Each of the nine
+ * vocabularies is one documented idea, so keying the copy to the slot means it cannot go empty when
+ * the nouns change — which is precisely how the previous version rotted.
+ */
+const WEAPON_OPENINGS: Readonly<Record<WeaponFamily, readonly string[]>> = {
+  trifle: [
+    'This BASE was not issued as a weapon, and has not been told.',
+    'The guild logged this BASE under stationery and moved on.',
+    'This BASE settles disputes by being the nearest thing to hand.',
+  ],
+  ceremony: [
+    'This BASE is a meeting the hero has learned to swing.',
+    'The guild scheduled this BASE and someone died of it.',
+    'This BASE recurs weekly whether or not anyone attends.',
+  ],
+  instrument: [
+    'This BASE removes what it is pointed at, and files the remainder.',
+    'The guild issued this BASE after the softer options were exhausted.',
+    'This BASE has an edge, which procurement records as a hazard.',
+  ],
+  writ: [
+    'This BASE compels, which is deadlier than anything with an edge.',
+    'The guild serves this BASE and lets the paperwork finish the job.',
+    'This BASE has never been resisted successfully, only appealed.',
+  ],
+};
+
+const SHIELD_OPENINGS: Readonly<Record<ShieldFamily, readonly string[]>> = {
+  provisional: [
+    'This BASE was meant to hold until something better arrived.',
+    'The guild carries this BASE on the understanding it is temporary.',
+    'This BASE has protected the hero well past its review date.',
+  ],
+  standing: [
+    'This BASE was certified by the people who wrote the standard.',
+    'The guild holds this BASE face-out, where the auditors can see it.',
+    'This BASE has stopped more requests than projectiles.',
+  ],
+};
+
+/** Keyed by slot, because each vocabulary is one idea and cannot go empty. */
+const ARMOUR_OPENINGS: Readonly<Record<ArmourSlot, readonly string[]>> = {
+  // Identity and visibility. Worn to be seen wearing.
+  Helm: [
+    'This BASE is worn to be seen being worn.',
+    'The guild issues this BASE to whoever must be recognised across a room.',
+    'This BASE announces the hero before the hero manages it.',
+  ],
+  // Coverage. The thing that is meant to stop the thing.
+  Hauberk: [
+    'This BASE is what is meant to stop the thing.',
+    'The guild bought this BASE and a schedule of what it excludes.',
+    'This BASE covers the hero, subject to terms nobody has read.',
+  ],
+  // Escalation. What sits on the shoulders and passes things upward.
+  Brassairts: [
+    'This BASE passes the problem upward and calls that armour.',
+    'The guild fitted this BASE so the blow lands on someone senior.',
+    'This BASE escalates, which is the only defence it has ever offered.',
+  ],
+  // Handling. Between the decision and the doing.
+  Vambraces: [
+    'This BASE sits between the decision and the doing.',
+    'The guild wrapped this BASE around the part that actually touches things.',
+    'This BASE governs handling, and has outlived several of the handled.',
+  ],
+  // Access. What the hands are allowed to touch.
+  Gauntlets: [
+    'This BASE decides what the hands are allowed to touch.',
+    'The guild granted this BASE and has been unable to revoke it since.',
+    'This BASE opens more than it protects, which nobody has raised.',
+  ],
+  // Contingency. The padding nobody sees until it is needed.
+  Gambeson: [
+    'This BASE is the padding nobody sees until it is needed.',
+    'The guild holds this BASE against a day it declines to describe.',
+    'This BASE absorbs what the outer layers were too dignified to.',
+  ],
+  // Mobility. Getting from one part of the organisation to another.
+  Cuisses: [
+    'This BASE moves the hero from one part of the organisation to another.',
+    'The guild issued this BASE to shorten a journey nobody wanted to make.',
+    'This BASE grants passage, and asks for the receipts afterwards.',
+  ],
+  // Liability. What takes the impact when the thing does not work.
+  Greaves: [
+    'This BASE takes the impact when the thing does not work.',
+    'The guild attached this BASE to the leg most likely to be blamed.',
+    'This BASE limits liability, which is a kind of protection.',
+  ],
+  // Footprint. Where the organisation is standing, and how heavily.
+  Sollerets: [
+    'This BASE is where the hero is standing, and how heavily.',
+    'The guild acquired this BASE and the ground that came with it.',
+    'This BASE presses down on territory the hero has never visited.',
+  ],
+};
+
+const withBase = (line: string, base: string): string => line.replaceAll('BASE', base);
+
 const equipmentOpening = (base: string, slot: EquipSlot, stage = 0): string => {
   if (slot === 'Weapon') {
-    const family = /shiv|knife|sword|hatchet|tomahawk|adze|ax|baselard|poachard|whinyard/i.test(base)
-      ? 'blade'
-      : /spear|lance|halberd|spontoon|pole|oxgoad/i.test(base)
-        ? 'reach'
-        : /bow|blunderbuss|culverin/i.test(base)
-          ? 'ranged'
-          : 'blunt';
-    const openings = {
-      blade: [
-        `This ${base} left sharpening with more edge than supervision.`,
-        `The guild issued this ${base} after diplomacy clocked out.`,
-        `This ${base} divides blame more cleanly than armor.`,
-      ],
-      reach: [
-        `This ${base} keeps danger at the preferred contractual distance.`,
-        `This ${base} reaches beyond both training and liability.`,
-        `This ${base} points away from payroll by written policy.`,
-      ],
-      ranged: [
-        `This ${base} projects force and unresolved warranty questions.`,
-        `The guild approved this ${base} for threats visible on paper.`,
-        `This ${base} came with ammunition and borrowed confidence.`,
-      ],
-      blunt: [
-        `This ${base} solves delicate problems by not noticing them.`,
-        `Procurement calls this ${base} a weapon because “object” lacked urgency.`,
-        `This ${base} survived an estate sale whose estate did not.`,
-      ],
-    } as const;
-    const opening = choose(openings[family], `${base}:opening`);
+    const opening = withBase(choose(WEAPON_OPENINGS[weaponFamily(base)], `${base}:opening`), base);
     const baseIndex = WEAPONS.findIndex(([label]) => label === base);
     return `${opening.slice(0, -1)}; its intake file was ${dossierBeat(baseIndex, base, 0, stage)}.`;
   }
 
   if (slot === 'Shield') {
-    const openings = /Parasol|Plate|Lid|Plexiglass|Fender/i.test(base)
-      ? [
-        `This ${base} became a shield after an abrupt civilian career.`,
-        `The guild placed this ${base} between hero and evidence.`,
-        `This ${base} passed shield inspection by resembling a surface.`,
-      ]
-      : [
-        `This ${base} was certified by the people selling it.`,
-        `The guild carries this ${base} face-out to hide the doubts.`,
-        `This ${base} has blocked criticism more reliably than projectiles.`,
-      ];
-    const opening = choose(openings, `${base}:opening`);
+    const opening = withBase(choose(SHIELD_OPENINGS[shieldFamily(base)], `${base}:opening`), base);
     const baseIndex = SHIELDS.findIndex(([label]) => label === base);
     return `${opening.slice(0, -1)}; its intake file was ${dossierBeat(baseIndex, base, 41, stage)}.`;
   }
 
-  const armorFamily = /Lace|Macrame|Burlap|Canvas|Flannel|Chamois|Pleathers|Leathers|Bearskin/i.test(base)
-    ? 'soft'
-    : /mail/i.test(base)
-      ? 'mail'
-      : /ABS|Kevlar|Titanium|Plasma/i.test(base)
-        ? 'advanced'
-        : 'rigid';
-  const openings = {
-    soft: [
-      `This ${base} offers the ${slot.toLowerCase()} texture where certainty was requested.`,
-      `This ${base} protects the ${slot.toLowerCase()} by optimistic sewing pattern.`,
-      `The ${slot.toLowerCase()} budget produced this ${base} and a better-stitched waiver.`,
-    ],
-    mail: [
-      `This ${base} has more ${slot.toLowerCase()} links than its incident report.`,
-      `This ${base} guards the ${slot.toLowerCase()} one administrative loop at a time.`,
-      `The guild fitted this ${base} to the ${slot.toLowerCase()} after losing the knight.`,
-    ],
-    advanced: [
-      `This ${base} protects the ${slot.toLowerCase()} with unserviceable technology.`,
-      `The ${slot.toLowerCase()} requisition included this ${base} and a future manual.`,
-      `This ${base} entered ${slot.toLowerCase()} service before discouraging tests.`,
-    ],
-    rigid: [
-      `This ${base} passed ${slot.toLowerCase()} inspection during a fire drill.`,
-      `This ${base} guards the ${slot.toLowerCase()} and several departmental secrets.`,
-      `The guild shaped this ${base} for the ${slot.toLowerCase()} from a disputed diagram.`,
-    ],
-  } as const;
-  const opening = choose(openings[armorFamily], `${slot}:${base}:opening`);
-  const baseIndex = ARMORS.findIndex(([label]) => label === base);
+  const opening = withBase(choose(ARMOUR_OPENINGS[slot], `${slot}:${base}:opening`), base);
+  // Resolved through the slot's own table, which is the one the analyser reads. Looking the base up
+  // in the shared `ARMORS` list returned -1 for 177 of the 180 per-slot names, so the positional
+  // dossier scheme it feeds was dead for armour in all but three cells.
+  const baseIndex = armourTableForSlot(slot).findIndex(([label]) => label === base);
   return `${opening.slice(0, -1)}; its intake file was ${dossierBeat(baseIndex, base, 82, stage)}.`;
 };
 
