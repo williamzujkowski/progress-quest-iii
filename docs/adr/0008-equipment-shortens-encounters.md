@@ -56,6 +56,14 @@ golden-safe if and only if it is inert at `loadoutQuality === 0`.** It is mechan
 rather than a matter of judgement, and it covers far more future change than "the path is never
 reached" would have.
 
+**Corrected by ADR 0010, which is where the current rule lives.** The paragraph above describes the
+loadout every fixture *starts* in, and it stops being true partway through: `act-transition.json`
+gains a `Lanyard` and the two `purchase-exit-price` fixtures gain a `Framework`, totalling 1 and 5,
+so at the widest loadout any fixture reaches this multiplier is 0.994 rather than 1. The recordings
+survive because no fixture both gains equipment and prices a kill in the same transition — a
+disjointness nobody had noticed and nothing asserted until ADR 0010 pinned it. That is the third
+correction to this section, and the first one found by a test rather than by argument.
+
 It also means the goldens *do* guard this formula, at exactly one point — the point where it must do
 nothing. They cannot vouch for its behaviour anywhere else, so the unit tests remain the only guard
 for the rest. The floor is still justified by its design argument alone: a threadbare hauberk should
