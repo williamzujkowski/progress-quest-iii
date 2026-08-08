@@ -447,7 +447,7 @@ describe('the boundary between what a thing is and what it does', () => {
   // The contribution clause itself was corrected at the same time: it says what the item puts into
   // the loadout total and names the total as the thing that shortens encounters, rather than
   // claiming an outcome a single slot cannot see.
-  const EQUIPMENT_EFFECT = /^Generation quality: [-\d,]+ \([^)]*\)\. (?:Contributes (?:[\d,]+|nothing) to|Takes [\d,]+ off) the loadout total, which is what shortens encounters; damage is (?:not modeled|[a-z ]+)\.(?: Padding the hero out by [\d,]+ cubits of carrying capacity\.)?(?: Standing here is worth [\d,]+% better terms at market\.)?$/u;
+  const EQUIPMENT_EFFECT = /^Generation quality: [-\d,]+ \([^)]*\)\. (?:Contributes (?:[\d,]+|nothing) to|Takes [\d,]+ off) the loadout total, which is what shortens encounters; damage is (?:not modeled|[a-z ]+)\.(?: Padding the hero out by [\d,]+ cubits of carrying capacity\.)?(?: Standing here is worth [\d,]+% better terms at market\.)?(?: Adds [\d,]+ to maximum (?:hit|magic) points at each level, which nothing reads\.)?$/u;
   // Still pinned to a mechanical shape, widened for two facts the line never carried: what a rank
   // counts, and the wisdom-plus-level threshold at which a spell enters the curriculum at all.
   const SPELL_EFFECT = /^Spell rank: [-\d,]+, meaning it has been awarded (?:once|[\d,]+ times)\.(?: Enters the curriculum at wisdom plus level [\d,]+\.)? Combat contribution: [a-z ]+; encounters are unaffected\.$/u;

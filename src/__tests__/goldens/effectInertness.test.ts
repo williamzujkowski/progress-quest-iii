@@ -5,6 +5,7 @@ import { marketFavour } from '../../engine/marketFavour';
 import { clawbackPerMille } from '../../engine/clawback';
 import { bulkStacks } from '../../engine/bulkDisposal';
 import { hagglingFavour, nimbleStacks } from '../../engine/heroAptitude';
+import { vitalsFlourish } from '../../engine/vitalsFlourish';
 import { createNewCharacter } from '../../engine/sim';
 import { RandomGenerator } from '../../engine/prng';
 import type { CharacterSheet, StatsMap } from '../../engine/types';
@@ -144,6 +145,11 @@ describe('every engine effect is inert at that state', () => {
     ['bulkStacks — stacks cleared per second', bulkStacks, 1, true],
     ['nimbleStacks — extra stacks from DEX', () => nimbleStacks(stats), 0, true],
     ['hagglingFavour — margin from CHA', () => hagglingFavour(stats), 1, true],
+    // Reads Hauberk and Helm, which the fixtures do wear — so unlike its neighbours this one is
+    // inert by threshold rather than by the slot being empty, and it is inert at the widest loadout
+    // for the same reason.
+    ['vitalsFlourish.hp — decorative hit points', (equip) => vitalsFlourish(equip).hp, 0, true],
+    ['vitalsFlourish.mp — decorative magic points', (equip) => vitalsFlourish(equip).mp, 0, true],
   ];
 
   for (const [name, at, identity, widestInert] of effects) {
@@ -163,6 +169,6 @@ describe('every engine effect is inert at that state', () => {
   it('checks every effect the engine currently has', () => {
     // A count, so that deleting an entry to make a failure go away is itself a failure. The number
     // moves deliberately, in the same commit that adds or removes an effect.
-    expect(effects).toHaveLength(7);
+    expect(effects).toHaveLength(9);
   });
 });
