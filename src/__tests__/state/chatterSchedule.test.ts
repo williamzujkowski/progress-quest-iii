@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { admitsEvent, beatIndex, clampBeatAdvance, readyToSpeak } from '../../state/chatterSchedule';
+import { admitsEvent, readyToSpeak } from '../../state/chatterSchedule';
 
 /**
  * The rules are asserted as distributions rather than as individual answers.
@@ -22,8 +22,8 @@ describe('when the guild speaks', () => {
     const random = vi.spyOn(Math, 'random').mockImplementation(() => { throw new Error('random forbidden'); });
     const now = vi.spyOn(Date, 'now').mockImplementation(() => { throw new Error('clock forbidden'); });
 
-    const once = keys(200).map((key) => [readyToSpeak(40, 20, key), admitsEvent(60, key), beatIndex(400, 5)].join('|'));
-    const twice = keys(200).map((key) => [readyToSpeak(40, 20, key), admitsEvent(60, key), beatIndex(400, 5)].join('|'));
+    const once = keys(200).map((key) => [readyToSpeak(40, 20, key), admitsEvent(60, key)].join('|'));
+    const twice = keys(200).map((key) => [readyToSpeak(40, 20, key), admitsEvent(60, key)].join('|'));
 
     expect(twice).toEqual(once);
     expect(random).not.toHaveBeenCalled();
@@ -94,40 +94,5 @@ describe('which events get a line', () => {
     const run = Array.from({ length: 60 }, (_, index) => admitsEvent(60, `hero:${index}`));
     const everyFifth = run.filter((_, index) => index % 5 === 0);
     expect(everyFifth.every(Boolean)).toBe(false);
-  });
-});
-
-describe('running bits', () => {
-  it('advances a beat every forty tasks and wraps rather than ending', () => {
-    expect(beatIndex(0, 5)).toBe(0);
-    expect(beatIndex(39, 5)).toBe(0);
-    expect(beatIndex(40, 5)).toBe(1);
-    expect(beatIndex(160, 5)).toBe(4);
-    // A feud that restarts is truer than one that concludes.
-    expect(beatIndex(200, 5)).toBe(0);
-  });
-
-  it('survives a counter it cannot use', () => {
-    expect(beatIndex(Number.NaN, 5)).toBe(0);
-    expect(beatIndex(-1, 5)).toBe(0);
-    expect(() => beatIndex(10, 0)).toThrow(RangeError);
-  });
-
-  it('steps one beat at a time through a drain that jumps hundreds', () => {
-    // A catch-up replays thousands of tasks in a single tick, so an index taken straight from the
-    // counter teleports the argument. This is the clamp that keeps it at conversation speed.
-    expect(clampBeatAdvance(1, 300, 5)).toBe(2);
-    expect(clampBeatAdvance(0, 4, 5)).toBe(1);
-    // Standing still stays still, so an unchanged beat does not creep forward on every batch.
-    expect(clampBeatAdvance(3, 3, 5)).toBe(3);
-    // Wrapping is one step, not a jump the clamp would refuse forever.
-    expect(clampBeatAdvance(4, 0, 5)).toBe(0);
-    expect(clampBeatAdvance(4, 900, 5)).toBe(0);
-  });
-
-  it('normalises a beat from outside the ring', () => {
-    expect(clampBeatAdvance(7, 7, 5)).toBe(2);
-    expect(clampBeatAdvance(-1, -1, 5)).toBe(4);
-    expect(() => clampBeatAdvance(0, 1, 0)).toThrow(RangeError);
   });
 });
