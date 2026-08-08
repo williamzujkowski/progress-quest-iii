@@ -40,7 +40,9 @@ describe('the guild talks about itself', () => {
       // exact thing a mutation would change — splitting an exchange across scenes appended an index
       // and the assertion below silently stopped running.
       const isExchange = spoken[0]?.sceneId.includes(':exchange') ?? false;
-      expect(spoken.length, `task ${task}`).toBe(isExchange ? spoken.length : 1);
+      // Was `toBe(isExchange ? spoken.length : 1)`, whose exchange arm compared a value with
+      // itself and could not fail. The two cases are now asserted separately and both say something.
+      if (!isExchange) expect(spoken.length, `task ${task}`).toBe(1);
       if (isExchange) {
         expect(spoken.length).toBeGreaterThan(1);
         // One scene, so the scheduler gates it whole.

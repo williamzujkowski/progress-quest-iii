@@ -205,10 +205,10 @@ export const LogFeed: React.FC = () => {
             </li>
             {loadout.reductionPercent > 0 && (
               <li>
+                {/* No emptiness guard: `itemOfRecord` is `contributors[0] ?? null`, so reaching
+                    this at all means there is at least one to cite. */}
                 Processing time reduced by {loadout.reductionPercent}%
-                {loadout.contributors.length > 0
-                  ? `, cited: ${loadout.contributors.slice(0, 3).map(({ name }) => name).join(', ')}`
-                  : ''}
+                {`, cited: ${loadout.contributors.slice(0, 3).map(({ name }) => name).join(', ')}`}
               </li>
             )}
             {loadout.repeatedModifier && (

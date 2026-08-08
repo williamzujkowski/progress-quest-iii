@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { admitsEvent, readyToSpeak } from '../../state/chatterSchedule';
+import { NEW_CADENCE, admitsEvent, readyToSpeak, scheduleChatter } from '../../state/chatterSchedule';
+import type { SocialEntry, SocialSceneKind } from '../../state/socialProjection';
 
 /**
  * The rules are asserted as distributions rather than as individual answers.
@@ -22,8 +23,8 @@ describe('when the guild speaks', () => {
     const random = vi.spyOn(Math, 'random').mockImplementation(() => { throw new Error('random forbidden'); });
     const now = vi.spyOn(Date, 'now').mockImplementation(() => { throw new Error('clock forbidden'); });
 
-    const once = keys(200).map((key) => [readyToSpeak(40, 20, key), admitsEvent(60, key)].join('|'));
-    const twice = keys(200).map((key) => [readyToSpeak(40, 20, key), admitsEvent(60, key)].join('|'));
+    const once = keys(200).map((key) => [readyToSpeak(40, 20, key), admitsEvent(key)].join('|'));
+    const twice = keys(200).map((key) => [readyToSpeak(40, 20, key), admitsEvent(key)].join('|'));
 
     expect(twice).toEqual(once);
     expect(random).not.toHaveBeenCalled();
@@ -73,25 +74,55 @@ describe('when the guild speaks', () => {
 
 describe('which events get a line', () => {
   it('lets roughly one ordinary event in five through', () => {
-    const admitted = keys(4000).filter((key) => admitsEvent(60, key)).length / 4000;
+    const admitted = keys(4000).filter((key) => admitsEvent(key)).length / 4000;
     expect(admitted).toBeGreaterThan(0.15);
     expect(admitted).toBeLessThan(0.25);
   });
 
   it('never suppresses a milestone, a level, or an act', () => {
-    // The ladder puts milestones at 100/95 and level gains at 90. A silent level-up is the one
-    // suppression a player would read as a bug rather than as restraint.
-    for (const priority of [90, 95, 100]) {
-      expect(keys(500).every((key) => admitsEvent(priority, key))).toBe(true);
+    // A silent level-up is the one suppression a player would read as a bug rather than as
+    // restraint. Asserted through `scheduleChatter`, which is where the protection actually lives.
+    //
+    // This used to be asserted through a `priority` argument to `admitsEvent`, with anything at or
+    // above ninety admitted outright. That parameter was passed zero by its only caller, so the
+    // escape hatch was unreachable in play and the test was the sole thing exercising it — a check
+    // that proved a mechanism worked while the running game used a different one. `ALWAYS_HEARD`
+    // gates on scene kind, and this drives it.
+    const scene = (sceneId: string, sceneKind: SocialSceneKind): SocialEntry[] => [{
+      id: `${sceneId}:0`,
+      sceneId,
+      sceneKind,
+      sourceActivityId: 1,
+      channel: 'guild' as const,
+      speaker: { id: 'x', kind: 'cast' as const, displayName: 'X', role: 'r', fictional: true as const, automaticHero: false },
+      text: 'line',
+    }];
+
+    for (const kind of ['milestone', 'level', 'catch_up'] as SocialSceneKind[]) {
+      let cadence = NEW_CADENCE;
+      for (let task = 1; task <= 200; task += 1) {
+        const result = scheduleChatter(scene(`s:${task}`, kind), cadence, task);
+        cadence = result.cadence;
+        expect(result.entries, `${kind} at ${task}`).toHaveLength(1);
+      }
     }
-    // And the rung below is genuinely subject to the gate, or the threshold means nothing.
-    expect(keys(500).some((key) => !admitsEvent(85, key))).toBe(true);
+
+    // And an ordinary kind is genuinely subject to the gate, or the exemption means nothing.
+    let cadence = NEW_CADENCE;
+    let spoken = 0;
+    for (let task = 1; task <= 200; task += 1) {
+      const result = scheduleChatter(scene(`s:${task}`, 'loot'), cadence, task);
+      cadence = result.cadence;
+      spoken += result.entries.length;
+    }
+    expect(spoken).toBeGreaterThan(0);
+    expect(spoken).toBeLessThan(200);
   });
 
   it('does not admit on a fixed cycle', () => {
     // A modulo of the task count admits exactly every fifth event, and the regularity shows within
     // a minute. Consecutive counts must not alternate predictably.
-    const run = Array.from({ length: 60 }, (_, index) => admitsEvent(60, `hero:${index}`));
+    const run = Array.from({ length: 60 }, (_, index) => admitsEvent(`hero:${index}`));
     const everyFifth = run.filter((_, index) => index % 5 === 0);
     expect(everyFifth.every(Boolean)).toBe(false);
   });
