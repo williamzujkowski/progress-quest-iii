@@ -521,9 +521,9 @@ const specialAttributeStory = (attribute: string, object: string, stage = 0): st
  * Three drop shapes, matched against the vocabulary the monster table actually carries.
  *
  * These lists are the one place in this file that names item vocabulary rather than resolving it
- * by index, so they are the one place a table rewrite can silently defeat. A table rewrite replaced the
- * adversaries and their drops; every word below was re-derived from the new table rather than
- * translated from the old one, and traitTables.test.ts now asserts that each list still matches
+ * by index, so they are the one place a table rewrite can silently defeat. A table rewrite replaced
+ * the adversaries and their drops; every word below was re-derived from the new table rather than
+ * translated from the old one, and `itemDetails.test.ts` asserts that each list still matches
  * something so a future rewrite fails loudly instead of falling through to the generic ending.
  */
 const monsterLootStory = ({ monster, drop }: { monster: string; drop: string }, stage = 0): string => {

@@ -45,15 +45,6 @@ const TASK_GAPS = [1, 1, 2, 3, 5, 8, 14, 30] as const;
 const ADMITTED_IN = 5;
 
 /**
- * The priority at and above which an event always speaks.
- *
- * Milestones, act completions and level gains sit at 90 and up on the existing ladder. Suppressing
- * one to hit a rate target would be the change a player actually notices, and no cadence rule is
- * worth a silent level-up.
- */
-const ALWAYS_ADMITTED_PRIORITY = 90;
-
-/**
  * Whether enough has happened since the last line for anyone to speak again.
  *
  * The gap is redrawn for each attempt from the key rather than fixed, so the interval varies without
@@ -77,9 +68,13 @@ export function readyToSpeak(completedTasks: number, lastLineTasks: number, key:
  * rather than cycled. Two-way and few-way branches in this codebase use `stableChoice` for a
  * documented reason: `stableIndex` decides a length-two choice on the parity of the key's character
  * sum, which once collapsed all four cast seats onto two troupes.
+ *
+ * Took a `priority` until now, with anything at or above ninety admitted outright. The only caller
+ * passed zero, always, so the escape hatch was unreachable in play and exercised solely by its own
+ * test — and the job it was built for is already done by `ALWAYS_HEARD` below, which gates on scene
+ * kind rather than on a number nobody was setting.
  */
-export function admitsEvent(priority: number, key: string): boolean {
-  if (priority >= ALWAYS_ADMITTED_PRIORITY) return true;
+export function admitsEvent(key: string): boolean {
   return stableChoice(key, ADMITTED_IN) === 0;
 }
 
@@ -150,7 +145,7 @@ export function scheduleChatter(
   const heard = new Set(scenes.filter((sceneId) => {
     const kind = kindOf(sceneId);
     if (kind !== undefined && ALWAYS_HEARD.includes(kind)) return true;
-    return admitsEvent(0, `${sceneId}:${completedTasks}`);
+    return admitsEvent(`${sceneId}:${completedTasks}`);
   }));
 
   // A scene that always speaks is not subject to the gap either. Making a level-up wait would put

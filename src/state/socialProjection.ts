@@ -552,7 +552,10 @@ export function projectAmbient(
   const beat = (beats: readonly AmbientLine[]) =>
     beats[Math.floor(completedTasks / AMBIENT_BEAT_TASKS) % beats.length]!;
 
-  const line: AmbientLine = lane === 'onboarding'
+  // Deferred rather than computed, because the exchange lane discards it. Drawing a line and
+  // throwing it away is harmless — every draw here is a pure hash — but it reads as if the value
+  // matters to a lane it never reaches.
+  const line = (): AmbientLine => lane === 'onboarding'
     ? ONBOARDING_LINES[stableChoice(`onboard:${key}`, ONBOARDING_LINES.length)]!
     : lane === 'item'
     ? ITEM_OF_RECORD_LINES[stableChoice(`item:${key}`, ITEM_OF_RECORD_LINES.length)]!
@@ -575,7 +578,7 @@ export function projectAmbient(
   // The scheduler gates whole scenes anyway, so an exchange arrives entire or not at all.
   const lines: readonly AmbientLine[] = lane === 'exchange'
     ? EXCHANGES[stableChoice(`swap:${key}`, EXCHANGES.length)]!
-    : [line];
+    : [line()];
 
   const sceneId = `ambient:${completedTasks}:${lane}`;
   return lines.map((spoken, index) => ({

@@ -16,7 +16,10 @@ describe('the loadout, said out loud', () => {
     // The point of the whole exercise. A filing that disagreed with the arithmetic would be the
     // failure this exists to fix rather than an instance of it, so the figure is taken from the
     // same function the transition multiplies by.
-    const character = wearing({ Weapon: 'Vested Board Directive', Helm: 'Bonded Corner Office' });
+    // Two contributing slots, and both verified to contribute. An earlier version used
+    // `Vested Board Directive`, which totals zero — `Vested` is a defence modifier and is not read
+    // for the Weapon slot — so the test exercised one item where it read as two.
+    const character = wearing({ Weapon: 'Board Directive', Helm: 'Bonded Corner Office' });
     const filing = fileLoadout(character);
 
     const expected = Math.round((1 - encounterSpeedMultiplier(loadoutQuality(character))) * 100);
@@ -50,12 +53,21 @@ describe('the loadout, said out loud', () => {
     expect(filing.contributors.map(({ slot }) => slot)).toEqual(['Gauntlets', 'Helm', 'Weapon']);
   });
 
-  it('still ranks by standing when the totals genuinely differ', () => {
-    const filing = fileLoadout(wearing({
-      Helm: 'Lanyard', Hauberk: 'Lender of Last Resort', Sollerets: 'Campus',
-    }));
+  it('ranks by standing even when the totals order the loadout the other way', () => {
+    // The test that stood here wore three bare nouns, where standing and total are the same number —
+    // measured, `[30, 10, 1]` both ways — so it would have passed identically against a version that
+    // ranked by total, which is exactly the bug it was named for.
+    //
+    // These two disagree on purpose. A grand noun dragged down by its mark, and a humble one
+    // inflated by one: ranking by standing names the hauberk, ranking by total names the helm.
+    const filing = fileLoadout(wearing({ Helm: '+20 Lanyard', Hauberk: '-25 Lender of Last Resort' }));
 
-    expect(filing.itemOfRecord?.name).toBe('Lender of Last Resort');
+    const standings = filing.contributors.map(({ standing }) => standing);
+    const totals = filing.contributors.map(({ quality }) => quality);
+    expect(standings, 'the fixture must actually disagree, or this asserts nothing').not.toEqual(totals);
+    expect(Math.max(...totals)).toBe(totals[totals.length - 1]);
+
+    expect(filing.itemOfRecord?.name).toBe('-25 Lender of Last Resort');
   });
 
   it('says nothing at all about an empty loadout', () => {
