@@ -4,6 +4,7 @@ import { MAX_PENDING_TASKS, MAX_PERSISTED_GOLD, MAX_PERSISTED_VALUE } from '../d
 import { earnGold, goldEarnedBetween } from './gold';
 import { storageAllowance } from './storage';
 import { marketFavour } from './marketFavour';
+import { clawbackPerMille } from './clawback';
 import { calculateEncumbranceMax, generateName, levelUpTime } from './math';
 import type { RandomGenerator } from './prng';
 import { formatGameNumber, indefinite, plural } from './text';
@@ -379,6 +380,28 @@ export function advanceGame(state: GameTransitionState, elapsedMs: number, rng: 
         const addedItem = addInventoryItem(inventory, itemName);
         inventory = addedItem.inventory;
         if (addedItem.added) events.push({ type: 'item_gained', name: itemName, quantity: 1 });
+      }
+
+      // A second helping, when the weapon is grand enough to make that much mess.
+      //
+      // The guard short-circuits on purpose, and that is the whole golden argument: at zero standing
+      // no `random` call is reached at all, so the stream advances exactly as it did before. This is
+      // the one effect in the set that can add a draw, and a draw shifts every value after it — so
+      // inertness has to hold at the draw, not merely at the outcome. Every fixture weapon is
+      // `Sharp Rock`, which matches no `WEAPONS` label, so no base resolves and this returns zero.
+      const clawback = clawbackPerMille(equip);
+      if (clawback > 0 && rng.random(1000) < clawback) {
+        const extra = generateItemReward(rng, ['Gold', ...inventory.filter(({ name }) => name !== 'Gold').map(({ name }) => name)]);
+        if (extra === 'Gold') {
+          if (gold < MAX_PERSISTED_GOLD) {
+            gold += 1;
+            events.push({ type: 'gold_received', amount: 1 });
+          }
+        } else {
+          const addedExtra = addInventoryItem(inventory, extra);
+          inventory = addedExtra.inventory;
+          if (addedExtra.added) events.push({ type: 'item_gained', name: extra, quantity: 1 });
+        }
       }
       if (cinematicOpening) pendingTasks.push(...finishInterplotCinematic(rng, plot.act, traits.Level, cinematicOpening));
     } else if (task.type === 'selling') {
