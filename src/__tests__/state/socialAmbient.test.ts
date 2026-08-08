@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { isUnrenderable } from '../../engine/text';
 import { AMBIENT_LINES, BLAME_BEATS, EXCHANGES, FEUD_BEATS, ITEM_OF_RECORD_LINES, QUESTION_BEATS, REACTION_LINES, TRADE_LINES } from '../../data/socialAmbient';
 import { projectAmbient } from '../../state/socialProjection';
 import { SOCIAL_PERSONAS } from '../../data/socialCatalog';
@@ -168,12 +169,17 @@ describe('the written bank', () => {
   });
 
   it('carries no markup, control characters, or bidirectional overrides', () => {
-    const serialized = JSON.stringify(ALL);
-    expect(serialized).not.toMatch(/[<>‪-‮⁦-⁩]/u);
-    expect(Array.from(serialized).some((character) => {
-      const codePoint = character.codePointAt(0) ?? 0;
-      return codePoint < 0x20 || (codePoint >= 0x7f && codePoint <= 0x9f);
-    })).toBe(false);
+    // Scanned as strings, not as JSON. This used to test `JSON.stringify(ALL)`, and `JSON.stringify`
+    // escapes every code point below 0x20 into a six-character `\uXXXX` sequence — so the clause
+    // looking for them could never be true, and half the assertion was decoration. Proved by
+    // mutation: a line carrying U+0000 and U+001B left it passing.
+    //
+    // `isUnrenderable` is the same predicate the save boundary rejects on, so the rule the shipped
+    // catalogue is held to and the rule an imported name is held to cannot drift apart.
+    for (const { text } of ALL) {
+      expect(isUnrenderable(text), text).toBe(false);
+      expect(text, text).not.toMatch(/[<>]/u);
+    }
   });
 
   it('states no figure, because an ambient line citing one would be asserting state', () => {

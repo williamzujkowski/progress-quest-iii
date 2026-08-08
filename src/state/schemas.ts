@@ -1,42 +1,10 @@
 import { z } from './zod';
+import { isUnrenderable } from '../engine/text';
 
 import { MAX_PENDING_ELAPSED_MS, MAX_PENDING_TASKS, MAX_PERSISTED_DESCRIPTION_LENGTH, MAX_PERSISTED_GOLD, MAX_PERSISTED_ITEMS, MAX_PERSISTED_VALUE } from '../data/limits';
 
 export { MAX_PERSISTED_ITEMS } from '../data/limits';
 export const MAX_CHARACTER_NAME_LENGTH = 120;
-
-/**
- * Code points a saved name may not contain, whatever its length.
- *
- * Every name this game displays it also generated, from fixed tables of ordinary words, so none of
- * these can arrive by playing. They arrive by import, which is the one attacker-controlled route
- * into the state, and length was the only thing the boundary checked.
- *
- * The C0 and C1 ranges because a control character in a name reaches the DOM as one. The bidi
- * formatting characters because U+202E reverses the rest of the line it lands in — an item name is
- * interpolated into guild chatter and printed on the world console, so one of them in a saved
- * loadout rewrites text the player never typed. React escapes markup; it does not escape these.
- * Written as a predicate over code points rather than a character class, because a regex that
- * matches control characters is exactly what `no-control-regex` exists to flag, and the rule fires
- * whether the class is spelled with literals or with escapes. Suppressing it would have been the
- * wrong way round: the lint is right that a control character in a pattern is worth a second look,
- * and the ranges read better named than packed into brackets.
- */
-const isForbiddenCodePoint = (point: number): boolean =>
-  point <= 0x1f // C0 controls
-  || (point >= 0x7f && point <= 0x9f) // delete and the C1 controls
-  || point === 0x200e || point === 0x200f // left-to-right and right-to-left marks
-  || (point >= 0x202a && point <= 0x202e) // the embedding and override run, U+202E among them
-  || (point >= 0x2066 && point <= 0x2069); // the isolates
-
-const isUnrenderable = (value: string): boolean => {
-  // Iterated by code point rather than by UTF-16 unit, so an astral character is never split into
-  // surrogates and mistaken for something in a forbidden range.
-  for (const character of value) {
-    if (isForbiddenCodePoint(character.codePointAt(0) ?? 0)) return true;
-  }
-  return false;
-};
 
 /**
  * Rejects rather than strips.

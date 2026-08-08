@@ -169,3 +169,36 @@ export const boundedLabel = (name: string, fallback: string, limit = 60): string
   const characters = Array.from(name);
   return characters.length > limit ? `${characters.slice(0, limit - 1).join('')}…` : name || fallback;
 };
+
+/**
+ * Code points no displayed string may contain, whatever its length.
+ *
+ * The C0 and C1 ranges because a control character in a name reaches the DOM as one. The bidi
+ * formatting characters because U+202E reverses the rest of the line it lands in — names are
+ * interpolated into guild chatter and printed on the world console, so one of them rewrites text
+ * the player never typed. React escapes markup; it does not escape these.
+ *
+ * Written as a predicate over code points rather than a character class, because a regex matching
+ * control characters is what `no-control-regex` exists to flag, and the rule fires whether the class
+ * is spelled with literals or with escapes.
+ *
+ * Lives here rather than beside the save schema so the boundary that rejects these and the tests
+ * that assert the shipped catalogues are free of them read the same rule. The two used to be
+ * written separately, and the test half was checking `JSON.stringify` output — which escapes every
+ * code point below 0x20 into `\uXXXX`, so half of it could never fail.
+ */
+const isForbiddenCodePoint = (point: number): boolean =>
+  point <= 0x1f // C0 controls
+  || (point >= 0x7f && point <= 0x9f) // delete and the C1 controls
+  || point === 0x200e || point === 0x200f // left-to-right and right-to-left marks
+  || (point >= 0x202a && point <= 0x202e) // the embedding and override run, U+202E among them
+  || (point >= 0x2066 && point <= 0x2069); // the isolates
+
+export const isUnrenderable = (value: string): boolean => {
+  // Iterated by code point rather than by UTF-16 unit, so an astral character is never split into
+  // surrogates and mistaken for something in a forbidden range.
+  for (const character of value) {
+    if (isForbiddenCodePoint(character.codePointAt(0) ?? 0)) return true;
+  }
+  return false;
+};
