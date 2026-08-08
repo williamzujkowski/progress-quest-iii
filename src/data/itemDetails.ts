@@ -1,4 +1,3 @@
-import { MAX_PERSISTED_GOLD } from './limits';
 import { ARMORS, BORING_ITEMS, SPELLS, DEFENSE_ATTRIB, DEFENSE_BAD, ITEM_ATTRIB, ITEM_OFS, MONSTERS, OFFENSE_ATTRIB, OFFENSE_BAD, SHIELDS, SPECIALS, WEAPONS } from './traits';
 import { armourTableForSlot } from './armourBySlot';
 import { shieldFamily, weaponFamily, type ArmourSlot, type ShieldFamily, type WeaponFamily } from './openingFamilies';
@@ -568,25 +567,38 @@ const mundaneLootStory = (name: string, stage = 0): string => {
 /**
  * What the market will give for a stack, which the player had no way to find out.
  *
- * `transition.ts` prices a sale at quantity times character level, and then multiplies anything
- * whose name contains " of " by two random factors that are both at least one. So a named item is
- * worth strictly more than a plain one of the same size, and that has been true since the original
- * without ever being said anywhere — a player watching gold arrive could not tell which of their
- * boxes was the valuable one.
+ * `transition.ts` prices a sale at quantity times character level, and the figure only ever goes up
+ * from there — a named item is multiplied by two rolled factors, and the whole sale is multiplied by
+ * the footprint slot and the hero's charisma. So the base is a floor, and it is reported as one.
  *
- * The premium is reported as a floor rather than a figure, because the multipliers are rolled at
- * the moment of sale. Naming an exact number would be inventing state, which is the one thing this
- * line may never do.
+ * Three things this line used to get wrong, all in the direction of promising more than the
+ * arithmetic keeps:
+ *
+ * The premium was stated as certain. Both rolled factors are `1 + min(r, r)` and both minima can be
+ * zero, so a named item can fetch exactly what a plain one would. That is not a rarity at the level
+ * a player starts at — the smaller the level, the likelier the second factor rolls its floor, and it
+ * is roughly one named sale in five at level one. "Usually" is the honest word.
+ *
+ * The base was capped at `MAX_PERSISTED_GOLD`. The engine has no such rule: `transition.ts` computes
+ * `qty * level` uncapped and `gold.ts` sheds decades rather than saturating, reporting the full
+ * figure earned. The clamp described a cap that exists nowhere, and understated by orders of
+ * magnitude for the imported save that could reach it.
+ *
+ * And the plain case said "sells for", flat, which stopped being true the day the market margins
+ * landed — a hero standing on an `Antipode` is paid more than the level alone suggests.
+ *
+ * Still a floor rather than a figure, because the multipliers are rolled at the moment of sale and
+ * naming an exact number would be inventing state, which is the one thing this line may never do.
  *
  * Silent at level zero, which is only reachable from a caller that has no character to price
  * against. A confident "0 gold" would be worse than saying nothing.
  */
 function saleValue(name: string, quantity: number, level: number): string {
   if (!Number.isFinite(level) || level <= 0) return '';
-  const base = Math.min(MAX_PERSISTED_GOLD, quantity * level);
+  const base = quantity * level;
   return name.includes(' of ')
-    ? `Sells for at least ${formatGameNumber(base)} gold; a named thing fetches more.`
-    : `Sells for ${formatGameNumber(base)} gold at your level.`;
+    ? `Sells for at least ${formatGameNumber(base)} gold; a named thing usually fetches more.`
+    : `Sells for at least ${formatGameNumber(base)} gold at your level.`;
 }
 
 export function describeInventoryItem(name: string, quantity: number, act = 0, level = 0): ItemDetails {

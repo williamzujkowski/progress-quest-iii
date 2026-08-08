@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { formatGameNumber } from '../engine/text';
+import { MAX_PERSISTED_GOLD } from '../data/limits';
 import { ARMOUR_BY_SLOT, armourTableForSlot } from '../data/armourBySlot';
 import type { CharacterSheet, EquipSlot } from '../engine/types';
 import { storageAllowance } from '../engine/storage';
@@ -565,22 +567,44 @@ describe('provenance acquires an industrial edge as acts accumulate', () => {
     }
   });
 
-  it('prices a stack the way the market actually prices it', () => {
-    // `transition.ts` pays quantity times character level. The player had no way to learn that, and
-    // no way to tell which of their boxes was the valuable one.
+  it('prices a stack as a floor, because everything that touches the figure raises it', () => {
+    // `transition.ts` pays quantity times character level and then only ever multiplies up: the
+    // named-item factors, the footprint slot, the hero's charisma. A flat "sells for" was true until
+    // the market margins landed and has been understating a well-shod hero ever since.
     expect(describeInventoryItem('tech debt grub eggsac', 3, 1, 7).effect)
-      .toContain('Sells for 21 gold at your level');
+      .toContain('Sells for at least 21 gold at your level');
   });
 
-  it('reports the named-item premium as a floor, never as a figure', () => {
-    // Anything with " of " in its name is multiplied by two factors that are both at least one, and
-    // both are rolled at the moment of sale. Quoting an exact number would invent state, which is
-    // the one thing this line may never do.
+  it('says a named item usually fetches more, because sometimes it does not', () => {
+    // Both premium factors are `1 + min(r, r)` and both minima can be zero, so a named item can
+    // fetch exactly what a plain one would. That is not a rarity where it matters most: the smaller
+    // the level, the likelier the second factor rolls its floor, and at level one it is roughly one
+    // named sale in five. The old line promised the premium outright.
     const named = describeInventoryItem('Certified Order of Forecast', 3, 1, 7).effect;
 
     expect(named).toContain('at least 21 gold');
-    expect(named).toContain('fetches more');
+    expect(named).toContain('usually fetches more');
     expect(named).not.toMatch(/Sells for \d+ gold at your level/);
+  });
+
+  it('quotes no cap the engine does not have', () => {
+    // The base was clamped to `MAX_PERSISTED_GOLD`. Nothing in the engine caps a single sale —
+    // `transition.ts` computes `qty * level` uncapped and `gold.ts` sheds decades rather than
+    // saturating, reporting the full figure earned. Reachable from an imported save with a huge
+    // stack, where the clamp understated by orders of magnitude.
+    // Chosen so the product is unambiguously past the old clamp. A first attempt used a stack whose
+    // value landed exactly on `MAX_PERSISTED_GOLD`, where "reports the product" and "does not report
+    // the cap" are the same string and the test contradicted itself.
+    const quantity = 1_000_000;
+    const level = 10_000_000;
+    expect(quantity * level).toBeGreaterThan(MAX_PERSISTED_GOLD);
+
+    const huge = describeInventoryItem('hoard', quantity, 1, level).effect;
+
+    // Compared against the project's own formatter rather than a literal, so this asserts the
+    // arithmetic is uncapped without also pinning how large figures are rendered.
+    expect(huge).toContain(`Sells for at least ${formatGameNumber(quantity * level)} gold`);
+    expect(huge).not.toContain(formatGameNumber(MAX_PERSISTED_GOLD));
   });
 
   it('quotes no price when it has no level to price against', () => {
