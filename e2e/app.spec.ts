@@ -480,7 +480,7 @@ test.describe('Progress Quest III terminal dashboard', () => {
     // The claim moved because it was false. "classic encounter time ignores equipment" stopped
     // being true when ADR 0008 shipped, and the tooltip went on saying it on the same screen as a
     // world-console filing reporting the reduction.
-    await expect(tooltip).toContainText('Contributes 9 to the loadout, which shortens encounters');
+    await expect(tooltip).toContainText('Contributes 9 to the loadout total, which is what shortens encounters');
     await expect(tooltip).toContainText('damage is not modeled');
     expect(await tooltip.evaluate((element) => element.parentElement === document.body)).toBe(true);
     const tooltipBox = await tooltip.boundingBox();

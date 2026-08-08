@@ -245,11 +245,23 @@ export function describeEquipment(name: string, slot: EquipSlot, act = 0): ItemD
   //
   // Narrated rather than tabulated. An effects column — "+2 chatter, −1 travel" — is the failure
   // this surface is built to avoid, and the `effect` line is pinned to mechanical truth for exactly
-  // that reason. A quality that contributes nothing says so, because "shortens encounters" would be
-  // a promise the arithmetic does not keep at zero.
+  // that reason.
+  //
+  // It says what the item does to the total, and never what the total then does for the hero. That
+  // distinction is the whole correction. The previous wording — "contributes 1 to the loadout, which
+  // shortens encounters" — asserted an outcome this function cannot see: `loadoutQuality` floors the
+  // sum at zero, so a positive item inside a net-negative loadout shortens nothing at all. A new
+  // character wears a `-3 Burlap`, which means the claim was false for the whole early game, on the
+  // same screen as a world console correctly reporting a reduction of zero.
+  //
+  // The negative arm is a second correction. "Contributes nothing" was said of anything not positive,
+  // and a `-30 Cover Note` does not contribute nothing — it takes the rest of the loadout down with
+  // it.
   const contribution = total > 0
-    ? `Contributes ${formatGameNumber(total)} to the loadout, which shortens encounters`
-    : 'Contributes nothing to the loadout, so encounters are unaffected';
+    ? `Contributes ${formatGameNumber(total)} to the loadout total, which is what shortens encounters`
+    : total < 0
+      ? `Takes ${formatGameNumber(Math.abs(total))} off the loadout total, which is what shortens encounters`
+      : 'Contributes nothing to the loadout total, which is what shortens encounters';
 
   // The padding slot does a second thing, and it is the only slot that does.
   //
