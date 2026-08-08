@@ -1,5 +1,5 @@
 import { ARMORS } from './traits';
-import type { EquipSlot } from '../engine/types';
+import type { ArmourSlot, EquipSlot } from '../engine/types';
 
 /**
  * What a piece of armour is called, given where it is worn.
@@ -103,16 +103,19 @@ const BY_SLOT: Readonly<Record<Exclude<EquipSlot, 'Weapon' | 'Shield'>, readonly
 };
 
 /**
- * The slot-appropriate name for an armour base, or the shared one where a slot has no vocabulary.
+ * The slot-appropriate name for an armour base.
  *
- * `Weapon` and `Shield` already draw from their own tables and are not renamed. An index outside the
- * table falls back rather than throwing: this runs inside the transition, and a name that cannot be
- * found is a worse reason to stop a session than a name that is merely generic.
+ * Takes `ArmourSlot`, not `EquipSlot`. It used to accept `Weapon` and `Shield` and hand back the
+ * shared armour name for them — `armourNameForSlot('Weapon', 3)` answered `Charter` where `WEAPONS`
+ * holds `Stub`. Harmless only because both callers branch on those two slots before arriving, and
+ * pinned as correct by a test asserting the wrong answer. The type refuses now.
+ *
+ * An index outside the table falls back rather than throwing: this runs inside the transition, and a
+ * name that cannot be found is a worse reason to stop a session than a name that is merely generic.
  */
-export function armourNameForSlot(slot: EquipSlot, index: number): string {
+export function armourNameForSlot(slot: ArmourSlot, index: number): string {
   const shared = ARMORS[index]?.[0];
   if (shared === undefined) return '';
-  if (slot === 'Weapon' || slot === 'Shield') return shared;
   return BY_SLOT[slot][index] ?? shared;
 }
 
@@ -125,8 +128,11 @@ export { BY_SLOT as ARMOUR_BY_SLOT };
  * the tooltips and `loadoutQuality` — so a slot renamed without this would report no base, no
  * quality, and a loadout worth nothing. Built from the shared ratings by position, which is the same
  * guarantee the naming itself rests on: entry `n` here is entry `n` there, at the same value.
+ *
+ * Returns `[name, rating]` pairs, matching `ARMORS`. Worth saying out loud: reaching for `.indexOf`
+ * on the result to find a name silently returns -1 every time, which is how a whole feature once
+ * shipped green while doing nothing at all.
  */
-export function armourTableForSlot(slot: EquipSlot): readonly [string, number][] {
-  if (slot === 'Weapon' || slot === 'Shield') return ARMORS;
+export function armourTableForSlot(slot: ArmourSlot): readonly [string, number][] {
   return BY_SLOT[slot].map((name, index) => [name, ARMORS[index]![1]] as [string, number]);
 }

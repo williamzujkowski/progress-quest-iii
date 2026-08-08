@@ -1,13 +1,13 @@
 import { ARMORS, BORING_ITEMS, SPELLS, DEFENSE_ATTRIB, DEFENSE_BAD, ITEM_ATTRIB, ITEM_OFS, MONSTERS, OFFENSE_ATTRIB, OFFENSE_BAD, SHIELDS, SPECIALS, WEAPONS } from './traits';
 import { armourTableForSlot } from './armourBySlot';
-import { shieldFamily, weaponFamily, type ArmourSlot, type ShieldFamily, type WeaponFamily } from './openingFamilies';
+import { shieldFamily, weaponFamily, type ShieldFamily, type WeaponFamily } from './openingFamilies';
 import { analyzeItemMechanics } from '../engine/itemMechanics';
 import { storageAllowance } from '../engine/storage';
 import { marketFavour } from '../engine/marketFavour';
 import { vitalsFlourish } from '../engine/vitalsFlourish';
 import { boundedLabel, formatGameNumber, stableIndex } from '../engine/text';
 import { substrateStage } from './worldContext';
-import type { CharacterSheet, EquipSlot } from '../engine/types';
+import type { ArmourSlot, CharacterSheet, EquipSlot } from '../engine/types';
 
 export interface ItemDetails {
   description: string;
