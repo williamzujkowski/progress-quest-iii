@@ -539,8 +539,16 @@ export function projectAmbient(
   if (lane === 'onboarding' && (loadout?.itemOfRecord?.standing ?? 0) > ONBOARDING_STANDING) lane = 'ambient';
 
   // The two running bits step with the task counter and wrap, so a feud restarts rather than
-  // resolving. `beatIndex` lives in chatterSchedule with the rest of the cadence arithmetic; the
-  // beat is computed here because the lines are here.
+  // resolving.
+  //
+  // Computed here, and only here. `chatterSchedule` used to carry a `beatIndex` with the same
+  // arithmetic and a second copy of the forty, plus a `clampBeatAdvance` meant to keep a bit at
+  // conversation speed through a catch-up drain. Neither was ever called, and the clamp's docstring
+  // asserted a fix that therefore never ran. The drain does jump the beat — but this projection is
+  // pure and recomputed from the counter on every tick, the intervening lines were never displayed
+  // because the player was away, and the one discontinuity is already the thing a `catch_up` scene
+  // exists to explain. Clamping would have meant threading a remembered beat through a function
+  // whose determinism contract is that it remembers nothing.
   const beat = (beats: readonly AmbientLine[]) =>
     beats[Math.floor(completedTasks / AMBIENT_BEAT_TASKS) % beats.length]!;
 
