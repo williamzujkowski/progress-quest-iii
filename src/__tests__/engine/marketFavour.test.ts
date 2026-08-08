@@ -17,6 +17,10 @@ const sellOneStack = (Sollerets: string): number => {
   character.PendingTasks = undefined;
   character.Task = { description: 'Selling ballast...', durationMs: 1000, elapsedMs: 0, type: 'selling' };
   character.Equip = { ...character.Equip, Sollerets };
+  // Charisma pinned to the ordinary ten, where the hero's own haggling is inert by arithmetic. This
+  // suite is about what the ground underfoot is worth; the two sources multiply, and leaving a
+  // rolled stat in would make every figure here depend on a character seed.
+  character.Stats = { ...character.Stats, CHA: 10 };
   character.Inventory = [{ name: 'ballast', qty: 10 }];
   character.Gold = 0;
 
