@@ -5,6 +5,7 @@ import { shieldFamily, weaponFamily, type ArmourSlot, type ShieldFamily, type We
 import { analyzeItemMechanics } from '../engine/itemMechanics';
 import { storageAllowance } from '../engine/storage';
 import { marketFavour } from '../engine/marketFavour';
+import { vitalsFlourish } from '../engine/vitalsFlourish';
 import { boundedLabel, formatGameNumber, stableIndex } from '../engine/text';
 import { substrateStage } from './worldContext';
 import type { CharacterSheet, EquipSlot } from '../engine/types';
@@ -327,9 +328,23 @@ export function describeEquipment(name: string, slot: EquipSlot, act = 0): ItemD
     ? ` Standing here is worth ${formatGameNumber(Math.round((favour - 1) * 100))}% better terms at market.`
     : '';
 
+  // The one effect that has to admit it does nothing.
+  //
+  // `HP Max` and `MP Max` are grown every level and printed on the banner, and read by nothing at
+  // all. Saying so is the joke and it is also the rule this file has been pinned to since the
+  // encounter line was corrected: state what the arithmetic does, never what it might be worth.
+  const vitals = slot === 'Hauberk' || slot === 'Helm'
+    ? vitalsFlourish({ [slot]: name } as CharacterSheet['Equip'])
+    : { hp: 0, mp: 0 };
+  const decoration = vitals.hp > 0
+    ? ` Adds ${formatGameNumber(vitals.hp)} to maximum hit points at each level, which nothing reads.`
+    : vitals.mp > 0
+      ? ` Adds ${formatGameNumber(vitals.mp)} to maximum magic points at each level, which nothing reads.`
+      : '';
+
   return {
     description,
-    effect: `Generation quality: ${formatGameNumber(total)} (${qualityParts.join(' + ')}). ${contribution}; damage is ${mechanics.combatContribution === 'none' ? 'not modeled' : mechanics.combatContribution}.${carrying}${terms}`,
+    effect: `Generation quality: ${formatGameNumber(total)} (${qualityParts.join(' + ')}). ${contribution}; damage is ${mechanics.combatContribution === 'none' ? 'not modeled' : mechanics.combatContribution}.${carrying}${terms}${decoration}`,
   };
 }
 

@@ -7,6 +7,7 @@ import { marketFavour } from './marketFavour';
 import { clawbackPerMille } from './clawback';
 import { bulkStacks } from './bulkDisposal';
 import { hagglingFavour, nimbleStacks } from './heroAptitude';
+import { vitalsFlourish } from './vitalsFlourish';
 import { calculateEncumbranceMax, generateName, levelUpTime } from './math';
 import type { RandomGenerator } from './prng';
 import { formatGameNumber, indefinite, plural } from './text';
@@ -268,12 +269,18 @@ export function advanceGame(state: GameTransitionState, elapsedMs: number, rng: 
         if (nextLevel > traits.Level) events.push({ type: 'level_gained', level: nextLevel, reason: { experienceSeconds: experience.maxSeconds } });
         traits.Level = nextLevel;
 
-        const hpGain = Math.floor(stats.CON / 3) + 1 + rng.random(4);
+        // Read from the sheet rather than from the task loop's `equip`, which is not in scope here
+        // and would not be right if it were: this runs before any equipment can change on this tick,
+        // so the sheet is the live value at the moment the level lands.
+        //
+        // Added after the draw, never instead of one, so the stream is untouched.
+        const flourish = vitalsFlourish(character.Equip);
+        const hpGain = Math.floor(stats.CON / 3) + 1 + rng.random(4) + flourish.hp;
         const nextHpMax = Math.min(MAX_PERSISTED_VALUE, stats['HP Max'] + hpGain);
         if (nextHpMax > stats['HP Max']) events.push({ type: 'stat_gained', stat: 'HP Max', amount: nextHpMax - stats['HP Max'] });
         stats['HP Max'] = nextHpMax;
 
-        const mpGain = Math.floor(stats.INT / 3) + 1 + rng.random(4);
+        const mpGain = Math.floor(stats.INT / 3) + 1 + rng.random(4) + flourish.mp;
         const nextMpMax = Math.min(MAX_PERSISTED_VALUE, stats['MP Max'] + mpGain);
         if (nextMpMax > stats['MP Max']) events.push({ type: 'stat_gained', stat: 'MP Max', amount: nextMpMax - stats['MP Max'] });
         stats['MP Max'] = nextMpMax;
