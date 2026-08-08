@@ -148,6 +148,9 @@ export const progressTaskSchema = z.object({
   // count reaches hundreds of millions, because it is derived from the level. The bound is here
   // to keep a hostile save finite, not to express an opinion about crowd sizes.
   opponents: z.number().int().min(1).max(MAX_PERSISTED_VALUE).optional(),
+  // Optional, so a checkpoint written before the field still restores. Absent reads as an ordinary
+  // kill, which is the safe direction: the worst a lost marker costs is one quest tick.
+  questTarget: z.boolean().optional(),
 }).strict().refine(({ durationMs, elapsedMs }) => elapsedMs <= durationMs, {
   message: 'Task elapsed time cannot exceed its duration.',
   path: ['elapsedMs'],

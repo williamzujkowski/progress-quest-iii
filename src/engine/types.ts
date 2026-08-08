@@ -43,6 +43,17 @@ export interface ProgressTask {
   type: 'kill' | 'buying' | 'selling' | 'quest' | 'plot' | 'loading' | 'prologue' | 'cinematic' | 'act_marker' | 'heading_to_market' | 'heading';
   loot?: { type: 'fixed'; item: string } | { type: 'random' } | undefined;
   /**
+   * Whether this encounter is the monster the active quest named.
+   *
+   * `generateMonsterTask` has always biased one kill in four toward the quest's target, and then
+   * thrown the fact away — so meeting the named thing advanced the quest by exactly as much as
+   * meeting anything else. The game arranged a coincidence and declined to notice it.
+   *
+   * Optional and only ever set, so a task restored from a save written before this field reads as
+   * an ordinary kill rather than as a missing one.
+   */
+  questTarget?: boolean | undefined;
+  /**
    * How many opponents this task is against, where the engine decided a number.
    *
    * Already computed - the encounter's duration is derived from `targetLevel * quantity` - and
