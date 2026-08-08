@@ -764,6 +764,52 @@ test.describe('Progress Quest III terminal dashboard', () => {
     expect(overflow).toEqual({ page: 0, context: 0, notices: 0 });
   });
 
+  test('gives every world-console row a column of its own to sit in', async ({ page }) => {
+    // Found by looking at the running game. No existing check could catch it: there is no overflow
+    // to measure, and the default 1280x720 viewport does not meet the media query that causes it.
+    //
+    // `.world-context` is a named-areas grid of `minmax(0, 1fr) auto` at desktop size. Two children
+    // had no area, so auto-placement put them in the second column — which sizes to max-content —
+    // while the first column is allowed to reach zero. The loadout filing landed there, its longest
+    // line being a `cited:` list of generated item names, so the small-caps labels beside it were
+    // squeezed to nothing and wrapped at every character, rendering vertically one glyph per row.
+    //
+    // The viewport matters and is the reason this went unseen: the rule is gated on
+    // `min-height: 760px`, so nothing below that reproduces it.
+    await page.setViewportSize({ width: 1790, height: 900 });
+    await page.goto('/');
+    await appReady(page);
+
+    await page.evaluate(async () => {
+      const { useGameStore } = await import('/src/state/gameStore.ts');
+      const state = useGameStore.getState();
+      useGameStore.setState({
+        character: {
+          ...state.character,
+          Equip: {
+            ...state.character.Equip,
+            Hauberk: '+9 Bonded Contested Lender of Last Resort',
+            Helm: '+9 Bonded Contested Situational Awareness',
+            Gambeson: 'Doomsday Vault',
+            Sollerets: 'Antipode',
+          },
+        },
+      });
+    });
+
+    const filing = page.locator('.world-context-services');
+    await expect(filing, 'the filing must render, or nothing below is being tested').toBeVisible();
+
+    const cells = await page.evaluate(() => Array.from(document.querySelectorAll('.world-context-line'))
+      .flatMap((row) => Array.from(row.children))
+      .map((cell) => ({ text: (cell.textContent ?? '').trim(), width: cell.getBoundingClientRect().width })));
+
+    expect(cells.length).toBeGreaterThan(0);
+    // A glyph of this font is a few pixels. Forty is generous and an order of magnitude clear of the
+    // failure, which measured exactly zero.
+    for (const { text, width } of cells) expect(width, text).toBeGreaterThan(40);
+  });
+
   test('keeps simulated chatter quiet, bounded, responsive, and entirely local', async ({ page }) => {
     // The longest test here by some way: four viewports, a channel filter, a mute round trip, a
     // forced-colors pass and two axe audits. It fits the default budget when it has a machine to

@@ -556,11 +556,26 @@
 
   .world-context {
     grid-template-columns: minmax(0, 1fr) auto;
+    /* Every child is placed. Two of them were not, and auto-placement put them in the second
+       column — which is `auto`, so it sizes to max-content, while the first is `minmax(0, 1fr)`
+       and is therefore allowed to reach zero.
+       The loadout filing landed there. Its longest line is a `cited:` list of generated item
+       names, so the column took whatever that needed and the small-caps labels beside it were
+       squeezed to nothing, wrapping at every character and rendering vertically, one glyph per
+       row, down the whole console. `overflow-wrap: anywhere` on those rows could not help: it
+       wraps within the width a box is given, and this box was given none.
+       Both now have a row of their own across the full width, which is what they always wanted —
+       they are prose, not a second column. */
     grid-template-areas:
       'truth truth'
       'location location'
-      'meta filings';
+      'meta filings'
+      'tenor tenor'
+      'services services';
   }
+
+  .world-context-tenor { grid-area: tenor; }
+  .world-context-services { grid-area: services; }
 
   .world-context-truth {
     font-size: 0.72rem;
