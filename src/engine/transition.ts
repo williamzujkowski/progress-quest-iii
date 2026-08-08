@@ -231,6 +231,16 @@ function gainedSpell(previous: readonly SpellItem[], next: readonly SpellItem[])
   return next.find((spell) => spell.level > (previous.find(({ name }) => name === spell.name)?.level ?? 0));
 }
 
+/**
+ * How much faster the quest track moves when the hero meets the thing it named.
+ *
+ * Three, against a one-in-four bias, so a hero fighting their own quest finishes it roughly twice as
+ * fast as one who never runs into it. Large enough that the bar visibly jumps — which is the entire
+ * point, since the effect has to be attributable by a player who never acts — and bounded because
+ * quests hand out rewards and this is the rate at which they arrive.
+ */
+const QUEST_TARGET_PROGRESS = 3;
+
 export function advanceGame(state: GameTransitionState, elapsedMs: number, rng: RandomGenerator): GameTransitionResult {
   if (!Number.isFinite(elapsedMs) || elapsedMs <= 0) return { state, records: [], remainingElapsedMs: 0 };
 
@@ -312,7 +322,17 @@ export function advanceGame(state: GameTransitionState, elapsedMs: number, rng: 
       const questHistory = quest.history ?? [];
       const questWasComplete = quest.currentProgress >= quest.maxProgress || questHistory.length === 0;
       if (!questWasComplete) {
-        quest.currentProgress = Math.min(quest.maxProgress, quest.currentProgress + progressDelta);
+        // The coincidence the game already goes to trouble to arrange, finally noticed.
+        //
+        // `generateMonsterTask` biases one kill in four toward the monster the quest named, and
+        // until now killing it advanced the track by exactly as much as killing anything else — so
+        // the quest line and the kill line agreed on screen and the bar did not care.
+        //
+        // Golden-safe by arithmetic rather than by coverage: the marker is only ever set when the
+        // quest has a `kind` of `exterminate` and a resolvable `targetIndex`, and every fixture's
+        // quest is `Test quest` with neither, so the multiplier is exactly one there.
+        const questProgress = progressDelta * (task.questTarget ? QUEST_TARGET_PROGRESS : 1);
+        quest.currentProgress = Math.min(quest.maxProgress, quest.currentProgress + questProgress);
       } else {
         const completedQuestDescription = quest.description;
         quest.currentProgress = 0;

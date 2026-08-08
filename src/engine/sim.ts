@@ -312,7 +312,7 @@ export function applyQuestReward(rng: RandomGenerator, character: CharacterSheet
   };
 }
 
-function generateMonsterTask(rng: RandomGenerator, character: CharacterSheet): { description: string; durationMs: number; loot: NonNullable<ProgressTask['loot']>; opponents: number } {
+function generateMonsterTask(rng: RandomGenerator, character: CharacterSheet): { description: string; durationMs: number; loot: NonNullable<ProgressTask['loot']>; opponents: number; questTarget?: true } {
   const characterLevel = character.Traits.Level;
   let targetLevel = characterLevel;
   // ponytail: levels beyond finite progression get the last finite level's legacy roll budget.
@@ -322,6 +322,7 @@ function generateMonsterTask(rng: RandomGenerator, character: CharacterSheet): {
   targetLevel = Math.max(1, targetLevel);
 
   let definiteName = false;
+  let isQuestTarget = false;
   const questMonster = character.Quest.targetIndex === undefined ? undefined : MONSTERS[character.Quest.targetIndex];
   const validQuestTarget = character.Quest.kind === 'exterminate'
     && questMonster !== undefined
@@ -337,9 +338,11 @@ function generateMonsterTask(rng: RandomGenerator, character: CharacterSheet): {
       definiteName = true;
     }
   } else {
-    monster = validQuestTarget && rng.random(4) === 0
-      ? questMonster
-      : getRandomMonster(rng, targetLevel);
+    // Already decided here, and until now thrown away. The bias exists so the hero sometimes meets
+    // the thing the quest named; carrying the fact forward is what lets the quest notice.
+    const takesQuestTarget = validQuestTarget && rng.random(4) === 0;
+    monster = takesQuestTarget ? questMonster : getRandomMonster(rng, targetLevel);
+    isQuestTarget = takesQuestTarget;
   }
   let quantity = 1;
   if (targetLevel - monster.level > 10) {
@@ -392,10 +395,12 @@ function generateMonsterTask(rng: RandomGenerator, character: CharacterSheet): {
     loot: monster.item === '*'
       ? { type: 'random' }
       : { type: 'fixed', item: `${monster.name} ${monster.item}`.toLowerCase() },
+    // Only ever set, never cleared, so a task that predates the field reads as an ordinary kill.
+    ...(isQuestTarget ? { questTarget: true as const } : {}),
   };
 }
 
-export function generateTaskDescription(rng: RandomGenerator, character: CharacterSheet): { description: string; type: ProgressTask['type']; durationMs: number; loot?: ProgressTask['loot']; opponents?: number } {
+export function generateTaskDescription(rng: RandomGenerator, character: CharacterSheet): { description: string; type: ProgressTask['type']; durationMs: number; loot?: ProgressTask['loot']; opponents?: number; questTarget?: true } {
   const encum = calculateEncumbrance(character.Inventory);
   const maxEncum = calculateEncumbranceMax(character.Stats.STR, storageAllowance(character.Equip));
   const price = equipPrice(character.Traits.Level);
@@ -422,6 +427,7 @@ export function generateTaskDescription(rng: RandomGenerator, character: Charact
     type: 'kill',
     durationMs: monster.durationMs,
     loot: monster.loot,
+    ...(monster.questTarget ? { questTarget: true as const } : {}),
     // Rebuilt field by field here rather than spread, so a new fact has to be threaded through
     // deliberately - which is why the count reached the task only after this line was added.
     opponents: monster.opponents,
