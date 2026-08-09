@@ -1462,6 +1462,56 @@ test.describe('Progress Quest III terminal dashboard', () => {
     }
   });
 
+  test('keeps every record reachable rather than clipped by the card', async ({ page }) => {
+    // Measured at 1372x943 against a mature save: the records disclosure came to 2952px of content
+    // inside a card that clips at `overflow-y: hidden` and 624px, on a dashboard whose page does not
+    // scroll. The service record began 1575px below the card's bottom edge with no way to reach it,
+    // which is worse than absent — the summary promises it is there.
+    //
+    // Asserted through the scroll region's own geometry rather than by screenshot, because what
+    // broke was reachability, not appearance: a screenshot of the clipped version looks fine.
+    await page.goto('/');
+    await loadDenseDashboard(page);
+    await page.evaluate(async () => {
+      const { useGameStore } = await import('/src/state/gameStore.ts');
+      const state = useGameStore.getState();
+      useGameStore.setState({
+        commendations: { highestLevel: 45, largestSale: 102_815, questsCompleted: 2291, actsCompleted: 3, exhibit: {} },
+        caseload: {
+          kinds: { exterminate: 426, seek: 474, deliver: 460, fetch: 455, placate: 446 },
+          targets: { 'Purple Squirrel': 12 },
+          targetActs: { 'Purple Squirrel': { first: 2, last: 9 } },
+        },
+        specimens: { specimens: Array.from({ length: 300 }, (_unused, index) => `item:Specimen ${index}`) },
+        character: { ...state.character, Plot: { ...state.character.Plot, act: 14 } },
+      });
+    });
+
+    await page.locator('.records-details > summary').filter({ hasText: /^Records/ }).click();
+    const region = page.locator('.records-scroll');
+    await expect(region).toBeVisible();
+
+    const geometry = await region.evaluate((element) => {
+      const card = element.closest('.character-card') as HTMLElement;
+      element.scrollTop = element.scrollHeight;
+      const document_ = element.querySelector('.service-record') as HTMLElement | null;
+      return {
+        scrolls: element.scrollHeight > element.clientHeight + 4,
+        regionBottom: element.getBoundingClientRect().bottom,
+        cardBottom: card.getBoundingClientRect().bottom,
+        documentBottom: document_ ? document_.getBoundingClientRect().bottom : null,
+      };
+    });
+
+    // The premise: a fixture small enough to fit would make everything below vacuous.
+    expect(geometry.scrolls, 'the fixture must overflow, or this proves nothing').toBe(true);
+    // The region stays inside the card that clips it...
+    expect(geometry.regionBottom).toBeLessThanOrEqual(geometry.cardBottom + 1);
+    // ...and scrolling to the end brings the last thing in it into view rather than past the edge.
+    expect(geometry.documentBottom).not.toBeNull();
+    expect(geometry.documentBottom as number).toBeLessThanOrEqual(geometry.cardBottom + 1);
+  });
+
   test('spends a wide viewport on the loadout rather than on the prose column', async ({ page }) => {
     // The loadout measured 329px at 1280, 1806 and 2560 alike, because `.app-container` caps the
     // whole dashboard at 1280 and centres it — the column ratios were never what held it there.

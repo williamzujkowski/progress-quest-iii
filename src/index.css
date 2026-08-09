@@ -340,6 +340,23 @@ input[type='radio']:checked::before { transform: scale(1); }
 .docket-register { margin-top: 0.4rem; }
 
 /*
+ * The records disclosure scrolls; the card it sits in does not.
+ *
+ * `.character-card` clips at `overflow-y: hidden` and the dashboard is a one-screen layout, so the
+ * page has no scroll of its own to fall back on. A mature save's records came to 2952px against a
+ * 624px card, which put the service record 1575px past the bottom edge with no way to reach it.
+ *
+ * Capped in viewport units with a rem ceiling: the region should give up its share on a short
+ * window rather than push the card, and should not grow without limit on a tall one. `contain`
+ * keeps a flick inside the region from scrolling whatever is behind it once it bottoms out.
+ */
+.records-scroll {
+  max-height: min(52vh, 30rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/*
  * The record is set as a document, not as a panel: prose measure, a subject line, and headings that
  * are quieter than the section labels above them. The surrounding surfaces are tables of figures,
  * and the whole point of this one is that it reads as something typed rather than something totted
