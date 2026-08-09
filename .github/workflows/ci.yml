@@ -52,6 +52,28 @@ jobs:
       - name: Quality gate
         run: npm run quality
 
+      # Kept only when something failed, because that is the only time it is worth anything.
+      #
+      # The reporter is `list`, so a green run produces no artefact and a red one produces the
+      # assertion text in the log and nothing else. That is enough for a failure anybody can
+      # reproduce and not enough for one nobody can: the narrow-text layout sweep has now gone red
+      # twice without a diagnosis surviving, once here and once locally, because Playwright clears
+      # `test-results/` at the start of the next run and the next run was green.
+      #
+      # A trace carries the DOM snapshot at the moment of the assertion, which for a layout failure
+      # is the whole question — which element was starved, and what was around it. Fourteen days is
+      # long enough to look at a red build and short enough not to accumulate.
+      - name: Keep the failing run's evidence
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: playwright-evidence-${{ github.job }}
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 14
+          if-no-files-found: ignore
+
   # WebKit, on its own runner and off the critical path.
   #
   # It is not optional and it is not slower by accident. Measured against the same suite, chromium
@@ -90,6 +112,28 @@ jobs:
 
       - name: WebKit browser suite
         run: npm run test:e2e:webkit
+
+      # Kept only when something failed, because that is the only time it is worth anything.
+      #
+      # The reporter is `list`, so a green run produces no artefact and a red one produces the
+      # assertion text in the log and nothing else. That is enough for a failure anybody can
+      # reproduce and not enough for one nobody can: the narrow-text layout sweep has now gone red
+      # twice without a diagnosis surviving, once here and once locally, because Playwright clears
+      # `test-results/` at the start of the next run and the next run was green.
+      #
+      # A trace carries the DOM snapshot at the moment of the assertion, which for a layout failure
+      # is the whole question — which element was starved, and what was around it. Fourteen days is
+      # long enough to look at a red build and short enough not to accumulate.
+      - name: Keep the failing run's evidence
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: playwright-evidence-${{ github.job }}
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 14
+          if-no-files-found: ignore
 
   # The single required status check, and deliberately a job that does no work.
   #
