@@ -19,12 +19,14 @@ describe('loadout quality', () => {
   });
 
   it('sums the slots rather than reading one', () => {
+    // `Equip` is replaced rather than mutated, which is how the engine does it — `transition.ts`
+    // copies the map once per transition and writes every change as `{ ...equip, [slot]: name }`.
+    // These tests used to mutate in place, which no production path can produce, and which the
+    // identity-keyed cache in `loadoutQuality` therefore reads as "unchanged".
     const character = hero();
-    for (const slot of EQUIP_SLOTS) character.Equip[slot] = '';
-    character.Equip.Weapon = 'Mandate';
-    const oneItem = loadoutQuality(character);
-    character.Equip.Shield = 'Legal Hold';
-    const twoItems = loadoutQuality(character);
+    const bare = { ...character, Equip: Object.fromEntries(EQUIP_SLOTS.map((slot) => [slot, ''])) } as typeof character;
+    const oneItem = loadoutQuality({ ...bare, Equip: { ...bare.Equip, Weapon: 'Mandate' } });
+    const twoItems = loadoutQuality({ ...bare, Equip: { ...bare.Equip, Weapon: 'Mandate', Shield: 'Legal Hold' } });
 
     expect(oneItem).toBeGreaterThan(0);
     expect(twoItems).toBeGreaterThan(oneItem);
@@ -32,29 +34,27 @@ describe('loadout quality', () => {
 
   it('reads the assessor mark, so a +25 of the same base beats a plain one', () => {
     const character = hero();
-    for (const slot of EQUIP_SLOTS) character.Equip[slot] = '';
-    character.Equip.Weapon = 'Mandate';
-    const plain = loadoutQuality(character);
-    character.Equip.Weapon = '+25 Mandate';
+    const bare = { ...character, Equip: Object.fromEntries(EQUIP_SLOTS.map((slot) => [slot, ''])) } as typeof character;
+    const plain = loadoutQuality({ ...bare, Equip: { ...bare.Equip, Weapon: 'Mandate' } });
 
-    expect(loadoutQuality(character)).toBe(plain + 25);
+    expect(loadoutQuality({ ...bare, Equip: { ...bare.Equip, Weapon: '+25 Mandate' } })).toBe(plain + 25);
   });
 
   it('treats an unreadable imported loadout as worth nothing rather than propagating it', () => {
-    const character = hero();
-    for (const slot of EQUIP_SLOTS) character.Equip[slot] = '';
+    const base = hero();
+    const bare = { ...base, Equip: Object.fromEntries(EQUIP_SLOTS.map((slot) => [slot, ''])) } as typeof base;
     // An assessor mark past safe-integer range is rejected by the analysis; this asserts the sum
     // stays a usable number rather than becoming NaN and reaching a duration calculation.
-    character.Equip.Weapon = '999999999999999999999 Mandate';
+    const character = { ...bare, Equip: { ...bare.Equip, Weapon: '999999999999999999999 Mandate' } };
 
     // Compared against the same item without the unreadable mark, because finite-and-non-negative is
     // guaranteed by the return expression: `Number.isFinite(total) ? Math.max(0, total) : 0` cannot
     // produce anything else for any input, so the previous pair of assertions held whatever the
     // function did. If the twenty-one-digit mark ever started parsing, quality would be about 1e21 —
     // finite, positive, and still passing both.
-    const bare = { ...character, Equip: { ...character.Equip, Weapon: 'Mandate' } };
+    const readable = { ...bare, Equip: { ...bare.Equip, Weapon: 'Mandate' } };
 
-    expect(loadoutQuality(character)).toBe(loadoutQuality(bare));
+    expect(loadoutQuality(character)).toBe(loadoutQuality(readable));
   });
 });
 

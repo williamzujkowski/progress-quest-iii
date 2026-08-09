@@ -64,7 +64,39 @@ export interface LoadoutFiling {
 /** Three, because two of anything is chance and four is rare enough to never fire. */
 const REPEAT_THRESHOLD = 3;
 
+/*
+ * One slot of memory, keyed on the equipment object's identity.
+ *
+ * `fileLoadout` reads nothing but `character.Equip`, and it is expensive for what it is: eleven
+ * `analyzeItemMechanics` calls, plus `loadoutQuality`'s eleven more downstream. It is also called
+ * from a render body that runs on every tick, because `LogFeed` selects `state.character` and the
+ * character's identity changes every tick as the task advances.
+ *
+ * The two rates are nothing alike. Measured over 2 000 real ticks on a warmed save: the character's
+ * identity changed 2 000 times and `Equip`'s changed 14. `projectWorld`, which this dominates, cost
+ * 23.6 us against a 6.9 us tick — the render path was more than three times the simulation, and
+ * 99.3% of it re-derived a loadout that had not moved.
+ *
+ * Identity rather than contents, which is what makes this safe rather than a guess: the engine
+ * replaces `Equip` with a new object whenever it changes a slot — `equip = { ...equip, [slot]: … }`
+ * — and never mutates one in place. A stale hit would need an `Equip` that changed without being
+ * replaced, which nothing here does.
+ *
+ * One entry, not a map. The question is only ever "the same as last time?", and a growing cache on
+ * a session that runs for weeks is a leak dressed up as an optimisation.
+ */
+let lastEquip: CharacterSheet['Equip'] | null = null;
+let lastFiling: LoadoutFiling | null = null;
+
 export function fileLoadout(character: CharacterSheet): LoadoutFiling {
+  if (lastFiling !== null && character.Equip === lastEquip) return lastFiling;
+  const filing = computeLoadoutFiling(character);
+  lastEquip = character.Equip;
+  lastFiling = filing;
+  return filing;
+}
+
+function computeLoadoutFiling(character: CharacterSheet): LoadoutFiling {
   const analysed = EQUIP_SLOTS.flatMap((slot) => {
     const name = character.Equip[slot];
     if (!name) return [];
