@@ -1706,6 +1706,69 @@ test.describe('Progress Quest III terminal dashboard', () => {
     }
   });
 
+  test('names the outgoing character in the incoming one\u2019s file', async ({ page }) => {
+    // The predecessor line end to end, which no unit test reaches: the store banks the outgoing
+    // character into the roster, the roster is re-read at the session boundary, and the document
+    // composed from it names whoever held the file before. Three pieces that were built separately
+    // and only meet here.
+    //
+    // The boundary is the part worth exercising. The roster used to be read in the render body and
+    // now comes off the store, refreshed by `startSession` — which also runs
+    // `preserveOutgoingCharacter` first, so the entry being read is one written moments earlier in
+    // the same call.
+    await page.setViewportSize({ width: 1372, height: 943 });
+    await page.goto('/');
+
+    await page.evaluate(async () => {
+      const { useGameStore } = await import('/src/state/gameStore.ts');
+      useGameStore.getState().startSession({
+        source: 'creation', name: 'Alpha', race: 'Half Daemon', klass: 'Incident Paladin', seed: 'alpha-journey',
+      } as never);
+      for (let tick = 0; tick < 200; tick += 1) useGameStore.getState().tick(1000);
+      // Banked the way the save modal banks one, so the roster has an entry to update rather than
+      // add — which is the only case `preserveOutgoingCharacter` will touch.
+      const { saveToRoster } = await import('/src/state/saveManager.ts');
+      saveToRoster(useGameStore.getState().character as never);
+
+      // Then Alpha progresses past that save. This is the situation `preserveOutgoingCharacter`
+      // exists for — its own note says all progress since the player's last explicit save lives only
+      // in the active checkpoint — and without it the switch below banks nothing, so the roster keeps
+      // the older sheet and the document cites the wrong level. Set directly rather than played out,
+      // because levelling twenty-one times takes hours of credited time and the question here is
+      // which sheet gets banked, not how it got that way.
+      const current = useGameStore.getState().character;
+      useGameStore.setState({ character: { ...current, Traits: { ...current.Traits, Level: 22 } } });
+    });
+
+    await page.evaluate(async () => {
+      const { useGameStore } = await import('/src/state/gameStore.ts');
+      useGameStore.getState().startSession({
+        source: 'creation', name: 'Beta', race: 'Double Tenant', klass: 'Robot Monk', seed: 'beta-journey',
+      } as never);
+      for (let tick = 0; tick < 200; tick += 1) useGameStore.getState().tick(1000);
+    });
+
+    await page.locator('.records-details > summary').filter({ hasText: /^Records/ }).click();
+    const record = page.locator('.service-record');
+    await expect(record).toBeVisible();
+    const text = await record.innerText();
+
+    // The document is about the incoming character...
+    expect(text).toContain('Beta, Double Tenant Robot Monk');
+    // ...and cites the outgoing one, by name, under its own heading.
+    expect(text).toContain('Precedent');
+    // Level 22, not the level Alpha was at its last explicit save. That difference is the whole of
+    // `preserveOutgoingCharacter`: without it the switch banks nothing and this reads the older
+    // sheet. An earlier version of this test asserted only the name, and a mutation deleting that
+    // call passed it.
+    expect(text).toMatch(/This file continues one opened for Alpha, Half Daemon Incident Paladin, last recorded at level 22\./);
+    // Never in the second person: the ledgers are global, so a citation may name a character this
+    // reader never played.
+    expect(text.toLowerCase()).not.toMatch(/\byou\b|\byour\b/);
+    // And it claims no ending. Alpha has not retired or died; they have not been loaded lately.
+    expect(text.toLowerCase()).not.toMatch(/\bretired\b|\bdied\b|\bformer\b|\bno longer\b/);
+  });
+
   test('spends a wide viewport on the loadout rather than on the prose column', async ({ page }) => {
     // The loadout measured 329px at 1280, 1806 and 2560 alike, because `.app-container` caps the
     // whole dashboard at 1280 and centres it — the column ratios were never what held it there.
