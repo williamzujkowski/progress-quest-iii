@@ -1655,6 +1655,43 @@ test.describe('Progress Quest III terminal dashboard', () => {
     }
   });
 
+  test('audits the world filings disclosure with notices in it', async ({ page }) => {
+    // The other disclosure, on the reasoning that found a skipped heading behind the first one:
+    // a closed `details` is not in the accessibility tree, so its contents sit outside every audit
+    // in the suite unless a test deliberately opens it. Several tests do open this one — for its
+    // focus ring, its forced-colors behaviour, its counter — and none of them audits while it is.
+    await page.setViewportSize({ width: 1372, height: 943 });
+    await page.goto('/');
+    await loadDenseDashboard(page);
+    await page.evaluate(async () => {
+      const { useGameStore } = await import('/src/state/gameStore.ts');
+      useGameStore.setState({
+        worldNotices: Array.from({ length: 12 }, (_unused, index) => ({
+          id: index,
+          text: `Territorial notice ${index}, unresolved`,
+        })) as never,
+      });
+    });
+
+    const summary = page.getByRole('region', { name: 'Current world context' }).getByText('World filings');
+    await summary.click();
+    // The premise: auditing an empty disclosure passes and proves nothing.
+    await expect(page.getByRole('region', { name: 'Derived world notices' })).toBeVisible();
+
+    await expectNoViolations(page, 'world filings disclosure, populated');
+
+    // Heading order across the console, for the same reason it is checked on the loadout card:
+    // `heading-order` is an axe best-practice rule and this suite filters to the WCAG tags.
+    const levels = await page.locator('.activity-card :is(h1,h2,h3,h4,h5,h6)').evaluateAll(
+      (nodes) => nodes.map((node) => Number(node.tagName.slice(1))),
+    );
+    expect(levels.length, 'the console must actually have headings to order').toBeGreaterThan(1);
+    for (let index = 1; index < levels.length; index += 1) {
+      expect(levels[index] as number, `heading ${index} jumps from h${levels[index - 1]}`)
+        .toBeLessThanOrEqual((levels[index - 1] as number) + 1);
+    }
+  });
+
   test('spends a wide viewport on the loadout rather than on the prose column', async ({ page }) => {
     // The loadout measured 329px at 1280, 1806 and 2560 alike, because `.app-container` caps the
     // whole dashboard at 1280 and centres it — the column ratios were never what held it there.
