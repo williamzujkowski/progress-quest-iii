@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { projectCounterfactual } from '../../engine/loadoutFiling';
+import { ENCOUNTER_SECONDS_PRECISION, projectCounterfactual } from '../../engine/loadoutFiling';
 import { encounterSpeedMultiplier, loadoutQuality } from '../../engine/loadout';
 import { createNewCharacter } from '../../engine/sim';
 import { RandomGenerator } from '../../engine/prng';
@@ -25,6 +25,69 @@ const equipped = (equip: Partial<CharacterSheet['Equip']>): CharacterSheet => {
   const base = hero();
   return { ...base, Equip: { ...base.Equip, ...equip } };
 };
+
+describe('a comparison that shows no difference is not a comparison', () => {
+  /*
+   * The guard was `multiplier >= 1`, which catches only a loadout worth exactly zero. The console
+   * prints one decimal place, so any multiplier close enough to one produced two identical strings
+   * and the line read "scheduled at 6.0s; would have taken 6.0s" — a number beside itself, on the
+   * one surface that exists to make an invisible mechanic attributable.
+   *
+   * Worst in the early game, which is when the loadout is nearly worthless and a new reader is most
+   * likely to be working out what the console means.
+   */
+  const printed = (ms: number) => (ms / 1000).toFixed(ENCOUNTER_SECONDS_PRECISION);
+
+  it('stays away whenever the two figures would print the same', () => {
+    // Swept rather than sampled: every combination that reaches this function must either be null or
+    // show two visibly different figures. A single fixture would prove nothing about the boundary.
+    let shown = 0;
+    for (const helm of ['+1 Lanyard', '+3 Lanyard', '+5 Hard Hat', '+9 Master Agreement', '+40 Regency']) {
+      for (const durationMs of [1500, 2000, 4000, 6000, 9000, 14000, 30000]) {
+        const character = { ...equipped({ Helm: helm }), Task: { description: 'Executing a Nit...', durationMs, elapsedMs: 0, type: 'kill' as const } };
+        const counterfactual = projectCounterfactual(character);
+        if (counterfactual === null) continue;
+        shown += 1;
+        expect(printed(counterfactual.actualMs), `${helm} at ${durationMs}ms`)
+          .not.toBe(printed(counterfactual.canonicalMs));
+      }
+    }
+    // The premise: a guard that suppressed everything would satisfy the loop above vacuously.
+    expect(shown).toBeGreaterThan(10);
+  });
+
+  it('still reports the difference once it is large enough to see', () => {
+    // The other direction. Suppressing an identical rendering must not suppress a real one — the
+    // line is the only place the loadout's effect is ever named.
+    const counterfactual = projectCounterfactual({
+      ...equipped({ Helm: '+40 Regency' }),
+      Task: { description: 'Executing a Nit...', durationMs: 14000, elapsedMs: 0, type: 'kill' },
+    });
+
+    expect(counterfactual).not.toBeNull();
+    expect(printed(counterfactual!.canonicalMs)).not.toBe(printed(counterfactual!.actualMs));
+    expect(counterfactual!.canonicalMs).toBeGreaterThan(counterfactual!.actualMs);
+  });
+
+  it('suppresses the case that was shipping, rather than only cases nobody hits', () => {
+    // A near-worthless loadout on a six-second encounter, which is the state a new character spends
+    // its first minutes in. Both sides rounded to 6.0s.
+    //
+    // `+3 Lanyard` rather than `+1`: the starting sheet carries a `-3 Burlap` that cancels a +1
+    // outright, leaving quality 0 and a multiplier of exactly 1 — which the *old* guard already
+    // caught. Quality 1 is the smallest loadout that does something and still prints nothing, so it
+    // is the case this change is actually about.
+    const character = {
+      ...equipped({ Helm: '+3 Lanyard' }),
+      Task: { description: 'Executing a Nit...', durationMs: 6000, elapsedMs: 0, type: 'kill' as const },
+    };
+    const quality = loadoutQuality(character);
+    // The premise again: this must be a loadout that does something, or the old guard would have
+    // caught it and there would be nothing new here.
+    expect(encounterSpeedMultiplier(quality)).toBeLessThan(1);
+    expect(projectCounterfactual(character)).toBeNull();
+  });
+});
 
 describe('the road not taken', () => {
   it('reports the duration the original formula would have produced', () => {

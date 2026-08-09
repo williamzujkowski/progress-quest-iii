@@ -155,6 +155,16 @@ function computeLoadoutFiling(character: CharacterSheet): LoadoutFiling {
   };
 }
 
+/**
+ * How precisely the console prints these two durations.
+ *
+ * Lives here rather than at the render site because the decision below depends on it. A
+ * counterfactual is worth showing only when the two figures actually differ *as printed*, and that
+ * is a question about the rendering — so the two have to agree about the precision or they will
+ * drift and the guard will stop guarding.
+ */
+export const ENCOUNTER_SECONDS_PRECISION = 1;
+
 /** The encounter as it is, beside the encounter as the original formula would have had it. */
 export interface EncounterCounterfactual {
   readonly actualMs: number;
@@ -182,6 +192,17 @@ export interface EncounterCounterfactual {
  *
  * Null for anything that is not a kill. A market walk has no counterfactual — the loadout does not
  * touch it — and inventing one would be the tooltip failure this codebase keeps correcting.
+ *
+ * Null too when the two durations would print the same, which is not the same test as "the loadout
+ * changes nothing" and was the bug. The guard used to be `multiplier >= 1`, catching only a loadout
+ * worth exactly zero — but the console prints one decimal place, so any multiplier close enough to
+ * one produced two identical strings and the line said *"scheduled at 6.0s; would have taken 6.0s"*.
+ * Measured across nine qualities and five durations, 17 of 45 renderings were identical, and at
+ * quality 1 to 5 every single one was.
+ *
+ * That is the early game, when the loadout is nearly worthless and a new reader is most likely to be
+ * working out what the console means — and the one line that exists to make an invisible mechanic
+ * attributable was showing them a number beside itself.
  */
 export function projectCounterfactual(character: CharacterSheet): EncounterCounterfactual | null {
   const { Task } = character;
@@ -192,5 +213,12 @@ export function projectCounterfactual(character: CharacterSheet): EncounterCount
   // reading "would have taken the same" is noise dressed as information.
   if (multiplier >= 1) return null;
 
-  return { actualMs: Task.durationMs, canonicalMs: Math.round(Task.durationMs / multiplier) };
+  const canonicalMs = Math.round(Task.durationMs / multiplier);
+  // And nothing worth saying when the difference is real but too small to print. Compared as the
+  // console will compare them, rather than by a tolerance chosen here — a tolerance would be a
+  // second opinion about the same question, and the two would eventually disagree.
+  const seconds = (ms: number) => (ms / 1000).toFixed(ENCOUNTER_SECONDS_PRECISION);
+  if (seconds(Task.durationMs) === seconds(canonicalMs)) return null;
+
+  return { actualMs: Task.durationMs, canonicalMs };
 }
