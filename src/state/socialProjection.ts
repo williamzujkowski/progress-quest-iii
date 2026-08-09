@@ -3,9 +3,10 @@ import { GRATS } from '../data/socialGrats';
 import { DKP_ALLOCATION, DKP_STANDINGS } from '../data/socialDkp';
 import { recurringAssignments } from './questRecurrence';
 import { boundCodePoints, boundedLabel, MAX_TEXT_CODE_POINTS, formatGameNumber, stableIndex, stableChoice } from '../engine/text';
-import { DOCKET_LINES, SYSTEM_NOTICES, AUCTION_LINES, MISTELLS, UTILITY_BEATS, AMBIENT_LINES, BLAME_BEATS, EXCHANGES, FEUD_BEATS, ITEM_OF_RECORD_LINES, ONBOARDING_LINES, QUESTION_BEATS, REACTION_LINES, REPEATED_MODIFIER_LINES, TRADE_LINES, type AmbientLine } from '../data/socialAmbient';
+import { DOCKET_LINES, PREDECESSOR_MISTELLS, SYSTEM_NOTICES, AUCTION_LINES, MISTELLS, UTILITY_BEATS, AMBIENT_LINES, BLAME_BEATS, EXCHANGES, FEUD_BEATS, ITEM_OF_RECORD_LINES, ONBOARDING_LINES, QUESTION_BEATS, REACTION_LINES, REPEATED_MODIFIER_LINES, TRADE_LINES, type AmbientLine } from '../data/socialAmbient';
 import type { LoadoutFiling } from '../engine/loadoutFiling';
 import { displayTarget, mostLitigated, type Caseload } from './caseload';
+import type { Predecessor } from './predecessor';
 import { projectWorld, type IdentifiedGameTransitionRecord } from './worldContext';
 
 export type SocialChannel = 'guild' | 'world' | 'party' | 'raid' | 'whisper' | 'system' | 'hero';
@@ -741,6 +742,10 @@ const AMBIENT_LANES = [
   // a lane that fired often would say the same thing about the same item all afternoon.
   'item',
   'blame',
+  // Somebody still posting to whoever held this file three characters ago. One lane's worth, and
+  // reachable only once the roster holds two characters — which makes it the rarest thing the
+  // channel does and the one most worth stumbling on.
+  'predecessor',
   // The name the hero keeps filing against, said out loud by somebody who has stopped pretending it
   // is a stranger. One lane's worth: the joke is that the quartermaster has quietly reclassified an
   // adversary as a colleague, and a reclassification announced every minute is a running gag rather
@@ -803,6 +808,13 @@ export interface InstitutionalMemory {
   readonly loadout?: LoadoutFiling | undefined;
   /** Who the hero keeps filing against, across every character the roster has held. */
   readonly caseload?: Caseload | undefined;
+  /**
+   * Who held this file before, by seniority rather than recency.
+   *
+   * Already computed rather than derived here, because `predecessorFor` needs the current name as
+   * well as the roster and only the caller has both. Null is the ordinary state of a fresh save.
+   */
+  readonly predecessor?: Predecessor | null | undefined;
 }
 
 /**
@@ -818,7 +830,7 @@ export function projectAmbient(
   completedTasks: number,
   memory: InstitutionalMemory = {},
 ): readonly SocialEntry[] {
-  const { loadout, caseload } = memory;
+  const { loadout, caseload, predecessor } = memory;
   if (!Number.isFinite(completedTasks) || completedTasks < 0) return [];
   const cast = castForHero(hero);
   const key = `ambient:${hero.name}:${hero.race}:${hero.className}:${completedTasks}`;
@@ -833,6 +845,8 @@ export function projectAmbient(
   // the roster starts empty and the tests pass no memory at all.
   const docket = caseload ? mostLitigated(caseload) : null;
   if (lane === 'docket' && docket === null) lane = 'ambient';
+  // A roster holding one character, which is every save until somebody makes a second one.
+  if (lane === 'predecessor' && !predecessor) lane = 'ambient';
   // The best thing the hero owns is still entry-tier, so the hall explains itself to them. Anything
   // better equipped ends it, which is why it needs no timer and cannot outstay its welcome.
   if (lane === 'onboarding' && (loadout?.itemOfRecord?.standing ?? 0) > ONBOARDING_STANDING) lane = 'ambient';
@@ -889,7 +903,9 @@ export function projectAmbient(
     ? EXCHANGES[stableChoice(`swap:${key}`, EXCHANGES.length)]!
     : lane === 'mistell'
       ? MISTELLS[stableChoice(`slip:${key}`, MISTELLS.length)]!
-      : [line()];
+      : lane === 'predecessor'
+        ? PREDECESSOR_MISTELLS[stableChoice(`held:${key}`, PREDECESSOR_MISTELLS.length)]!
+        : [line()];
 
   const sceneId = `ambient:${completedTasks}:${lane}`;
   return lines.map((spoken, index) => ({
@@ -921,7 +937,11 @@ export function projectAmbient(
       // "still no reply" is a person. The bank is asserted to quote no figures either way.
       //
       // Through `displayTarget`, because the caseload keys on a composite the reader never sees.
-      .replaceAll('{docket}', docket ? displayTarget(docket.target) : 'the file')),
+      .replaceAll('{docket}', docket ? displayTarget(docket.target) : 'the file')
+      // The name and nothing else. `predecessorFor` also returns a finished sentence and the service
+      // record renders it — but that sentence says "last recorded at level 9", which is the file
+      // being careful. The joke here is a room that is not being careful at all.
+      .replaceAll('{predecessor}', predecessor?.name ?? 'the previous holder')),
   }));
 }
 
