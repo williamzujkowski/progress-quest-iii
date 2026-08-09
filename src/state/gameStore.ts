@@ -216,6 +216,11 @@ export const useGameStore = create<GameStore>((set, get) => {
     restoreSession: (session) => {
       // Same reasoning as startSession: the drain this was accumulating no longer has an owner.
       drainDigest = EMPTY_DIGEST;
+      // And neither does the cadence. It carries `recentTexts`, the last eight lines spoken, which
+      // `scheduleChatter` declines to repeat — so a loaded character was silently denied lines
+      // because the *previous* character had heard them. `startSession` has always reset this; the
+      // comment above claimed the same reasoning and only half of it was applied.
+      chatterCadence = NEW_CADENCE;
       const { nextActivityId, sessionGeneration } = get();
       const rng = new RandomGenerator('restored-session');
       rng.setState([...session.rngState]);
@@ -325,7 +330,18 @@ export const useGameStore = create<GameStore>((set, get) => {
         ),
       );
       chatterCadence = scheduled.cadence;
-      const projectedSocialEntries = scheduled.entries.toReversed();
+      // Reversed into the newest-first feed, with the catch-up row lifted back to the top.
+      //
+      // `projectSocialBatch` returns `[catchUpRow, ...detailed]` because that is the reading order.
+      // Reversing the whole batch put the row *below* the scenes it summarises, which reads as one
+      // more entry rather than a total — the exact failure the activity log's own comment describes
+      // and deliberately avoids a few lines further down. The two surfaces were doing opposite
+      // things and only one of them had an argument attached.
+      const reversed = scheduled.entries.toReversed();
+      const summaryAt = reversed.findIndex(({ sceneKind }) => sceneKind === 'catch_up');
+      const projectedSocialEntries = summaryAt < 0
+        ? reversed
+        : [reversed[summaryAt]!, ...reversed.filter((_unused, index) => index !== summaryAt)];
       set({
         ...result.state,
         pendingElapsedMs: result.remainingElapsedMs,
