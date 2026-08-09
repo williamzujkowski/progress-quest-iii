@@ -3,7 +3,6 @@ import React from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '../state/gameStore';
 import { projectServiceRecord } from '../state/serviceRecord';
-import { loadRoster } from '../state/saveManager';
 
 /**
  * The file, as a file.
@@ -29,9 +28,11 @@ export const ServiceRecord: React.FC = () => {
   const commendations = useGameStore((state) => state.commendations);
   const specimenCount = useGameStore((state) => state.specimens.specimens.length);
 
-  // Read at render rather than held in the store: the roster changes only when the player saves or
-  // switches characters, and a failed read is one missing line rather than a reason to show nothing.
-  const roster = loadRoster();
+  // Off the store, not out of storage. `loadRoster` reads up to 500 KB, parses it and validates
+  // every entry, and this component re-renders whenever any of the four ledgers above moves — which
+  // early in a run is most of the time a new specimen is filed. The store reads it at a session
+  // boundary, which is when the set of characters on file can actually change.
+  const roster = useGameStore((state) => state.roster);
 
   const record = projectServiceRecord({
     hero: { name, race, className, level },
@@ -39,7 +40,7 @@ export const ServiceRecord: React.FC = () => {
     caseload,
     commendations,
     specimenCount,
-    ...(roster.ok ? { roster: roster.value } : {}),
+    roster,
   });
   if (!record) return null;
 
