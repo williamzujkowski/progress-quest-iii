@@ -836,7 +836,16 @@ input[type='radio']:checked::before { transform: scale(1); }
   .records-details > summary { min-height: 44px; }
 }
 
-.quest-dossier {
+/*
+ * A note attached to the bar above it, drawn exactly as the dossier is.
+ *
+ * These say what a bar is denominated in and what is currently multiplying it — the same register
+ * as the archive line they sit beside, and deliberately the same weight. A note explaining the
+ * units is not more important than the units, and styling it louder than the dossier would make the
+ * panel look like it is apologising for the bars.
+ */
+.quest-dossier,
+.progress-note {
   margin: var(--space-2) 0 0;
   color: var(--text-muted);
   font-family: var(--font-mono);

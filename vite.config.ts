@@ -41,7 +41,6 @@ export default defineConfig({
         'src/components/InventoryView.tsx',
         'src/components/Navbar.tsx',
         'src/components/PwaStatus.tsx',
-        'src/components/QuestLog.tsx',
       ],
       // Floors sit a couple of points under the numbers measured when they were set, so
       // ordinary variance does not redden the gate while a real regression does. Raise them

@@ -239,8 +239,13 @@ function gainedSpell(previous: readonly SpellItem[], next: readonly SpellItem[])
  * fast as one who never runs into it. Large enough that the bar visibly jumps — which is the entire
  * point, since the effect has to be attributable by a player who never acts — and bounded because
  * quests hand out rewards and this is the rate at which they arrive.
+ *
+ * Exported because the quest panel names it. The multiplier was attributable in principle and
+ * invisible in practice for as long as this was private: the bar lurched and nothing on any surface
+ * connected the lurch to the monster. `QuestLog` reads the figure from here rather than writing a
+ * `3` of its own, so a change to the rate cannot leave the interface asserting the old one.
  */
-const QUEST_TARGET_PROGRESS = 3;
+export const QUEST_TARGET_PROGRESS = 3;
 
 export function advanceGame(state: GameTransitionState, elapsedMs: number, rng: RandomGenerator): GameTransitionResult {
   if (!Number.isFinite(elapsedMs) || elapsedMs <= 0) return { state, records: [], remainingElapsedMs: 0 };
