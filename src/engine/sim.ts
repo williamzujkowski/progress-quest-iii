@@ -312,6 +312,28 @@ export function applyQuestReward(rng: RandomGenerator, character: CharacterSheet
   };
 }
 
+/**
+ * Every word the engine puts in front of a monster's name.
+ *
+ * Exported so the content guard can read them rather than keep a copy. They are shipped strings a
+ * player sees on every kill, they sit here rather than in `src/data/`, and no content test looked at
+ * them until one did — at which point the only way to check them was to duplicate the list, which is
+ * the failure mode that guard exists to catch.
+ *
+ * Also the last vocabulary in the game inherited rather than rewritten: high-fantasy register in a
+ * compute-industrial world. Worth knowing about separately from whether it names anything real.
+ */
+export const MONSTER_PREFIXES = {
+  sick: ['dead', 'comatose', 'crippled', 'sick', 'undernourished'],
+  young: ['foetal', 'baby', 'preadolescent', 'teenage', 'underage'],
+  big: ['greater', 'massive', 'enormous', 'giant', 'titanic'],
+  special: ['veteran', 'cursed', 'warrior', 'undead', 'demon'],
+  /** The same five, joined without a space for a single-word creature. */
+  specialJoined: ['Battle-', 'cursed ', 'Were-', 'undead ', 'demon '],
+  /** Applied whole rather than by magnitude, at the two ends of the range. */
+  remote: ['imaginary', 'messianic'],
+} as const;
+
 function generateMonsterTask(rng: RandomGenerator, character: CharacterSheet): { description: string; durationMs: number; loot: NonNullable<ProgressTask['loot']>; opponents: number; questTarget?: true } {
   const characterLevel = character.Traits.Level;
   let targetLevel = characterLevel;
@@ -355,22 +377,22 @@ function generateMonsterTask(rng: RandomGenerator, character: CharacterSheet): {
     const value = values[Math.abs(magnitude) - 1];
     return value ? `${value}${separator}${name}` : name;
   };
-  const sick = (magnitude: number, name: string) => prefix(['dead', 'comatose', 'crippled', 'sick', 'undernourished'], 6 - Math.abs(magnitude), name);
-  const young = (magnitude: number, name: string) => prefix(['foetal', 'baby', 'preadolescent', 'teenage', 'underage'], 6 - Math.abs(magnitude), name);
-  const big = (magnitude: number, name: string) => prefix(['greater', 'massive', 'enormous', 'giant', 'titanic'], magnitude, name);
+  const sick = (magnitude: number, name: string) => prefix(MONSTER_PREFIXES.sick, 6 - Math.abs(magnitude), name);
+  const young = (magnitude: number, name: string) => prefix(MONSTER_PREFIXES.young, 6 - Math.abs(magnitude), name);
+  const big = (magnitude: number, name: string) => prefix(MONSTER_PREFIXES.big, magnitude, name);
   const special = (magnitude: number, name: string) => name.includes(' ')
-    ? prefix(['veteran', 'cursed', 'warrior', 'undead', 'demon'], magnitude, name)
-    : prefix(['Battle-', 'cursed ', 'Were-', 'undead ', 'demon '], magnitude, name, '');
+    ? prefix(MONSTER_PREFIXES.special, magnitude, name)
+    : prefix(MONSTER_PREFIXES.specialJoined, magnitude, name, '');
 
   let displayName = monster.name;
   const difference = targetLevel - monster.level;
-  if (difference <= -10) displayName = `imaginary ${displayName}`;
+  if (difference <= -10) displayName = `${MONSTER_PREFIXES.remote[0]} ${displayName}`;
   else if (difference < -5) {
     const sickMagnitude = 5 - rng.random(11 + difference);
     displayName = sick(sickMagnitude, young(-difference - sickMagnitude, displayName));
   } else if (difference < 0 && rng.random(2) === 1) displayName = sick(difference, displayName);
   else if (difference < 0) displayName = young(difference, displayName);
-  else if (difference >= 10) displayName = `messianic ${displayName}`;
+  else if (difference >= 10) displayName = `${MONSTER_PREFIXES.remote[1]} ${displayName}`;
   else if (difference > 5) {
     const bigMagnitude = 5 - rng.random(11 - difference);
     displayName = big(bigMagnitude, special(difference - bigMagnitude, displayName));
