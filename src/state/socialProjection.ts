@@ -1,5 +1,6 @@
 import { SOCIAL_PERSONAS, type SocialPersona, type SocialSeat } from '../data/socialCatalog';
 import { GRATS } from '../data/socialGrats';
+import { DKP_ALLOCATION, DKP_STANDINGS } from '../data/socialDkp';
 import { boundCodePoints, boundedLabel, MAX_TEXT_CODE_POINTS, formatGameNumber, stableIndex, stableChoice } from '../engine/text';
 import { AMBIENT_LINES, BLAME_BEATS, EXCHANGES, FEUD_BEATS, ITEM_OF_RECORD_LINES, ONBOARDING_LINES, QUESTION_BEATS, REACTION_LINES, TRADE_LINES, type AmbientLine } from '../data/socialAmbient';
 import type { LoadoutFiling } from '../engine/loadoutFiling';
@@ -182,6 +183,24 @@ function gratsFor(candidate: SceneCandidate, channel: SocialChannel): SceneLine 
   const seats: readonly Exclude<SocialSeat, 'official'>[] = ['logistics', 'field', 'support'];
   const seat = seats[stableChoice(key, seats.length)]!;
   return { speaker: seat, channel, text: GRATS[seat][stableChoice(`line:${key}`, GRATS[seat].length)]! };
+}
+
+/**
+ * The ledger line a boss milestone earns, on the guild channel where a ledger belongs.
+ *
+ * Two banks rather than one: an opening boss is about attendance and standings, a closing act is
+ * about the allocation that followed. Saying the wrong one at the wrong moment would be the joke
+ * told backwards.
+ *
+ * Drawn from the same key the variant chooser uses, so a milestone reads identically on every replay
+ * of the same save. The projection is asserted byte-stable under spies that throw on `Math.random`
+ * and `Date.now`, so nothing here may reach for either.
+ */
+function dkpFor(candidate: SceneCandidate, closing: boolean): SceneLine {
+  const { hero, completedTasks } = candidate.source.record.post;
+  const bank = closing ? DKP_ALLOCATION : DKP_STANDINGS;
+  const key = `dkp:${closing ? 'close' : 'open'}:${hero.name}:${candidate.source.activityId}:${completedTasks}`;
+  return { speaker: 'logistics', channel: 'guild', text: bank[stableChoice(key, bank.length)]! };
 }
 
 function linesFor(candidate: SceneCandidate): readonly SceneLine[] {
@@ -411,17 +430,17 @@ function linesFor(candidate: SceneCandidate): readonly SceneLine[] {
   return variant([
     [
       { speaker: 'field', channel: raid ? 'raid' : 'party', text: `${milestone}. Quorum is zero external attendees.` },
-      { speaker: 'support', channel: raid ? 'raid' : 'party', text: 'No party, wipe, lockout, or combat reward was created.' },
+      dkpFor(candidate, event.type === 'act_completed'),
       { speaker: 'hero', channel: 'hero', text: 'I volunteer to be both ready check and exception.' },
     ],
     [
       { speaker: 'field', channel: raid ? 'raid' : 'world', text: `${milestone}; attendance remains impressively theoretical.` },
-      { speaker: 'support', channel: raid ? 'raid' : 'world', text: 'The danger is narrative and the liability is tastefully unsigned.' },
+      dkpFor(candidate, event.type === 'act_completed'),
       { speaker: 'hero', channel: 'hero', text: 'Commence the ceremony of appearing prepared.' },
     ],
     [
       { speaker: 'field', channel: raid ? 'raid' : 'party', text: `${milestone}. Formation is one person wide and indefinitely deep.` },
-      { speaker: 'support', channel: raid ? 'raid' : 'party', text: 'Mechanics remain unchanged; apprehension has received the expansion pack.' },
+      dkpFor(candidate, event.type === 'act_completed'),
       { speaker: 'hero', channel: 'hero', text: 'Mark me present, inevitable, and poorly supervised.' },
     ],
   ] as const, candidate);
@@ -454,7 +473,7 @@ const SCENE_LENGTHS = [1, 1, 1, 1, 1, 2, 2, 2, 3] as const;
  * two personas talking to each other — not mangling the scenes that already work.
  */
 function spokenLines(candidate: SceneCandidate, lines: readonly SceneLine[]): readonly SceneLine[] {
-  // A promotion is heard whole, and it is the only scene that is.
+  // A promotion and a boss milestone are heard whole. Nothing else is.
   //
   // Truncation exists because every scene used to be the same three beats in the same order, and a
   // fixed shape reads as generated however good the lines are. That argument is about the *ordinary*
@@ -462,10 +481,12 @@ function spokenLines(candidate: SceneCandidate, lines: readonly SceneLine[]): re
   // rare, it is the one moment a room reacts to rather than narrates, and drawing its length like
   // any other left most promotions rendering as a single announcement with nobody answering.
   //
-  // The rule this follows is one the cadence layer already applies: `ALWAYS_HEARD` refuses to
-  // suppress a level for the same reason. A scene the channel may never silence is a scene worth
-  // hearing out. Still three lines, so the bound every other scene is held to is not widened.
-  if (candidate.kind === 'level') return lines;
+  // The rule this follows is one the cadence layer already applies: `ALWAYS_HEARD` lists exactly
+  // `milestone`, `level` and `catch_up`, and refuses to suppress them. A scene the channel may never
+  // silence is a scene worth hearing out, so the two that are also *written* as scenes get their
+  // written length. Still three lines, so the bound every other scene is held to is not widened.
+  // `catch_up` is one line by construction and needs no exemption.
+  if (candidate.kind === 'level' || candidate.kind === 'milestone') return lines;
 
   const { hero, completedTasks } = candidate.source.record.post;
   const key = `len:${hero.name}:${candidate.kind}:${candidate.source.activityId}:${completedTasks}`;
