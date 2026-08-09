@@ -1542,6 +1542,66 @@ test.describe('Progress Quest III terminal dashboard', () => {
     expect(geometry.spellHeight as number, 'the spell book must not collapse to nothing').toBeGreaterThan(40);
   });
 
+  test('gives the records card a tab stop exactly while it scrolls', async ({ page }) => {
+    // The card carried no tabIndex on measured grounds — at `overflow: visible` with nothing to
+    // scroll, the stop announced a name and did nothing. That reasoning inverted when the records
+    // fix gave it `overflow-y: auto` while the disclosure is open: a scroll container with no tab
+    // stop cannot be scrolled by keyboard at all, so everything past the fold became unreachable
+    // again for anyone not using a pointer. Every other scrolling panel here carries one — the
+    // inventory list, the spell book, the closed casework, the world notices, the chatter feed.
+    await page.setViewportSize({ width: 1372, height: 943 });
+    await page.goto('/');
+    await loadDenseDashboard(page);
+    // The disclosure is gated on there being something to file, so a dense dashboard alone renders
+    // no Records summary at all and the click below would hang.
+    await page.evaluate(async (slots: readonly string[]) => {
+      const { useGameStore } = await import('/src/state/gameStore.ts');
+      const state = useGameStore.getState();
+      useGameStore.setState({
+        commendations: {
+          highestLevel: 45,
+          largestSale: 102_815,
+          questsCompleted: 2291,
+          actsCompleted: 3,
+          exhibit: Object.fromEntries(slots.map((slot, index) => [
+            slot,
+            { name: `+${index + 7} Certified Insured Lender of Last Resort`, label: 'notable', quality: 10 + index },
+          ])),
+        },
+        specimens: { specimens: Array.from({ length: 300 }, (_unused, index) => `item:Specimen ${index}`) },
+        character: {
+          ...state.character,
+          Plot: { ...state.character.Plot, act: 14 },
+          Spells: Array.from({ length: 79 }, (_unused, index) => ({ name: `Procedural Disappointment ${index + 1}`, level: index + 1 })),
+        },
+      });
+    }, EQUIP_SLOTS as readonly string[]);
+    const card = page.locator('.character-card');
+
+    // Closed: no stop, because a stop that announces a name and does nothing is the original defect.
+    await expect(card).not.toHaveAttribute('tabindex', '0');
+
+    await page.locator('.records-details > summary').filter({ hasText: /^Records/ }).click();
+    await expect(card).toHaveAttribute('tabindex', '0');
+
+    // And it is genuinely operable: focus it and drive it from the keyboard alone.
+    await card.focus();
+    const moved = await card.evaluate(async (element) => {
+      const before = element.scrollTop;
+      element.focus();
+      return { before, focused: document.activeElement === element, scrollable: element.scrollHeight > element.clientHeight + 4 };
+    });
+    expect(moved.focused, 'the card must actually take focus').toBe(true);
+    expect(moved.scrollable, 'and the fixture must overflow, or the stop is pointless').toBe(true);
+
+    await page.keyboard.press('End');
+    await expect.poll(async () => card.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
+
+    // Closing it takes the stop away again.
+    await page.locator('.records-details > summary').filter({ hasText: /^Records/ }).click();
+    await expect(card).not.toHaveAttribute('tabindex', '0');
+  });
+
   test('spends a wide viewport on the loadout rather than on the prose column', async ({ page }) => {
     // The loadout measured 329px at 1280, 1806 and 2560 alike, because `.app-container` caps the
     // whole dashboard at 1280 and centres it — the column ratios were never what held it there.

@@ -2,7 +2,7 @@ import {
   Bandage, Footprints, Grab, Hand, HardHat, PersonStanding, Ruler, Shield, Shirt, Sparkles, Sword, Watch,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import React from 'react';
+import React, { useState } from 'react';
 import { EQUIP_SLOTS } from '../data/traits';
 import type { EquipSlot } from '../engine/types';
 
@@ -60,10 +60,29 @@ export const CharacterSheetView: React.FC = () => {
       || hasRoute(state.character.Plot.act),
   );
 
-  // The card carries no tabIndex: measured at `overflow: visible` with nothing to scroll, so the
-  // stop announced a name and did nothing. The panels inside it that do scroll keep theirs.
+  /*
+   * The card takes a tab stop exactly while it scrolls, and not otherwise.
+   *
+   * It carried no tabIndex on measured grounds: at `overflow: visible` with nothing to scroll, the
+   * stop announced a name and did nothing. That reasoning inverted when the records fix gave the
+   * card `overflow-y: auto` while this disclosure is open — a scroll container with no tab stop
+   * cannot be scrolled by keyboard at all, and every other scrolling panel in this file and its
+   * siblings carries one for exactly that reason: the inventory list, the spell book, the closed
+   * casework, the world notices and the chatter feed.
+   *
+   * Tracked in state rather than read off the element, because the styling is `:has([open])` and a
+   * tab stop cannot be conditioned on a CSS selector. `tabIndex` alone, without a `role`: this is a
+   * `section` with `aria-labelledby`, so it already has an accessible name — which is the same
+   * distinction `ClosedCasework` records for its own list.
+   */
+  const [recordsOpen, setRecordsOpen] = useState(false);
+
   return (
-    <section className="card character-card" aria-labelledby="loadout-heading">
+    <section
+      className="card character-card"
+      aria-labelledby="loadout-heading"
+      {...(recordsOpen ? { tabIndex: 0 } : {})}
+    >
       <div className="card-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <Shield size={18} />
@@ -130,7 +149,7 @@ export const CharacterSheetView: React.FC = () => {
         rather than one more panel to place.
       */}
       {hasRecords && (
-        <details className="records-details">
+        <details className="records-details" onToggle={(event) => setRecordsOpen(event.currentTarget.open)}>
           <summary>Records</summary>
           {/*
             Grouped so the stylesheet has one thing to name, and so the records read as a
