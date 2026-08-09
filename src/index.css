@@ -339,6 +339,49 @@ input[type='radio']:checked::before { transform: scale(1); }
 
 .docket-register { margin-top: 0.4rem; }
 
+/*
+ * The record is set as a document, not as a panel: prose measure, a subject line, and headings that
+ * are quieter than the section labels above them. The surrounding surfaces are tables of figures,
+ * and the whole point of this one is that it reads as something typed rather than something totted
+ * up — so it gets leading, wrapping, and no tabular alignment anywhere.
+ */
+.service-record {
+  margin-top: 0.35rem;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+
+.service-record-subject {
+  font-weight: 650;
+  margin-bottom: 0.5rem;
+}
+
+.service-record-section + .service-record-section { margin-top: 0.5rem; }
+
+.service-record-heading {
+  font-size: inherit;
+  font-weight: 650;
+  font-variant-caps: all-small-caps;
+  letter-spacing: var(--tracking-caps);
+  color: var(--text-muted);
+}
+
+.service-record-lines {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* The refusal is the document's last line, and it is set apart so it reads as one. */
+.service-record-closing {
+  margin-top: 0.65rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--panel-border);
+  color: var(--text-muted);
+  font-style: italic;
+}
+
 /* Quieter than gold: a rate is context for the totals beside it, not a headline of its own. */
 .velocity-pill {
   color: var(--text-muted);

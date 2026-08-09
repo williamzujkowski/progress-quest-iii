@@ -39,6 +39,7 @@ import { Commendations } from './Commendations';
 import { Caseload } from './Caseload';
 import { hasRoute } from '../state/worldContext';
 import { Route } from './Route';
+import { ServiceRecord } from './ServiceRecord';
 import { isEmpty as caseloadIsEmpty } from '../state/caseload';
 import { isEmpty as commendationsIsEmpty } from '../state/commendations';
 
@@ -134,6 +135,10 @@ export const CharacterSheetView: React.FC = () => {
           <Commendations />
           <Caseload />
           <Route />
+          {/* Last, because it is the composition of everything above it: a reader who has just been
+              through the panels arrives at the same figures assembled into a document that declines
+              to conclude anything from them. */}
+          <ServiceRecord />
         </details>
       )}
     </section>
