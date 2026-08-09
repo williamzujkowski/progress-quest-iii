@@ -294,6 +294,29 @@ export const DOCKET_LINES: readonly AmbientLine[] = [
 ];
 
 /**
+ * The finest thing the ledger has ever recorded, cited by people who have never seen it.
+ *
+ * Distinct from the item lane next door, and the distinction is the point: that one cites what the
+ * hero is wearing now, this cites a benchmark from a ledger that spans every character the file has
+ * ever held. Equipment is never sold — it vanishes by being overwritten, a better breastplate
+ * replacing the one in the slot — and `commendations.exhibit` is the only thing anywhere that
+ * remembers it existed.
+ *
+ * What these may not say is what became of it. The ledger records a name, a slot and a quality, and
+ * nothing at all about where the thing is or who wore it — the same restraint the predecessor
+ * citation keeps, for the same reason: a line inventing an ending is inventing a fact. So the joke
+ * is a standard nobody can produce rather than a relic somebody lost.
+ */
+export const EXHIBIT_LINES: readonly AmbientLine[] = [
+  { seat: 'official', channel: 'guild', text: 'The standard for the {exhibitSlot} is still the {exhibit}. The standard has not been revised.' },
+  { seat: 'official', channel: 'guild', text: 'The {exhibit} remains the finest {exhibitSlot} on file. The file does not say where it is.' },
+  { seat: 'logistics', channel: 'guild', text: 'Procurement continues to reference the {exhibit}. Procurement has not been asked to produce it.' },
+  { seat: 'logistics', channel: 'world', text: 'WTB anything approaching the {exhibit}. I am told this is unrealistic.' },
+  { seat: 'support', channel: 'guild', text: 'Every {exhibitSlot} is assessed against the {exhibit}. Nobody has enjoyed this.' },
+  { seat: 'field', channel: 'party', text: 'I have heard about the {exhibit}. I have not seen the {exhibit}.' },
+];
+
+/**
  * The same adjective, in three places at once.
  *
  * `loadoutFiling` has found this since it was written — bases cannot collide any more, but modifiers
