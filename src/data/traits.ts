@@ -80,6 +80,23 @@ export const OFFENSE_ATTRIB: [string, number][] = [
   ['Scripted', 5],
   ['Unlogged', 6],
   ['Ratified', 7],
+  // Above here the ladder is new, and it exists because the old one stopped at seven while the
+  // characters did not. `generateEquipUpgrade` tops every item up to the character's level exactly,
+  // so a shortfall the vocabulary cannot absorb becomes the assessor's mark instead — measured mean
+  // |mark| was 4.4 at level 25 and 174 at level 200, which is an item that is a large integer with
+  // two decorative words attached.
+  //
+  // Roughly 1.6x a rung, so a tier is always worth reaching and never worth skipping two of. The
+  // register escalates from a thing that was done to a thing that cannot be undone, which is the
+  // only direction an institution has.
+  ['Codified', 8],
+  ['Enshrined', 13],
+  ['Entrenched', 21],
+  ['Statutory', 34],
+  ['Canonical', 55],
+  ['Perpetual', 89],
+  ['Inviolable', 144],
+  ['Immemorial', 233],
 ];
 
 export const DEFENSE_ATTRIB: [string, number][] = [
@@ -92,6 +109,16 @@ export const DEFENSE_ATTRIB: [string, number][] = [
   ['Audited', 4],
   ['Certified', 5],
   ['Bespoke', 3],
+  // The same ladder as OFFENSE_ATTRIB above and the same reasoning, in this table's own register:
+  // the offensive words are things done to a process, these are things done to a document.
+  ['Attested', 8],
+  ['Engrossed', 13],
+  ['Warranted', 21],
+  ['Ordained', 34],
+  ['Hallowed', 55],
+  ['Sacrosanct', 89],
+  ['Unabridged', 144],
+  ['Definitive', 233],
 ];
 
 export const SHIELDS: [string, number][] = [
@@ -469,6 +496,12 @@ export const OFFENSE_BAD: [string, number][] = [
   ['Unfunded', -6],
   ['Sunset', -7],
   ['Disputed', -2],
+  // Three rungs and no more, which is not symmetry with the good table but is what is reachable.
+  // The bad table is only consulted when the base out-levels the character, so |plus| is bounded by
+  // the tallest base — thirty. A -55 rung would be a word no save can ever draw.
+  ['Quashed', -8],
+  ['Vacated', -13],
+  ['Struck', -21],
 ];
 
 export const DEFENSE_BAD: [string, number][] = [
@@ -486,6 +519,10 @@ export const DEFENSE_BAD: [string, number][] = [
   ['Breached', -4],
   ['Misfiled', -3],
   ['Uninsured', -3],
+  // Bounded by the same thirty, for the same reason as OFFENSE_BAD.
+  ['Expunged', -8],
+  ['Rescinded', -13],
+  ['Abrogated', -21],
 ];
 
 
