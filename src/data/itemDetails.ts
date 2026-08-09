@@ -425,8 +425,15 @@ function curriculumThreshold(name: string): number | null {
 }
 
 export function describeSpell(name: string, level: number): ItemDetails {
-  const premise = SPELL_FLAVOR[name]
-    ?? `The incantation “${boundedLabel(name, 'unnamed spell')}” arrived without syllabus, sponsor, or declared learning outcome.`;
+  // `hasOwn` rather than a bare read. `SPELL_FLAVOR` is a plain object literal, so it carries
+  // `Object.prototype`, and a spell name is whatever an imported sheet says it is — the schema
+  // admits any renderable string up to 200 characters. For `constructor`, `toString` or `valueOf`
+  // the read returns a function, `??` never fires, and the tooltip's description becomes
+  // "function Object() { [native code] } Results may vary, especially near furniture." Reproduced,
+  // and it reaches the DOM as a `title` attribute on every render rather than only on hover.
+  const premise = Object.hasOwn(SPELL_FLAVOR, name)
+    ? SPELL_FLAVOR[name]
+    : `The incantation “${boundedLabel(name, 'unnamed spell')}” arrived without syllabus, sponsor, or declared learning outcome.`;
   const mechanics = analyzeItemMechanics({ kind: 'spell', level });
   const threshold = curriculumThreshold(name);
 
