@@ -138,7 +138,13 @@ export function scheduleChatter(
   entries: readonly SocialEntry[],
   cadence: ChatterCadence,
   completedTasks: number,
-  ambient: readonly SocialEntry[] = [],
+  /*
+   * A thunk, because building it costs more than the rest of the tick and is discarded almost
+   * always. `fileLoadout` behind it runs twenty-two `analyzeItemMechanics` calls; this branch was
+   * reached on 27 of 20 000 measured ticks. The caller cannot know whether it is needed — that is
+   * this function's decision — so the decision is where the work now happens.
+   */
+  ambientFor: () => readonly SocialEntry[] = () => [],
 ): { readonly entries: readonly SocialEntry[]; readonly cadence: ChatterCadence } {
   const scenes = [...new Set(entries.map(({ sceneId }) => sceneId))];
   const kindOf = (sceneId: string) => entries.find((entry) => entry.sceneId === sceneId)?.sceneKind;
@@ -196,7 +202,11 @@ export function scheduleChatter(
   // minute and made ambient seven lines in ten, which is a caption track with a different subject.
   // A channel is quiet more often than it speaks, and the quiet is what makes the next line read as
   // somebody arriving at a topic rather than a timer firing.
-  if (ambient.length > 0 && stableChoice(`say:${completedTasks}`, AMBIENT_IN) === 0) {
+  // The lottery is drawn before the batch is built, so the overwhelming majority of ticks never
+  // pay for one. Order matters here and it is cheap to get backwards.
+  if (stableChoice(`say:${completedTasks}`, AMBIENT_IN) === 0) {
+    const ambient = ambientFor();
+    if (ambient.length === 0) return { entries: [], cadence };
     // Declined rather than substituted when it would repeat something still on screen. Substituting
     // would need a second choice and a rule for when that one repeats too; declining costs nothing,
     // because two free slots in three are already declined and silence is the established answer.

@@ -99,7 +99,7 @@ describe('what the guild says when the hero has done nothing', () => {
     let cadence = NEW_CADENCE;
     let spoken = 0;
     for (let task = 1; task <= 400; task += 1) {
-      const result = scheduleChatter(scene(`s:${task}`, 'loot'), cadence, task, ambient(task));
+      const result = scheduleChatter(scene(`s:${task}`, 'loot'), cadence, task, () => ambient(task));
       cadence = result.cadence;
       spoken += result.entries.filter(({ sceneKind }) => sceneKind === 'ambient').length;
     }
@@ -117,7 +117,7 @@ describe('what the guild says when the hero has done nothing', () => {
     let spoken = 0;
     for (let task = 1; task <= 600; task += 1) {
       if (readyToSpeak(task, cadence.lastLineTasks, `gap:${task}`)) offered += 1;
-      const result = scheduleChatter([], cadence, task, ambient(task));
+      const result = scheduleChatter([], cadence, task, () => ambient(task));
       cadence = result.cadence;
       spoken += result.entries.length;
     }
@@ -130,18 +130,18 @@ describe('what the guild says when the hero has done nothing', () => {
   it('never speaks over an event that earned its line', () => {
     // Ambient fills silence; it does not compete. A level and a stray remark in the same breath
     // would bury the thing the player was waiting for.
-    const result = scheduleChatter(scene('lvl', 'level'), { lastLineTasks: 0, recentTexts: [] }, 50, ambient());
+    const result = scheduleChatter(scene('lvl', 'level'), { lastLineTasks: 0, recentTexts: [] }, 50, () => ambient());
     expect(result.entries.every(({ sceneKind }) => sceneKind === 'level')).toBe(true);
   });
 
   it('does not bypass the gap', () => {
     // Ambient is what fills the silence between lines, not a way around the rate limit.
-    const first = scheduleChatter([], NEW_CADENCE, 100, ambient());
+    const first = scheduleChatter([], NEW_CADENCE, 100, () => ambient());
     // Asserted rather than returned past. The early return meant a regression where ambient stopped
     // speaking at all reported green while the feature this guards was dead — the sibling banks
     // assert their premise for exactly this reason.
     expect(first.entries.length, 'ambient has to speak at all before a gap can be bypassed').toBeGreaterThan(0);
-    expect(scheduleChatter([], first.cadence, 100, ambient()).entries).toHaveLength(0);
+    expect(scheduleChatter([], first.cadence, 100, () => ambient()).entries).toHaveLength(0);
   });
 });
 
@@ -155,7 +155,7 @@ describe('what the guild has just said', () => {
     let cadence = NEW_CADENCE;
     let spoken = 0;
     for (let task = 1; task <= 400; task += 1) {
-      const result = scheduleChatter([], cadence, task, held);
+      const result = scheduleChatter([], cadence, task, () => held);
       cadence = result.cadence;
       spoken += result.entries.length;
     }
@@ -171,13 +171,13 @@ describe('what the guild has just said', () => {
     // Driven until it actually speaks. A single call may be refused by the gap or by the decline
     // rate, and asserting against a slot that never fired would test nothing.
     for (let task = 1; task <= 400 && !cadence.recentTexts.includes('Horse.'); task += 1) {
-      cadence = scheduleChatter([], cadence, task, held).cadence;
+      cadence = scheduleChatter([], cadence, task, () => held).cadence;
     }
     expect(cadence.recentTexts).toContain('Horse.');
 
     // Nine other lines go by, which is more than the window holds.
     for (let task = 2; task <= 400 && cadence.recentTexts.includes('Horse.'); task += 1) {
-      cadence = scheduleChatter([], cadence, task, scene(`o:${task}`, 'ambient', 1).map((entry) => ({ ...entry, text: `other ${task}` }))).cadence;
+      cadence = scheduleChatter([], cadence, task, () => scene(`o:${task}`, 'ambient', 1).map((entry) => ({ ...entry, text: `other ${task}` }))).cadence;
     }
     expect(cadence.recentTexts).not.toContain('Horse.');
   });

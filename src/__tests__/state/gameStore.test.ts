@@ -123,6 +123,39 @@ describe('Game Store State Machine', () => {
     expect(updated.socialEntries.every(({ sceneKind }) => sceneKind === 'level')).toBe(true);
   });
 
+  it("keeps each feed's identity on a tick that adds nothing to it", () => {
+    // Zustand compares by reference, so a fresh array holding the same contents is a re-render.
+    // These three spreads used to run unconditionally: measured over 2 000 real ticks, identity
+    // changed 2 000 times while the activity log's head changed 32 and the chatter feed's 7. That
+    // woke both feeds twenty times a second to rebuild about 138 keyed rows, including the tab that
+    // is hidden, and `LogFeed` re-derives the world projection in its render body — 33 item
+    // analyses. The tick handler went from 25.6 µs to 6.8 µs when this stopped.
+    //
+    // Asserted as "identity moves only when contents move", which is the property rather than the
+    // count: a version that cached too eagerly and stopped updating a feed at all fails the second
+    // half, and the version this replaced fails the first.
+    useGameStore.getState().startSession({
+      source: 'creation', name: 'Churn', race: 'Double Tenant', klass: 'Incident Paladin', seed: 'churn-seed',
+    });
+    for (let warm = 0; warm < 200; warm += 1) useGameStore.getState().tick(1000);
+
+    let identityChanged = 0;
+    let contentsChanged = 0;
+    let previous = useGameStore.getState().socialEntries;
+    for (let tick = 0; tick < 400; tick += 1) {
+      useGameStore.getState().tick(50);
+      const current = useGameStore.getState().socialEntries;
+      if (current !== previous) identityChanged += 1;
+      if (current[0]?.id !== previous[0]?.id || current.length !== previous.length) contentsChanged += 1;
+      previous = current;
+    }
+
+    // The premise: a run in which the feed never moved would make the equality trivially true.
+    expect(contentsChanged, 'the feed has to actually move during the run').toBeGreaterThan(0);
+    expect(identityChanged, 'a new array must mean new contents').toBe(contentsChanged);
+    expect(identityChanged, 'and it must not churn every tick').toBeLessThan(200);
+  });
+
   it('retains newest-first social entries without cutting a scene at the cap', () => {
     const character = fixedKillCharacter();
     const existing = Array.from({ length: MAX_SOCIAL_ENTRIES / 3 }, (_, scene) => Array.from({ length: 3 }, (_, line) => ({
