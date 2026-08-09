@@ -40,7 +40,18 @@ interface SceneLine {
   readonly text: string;
 }
 
-const MAX_DETAILED_SCENES = 3;
+/**
+ * How many scenes of a batch are rendered in full rather than consolidated into one line.
+ *
+ * Only ever bites during a catch-up drain. Ordinary play completes one task a tick, so a batch is
+ * one scene and nothing is consolidated — but tab away for ten minutes and a single batch carries
+ * hundreds, which is exactly the moment a player comes back wanting to read what they missed.
+ *
+ * Eight rather than three. The feed holds `MAX_SOCIAL_ENTRIES` lines and drops whole scenes off the
+ * end, so this cannot run away: it decides how much of a return is worth reading, not how much is
+ * kept.
+ */
+const MAX_DETAILED_SCENES = 8;
 
 const HERO_SPEAKER: SocialSpeaker = {
   id: 'hero', kind: 'hero', displayName: 'Hero', role: 'Automatic hero reply', fictional: true, automaticHero: true,
@@ -509,7 +520,23 @@ function projectScene(candidate: SceneCandidate): readonly SocialEntry[] {
 
 export function projectSocialBatch(sources: readonly IdentifiedGameTransitionRecord[]): readonly SocialEntry[] {
   const scenes = splitTaskEnvelopes(sources).map(chooseCandidate).filter((candidate): candidate is SceneCandidate => candidate !== undefined);
-  const retained = scenes.slice(-MAX_DETAILED_SCENES);
+  // The most interesting scenes, not the last ones.
+  //
+  // This used to take `slice(-MAX_DETAILED_SCENES)`, which during ordinary play is the same thing —
+  // there is only one. During a drain it is not: a player returning after ten minutes was shown
+  // whichever three scenes happened to fall at the end of the batch, so a level-up and an act
+  // closing could be consolidated away while three sales survived because they came last.
+  //
+  // `chooseCandidate` already ranks these. Milestones are 100 and 95, a level 90, quests 85 and 80,
+  // equipment 75 and 70, loot 65, a sale 60 — that ladder is a statement about what is worth
+  // reading, and nothing was using it for this. Selection is by priority; the survivors are then put
+  // back in the order they happened, because a feed that reordered itself by importance would stop
+  // being a transcript.
+  const ranked = [...scenes.entries()]
+    .sort(([leftIndex, left], [rightIndex, right]) => right.priority - left.priority || rightIndex - leftIndex)
+    .slice(0, MAX_DETAILED_SCENES)
+    .sort(([leftIndex], [rightIndex]) => leftIndex - rightIndex);
+  const retained = ranked.map(([, candidate]) => candidate);
   const detailed = retained.flatMap(projectScene);
   const suppressed = scenes.length - retained.length;
   if (suppressed === 0 || retained.length === 0) return detailed;
