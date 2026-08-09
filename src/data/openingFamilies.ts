@@ -68,5 +68,14 @@ export const weaponFamily = lookup(WEAPON_FAMILIES, 'trifle');
 export const shieldFamily = lookup(SHIELD_FAMILIES, 'provisional');
 
 
+/*
+ * The catalogue, flattened, so a test can hold every name to having a family.
+ *
+ * Exported for that and nothing else, which is worth saying: production reads `weaponFamily` and
+ * `shieldFamily` above and never these. `citations.ts` labels its two test-only exports the same
+ * way — "exported so the no-round-numbers rule can be asserted against what actually ships" — and
+ * these were the only ones in the codebase that did not, so a sweep for exports nothing uses flags
+ * them and somebody has to re-derive why they are here. The comment is cheaper than the sweep.
+ */
 export const CATALOGUED_WEAPONS: readonly string[] = WEAPONS.map(([name]) => name);
 export const CATALOGUED_SHIELDS: readonly string[] = SHIELDS.map(([name]) => name);
