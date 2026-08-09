@@ -5,7 +5,20 @@ export const MAX_PERSISTED_ITEMS = 5_000;
 export const MAX_PERSISTED_DESCRIPTION_LENGTH = 1_000;
 export const MAX_PENDING_TASKS = 100;
 export const MAX_WORLD_NOTICES = 40;
-// Three-line scenes divide evenly; whole-scene retention may use slightly less.
+/**
+ * How many chatter lines the feed keeps.
+ *
+ * The old justification — "three-line scenes divide evenly" — was true when every scene was exactly
+ * three lines, and is not any more: measured over 270 scenes, 172 are one line, 72 are two and 26
+ * are three. Divisibility by three now describes nothing, so the figure is re-derived rather than
+ * inherited.
+ *
+ * It is a line budget, not a scene count, because `retainWholeSocialScenes` drops whole scenes off
+ * the end — the effective number of scenes kept varies with how talkative the recent ones were, and
+ * that is the right behaviour: a reader scrolling back wants entire exchanges, not the last line of
+ * one. At the measured mean of 1.46 lines per scene, 48 holds around thirty of them, which is a few
+ * minutes of play at the current cadence and comfortably more than a tab-out drain emits at once.
+ */
 export const MAX_SOCIAL_ENTRIES = 48;
 // ponytail: about 11.5 days is ample scheduler debt; saturation keeps checkpoints finite and catch-up work bounded.
 export const MAX_PENDING_ELAPSED_MS = 1_000_000_000;
