@@ -104,9 +104,9 @@ test('loads the Pages-scoped app offline after one successful visit', async ({ p
   await expect(page.getByRole('region', { name: 'Activity Event Log' })).toBeVisible();
   await page.getByRole('tab', { name: 'Chatter' }).click();
   await expect(page.getByRole('region', { name: 'Simulated chatter' })).toBeVisible();
-  await page.getByRole('combobox', { name: 'Chatter channel' }).selectOption('hero');
-  await page.getByRole('button', { name: 'Mute fictional chatter' }).click();
-  await expect(page.getByRole('region', { name: 'Fictional chatter messages' })).toContainText('Fictional chatter is muted');
+  // The chatter panel is one blended stream now, with no filter and no mute to drive offline. What
+  // this step is actually for is that the panel works at all from cache, so it asserts that.
+  await expect(page.getByRole('region', { name: 'Fictional chatter messages' })).toBeVisible();
   const offlineNotices = await page.evaluate(async () => (await fetch('./THIRD_PARTY_NOTICES.txt')).text());
   expect(offlineNotices).toContain('Johannes Baagøe');
   expect(offlineNotices).toContain('directed and reviewed by William Zujkowski');

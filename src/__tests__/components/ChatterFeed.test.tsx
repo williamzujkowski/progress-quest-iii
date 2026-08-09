@@ -39,37 +39,39 @@ describe('simulated chatter accessibility', () => {
     expect(screen.getByText('Automatic hero reply')).not.toBeNull();
   });
 
-  it('filters a derived view without mutating the retained transcript', () => {
+  it('blends every channel into one stream rather than showing one at a time', () => {
+    // There used to be a channel dropdown. A chat window in this genre is a blend — the reader tells
+    // the channels apart by the prefix, not by choosing one — and a filter that shows a single
+    // channel turns the room back into the log this area was rebuilt to stop being.
     useGameStore.setState({ socialEntries: [entry(3, 'hero', 'hero'), entry(2, 'world'), entry(1, 'guild')] });
     render(<ChatterFeed />);
 
-    fireEvent.change(screen.getByRole('combobox', { name: 'Chatter channel' }), { target: { value: 'world' } });
-
+    expect(screen.getByText('Message 1')).not.toBeNull();
     expect(screen.getByText('Message 2')).not.toBeNull();
-    expect(screen.queryByText('Message 1')).toBeNull();
-    expect(screen.queryByText('Message 3')).toBeNull();
-    expect(useGameStore.getState().socialEntries).toHaveLength(3);
+    expect(screen.getByText('Message 3')).not.toBeNull();
+    expect(screen.queryByRole('combobox', { name: 'Chatter channel' })).toBeNull();
   });
 
-  it('mutes presentation only while entries continue to accumulate', () => {
+  it('names the channel in text, not only in colour', () => {
+    // Colour carries the convention — guild green, party blue, a whisper in magenta — but it is not
+    // a distinction every reader can make, so the label is written out and the colour is carried on
+    // an attribute the stylesheet reads.
+    useGameStore.setState({ socialEntries: [entry(4, 'whisper'), entry(3, 'raid'), entry(2, 'party'), entry(1, 'guild')] });
+    render(<ChatterFeed />);
+
+    const messages = screen.getByRole('region', { name: 'Fictional chatter messages' });
+    const prefixes = [...messages.querySelectorAll('.chatter-channel')];
+
+    expect(prefixes.map(({ textContent }) => textContent)).toEqual(['[Guild]', '[Party]', '[Raid]', '[Whisper]']);
+    expect(prefixes.map((node) => node.getAttribute('data-channel'))).toEqual(['guild', 'party', 'raid', 'whisper']);
+  });
+
+  it('has no mute control, and so cannot be left silently muted', () => {
     useGameStore.setState({ socialEntries: [entry(1, 'guild')] });
     render(<ChatterFeed />);
-    const mute = screen.getByRole('button', { name: 'Mute fictional chatter' });
 
-    fireEvent.click(mute);
-    // The label is the state signal, and the only one. Carrying aria-pressed as well inverted the
-    // meaning: muted announced as "Unmute fictional chatter, pressed".
-    expect(mute.textContent).toBe('Unmute fictional chatter');
-    expect(mute.getAttribute('aria-pressed')).toBeNull();
-    expect(screen.getByText('Fictional chatter is muted. The imaginary people remain industrious.')).not.toBeNull();
-    expect(screen.queryByText('Message 1')).toBeNull();
-
-    act(() => useGameStore.setState({ socialEntries: [entry(2, 'world'), entry(1, 'guild')] }));
-    expect(useGameStore.getState().socialEntries).toHaveLength(2);
-    expect(screen.queryByText('Message 2')).toBeNull();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Unmute fictional chatter' }));
-    expect(screen.getByText('Message 2')).not.toBeNull();
+    expect(screen.queryByRole('button', { name: /mute/i })).toBeNull();
+    expect(screen.getByText('Message 1')).not.toBeNull();
   });
 
   it('preserves a reader who scrolled back and offers an explicit jump', () => {

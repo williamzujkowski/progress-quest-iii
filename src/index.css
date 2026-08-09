@@ -978,7 +978,18 @@ input[type='radio']:checked::before { transform: scale(1); }
 }
 
 .chatter-meta bdi { color: var(--text-main); font-weight: 750; }
-.chatter-channel { color: var(--accent-primary); font-variant-caps: all-small-caps; }
+/* The channel prefix, coloured by the convention every game in this genre uses.
+   Drawn from the terminal palette the themes already define, so a green-phosphor theme gets a
+   green-phosphor version of the convention rather than a WoW screenshot pasted on top. The label is
+   also written out in text, because colour alone is not a distinction every reader can make. */
+.chatter-channel { color: var(--accent-primary); font-weight: 750; }
+.chatter-channel[data-channel='guild'] { color: var(--accent-success); }
+.chatter-channel[data-channel='world'] { color: var(--accent-warning); }
+.chatter-channel[data-channel='party'] { color: var(--accent-primary); }
+.chatter-channel[data-channel='raid'] { color: var(--accent-danger); }
+.chatter-channel[data-channel='whisper'] { color: var(--color-magic); }
+.chatter-channel[data-channel='system'] { color: var(--text-muted); }
+.chatter-channel[data-channel='hero'] { color: var(--text-main); }
 
 .inventory-list {
   max-height: 240px;

@@ -2,21 +2,36 @@ import React, { useId, useLayoutEffect, useRef, useState } from 'react';
 import { useGameStore } from '../state/gameStore';
 import type { SocialChannel } from '../state/socialProjection';
 
-type ChannelFilter = 'all' | SocialChannel;
-
-const CHANNELS: readonly ChannelFilter[] = ['all', 'guild', 'world', 'party', 'raid', 'whisper', 'system', 'hero'];
-const label = (channel: ChannelFilter): string => channel === 'all' ? 'All' : channel[0]?.toUpperCase() + channel.slice(1);
+/**
+ * One stream, with the channel carried by a prefix rather than by a control.
+ *
+ * There used to be a channel dropdown and a mute button. Both were the wrong shape for what this
+ * panel is: a chat window in this genre is a *blend*, and the reader tells the channels apart by the
+ * prefix and its colour — guild green, party blue, raid orange, a whisper in magenta — exactly as
+ * EverQuest and WoW have always done it. A filter that shows one channel at a time turns a room back
+ * into a log, which is the thing this whole area was rebuilt to stop being.
+ *
+ * The colours come from the terminal palette the themes already define, so every theme gets its own
+ * version of the convention rather than a hard-coded one, and no new token is introduced.
+ */
+const CHANNEL_LABEL: Readonly<Record<SocialChannel, string>> = {
+  guild: 'Guild',
+  world: 'World',
+  party: 'Party',
+  raid: 'Raid',
+  whisper: 'Whisper',
+  system: 'System',
+  hero: 'Say',
+};
 
 export const ChatterFeed: React.FC<{ readonly active?: boolean }> = ({ active = true }) => {
   const entries = useGameStore((state) => state.socialEntries);
-  const [channel, setChannel] = useState<ChannelFilter>('all');
-  const [muted, setMuted] = useState(false);
   const [showJump, setShowJump] = useState(false);
   const messagesRef = useRef<HTMLDivElement>(null);
   const followingLatest = useRef(true);
   const messagesId = useId();
   const disclosureId = useId();
-  const visibleEntries = entries.toReversed().filter((entry) => channel === 'all' || entry.channel === channel);
+  const visibleEntries = entries.toReversed();
   const latestVisibleId = visibleEntries.at(-1)?.id;
 
   const jumpToLatest = () => {
@@ -35,19 +50,13 @@ export const ChatterFeed: React.FC<{ readonly active?: boolean }> = ({ active = 
       setShowJump(false);
       return;
     }
-    if (!active || muted) return;
+    if (!active) return;
     if (followingLatest.current) {
       if (messagesRef.current) messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
       setShowJump(false);
     }
     else if (latestVisibleId) setShowJump(true);
-  }, [active, channel, latestVisibleId, muted]);
-
-  const chooseChannel = (next: ChannelFilter) => {
-    setChannel(next);
-    followingLatest.current = true;
-    setShowJump(false);
-  };
+  }, [active, latestVisibleId]);
 
   return (
     <section className="chatter-panel" role="region" aria-label="Simulated chatter">
@@ -56,29 +65,6 @@ export const ChatterFeed: React.FC<{ readonly active?: boolean }> = ({ active = 
           <h3>Simulated chatter</h3>
           <p id={disclosureId}>No people are online. Every message is fictional, generated locally, and sent nowhere.</p>
         </div>
-        <label className="chatter-control">
-          <span>Channel</span>
-          <select aria-label="Chatter channel" value={channel} onChange={(event) => chooseChannel(event.target.value as ChannelFilter)}>
-            {CHANNELS.map((option) => <option key={option} value={option}>{label(option)}</option>)}
-          </select>
-        </label>
-        <button
-          type="button"
-          className="btn btn-compact chatter-mute"
-          aria-controls={messagesId}
-          onClick={() => setMuted((current) => !current)}
-        >
-          {/*
-            The label names the action, so aria-pressed cannot also name the state — carrying both
-            inverted the meaning. Muted announced as "Unmute fictional chatter, pressed", which
-            reads as "unmute is on" while chatter is off.
-
-            The label is the signal kept, because it is the unambiguous one. A fixed label with
-            aria-pressed would give "Fictional chatter, pressed" and leave the listener to guess
-            whether pressed means muted or playing.
-          */}
-          {muted ? 'Unmute fictional chatter' : 'Mute fictional chatter'}
-        </button>
       </div>
 
       <div
@@ -97,24 +83,24 @@ export const ChatterFeed: React.FC<{ readonly active?: boolean }> = ({ active = 
           setShowJump(!followingLatest.current);
         }}
       >
-        {muted
-          ? <p className="chatter-empty">Fictional chatter is muted. The imaginary people remain industrious.</p>
-          : visibleEntries.length > 0
-            ? <ol className="chatter-list">
-                {visibleEntries.map((entry) => (
-                  <li key={entry.id} data-social-id={entry.id}>
-                    <div className="chatter-meta">
-                      <span className="chatter-channel">{label(entry.channel)}</span>
-                      <bdi data-speaker-name dir="auto">{entry.speaker.displayName}</bdi>
-                      <span>{entry.speaker.role}</span>
-                    </div>
-                    <p>{entry.text}</p>
-                  </li>
-                ))}
-              </ol>
-            : <p className="chatter-empty">No fictional messages on this channel. Even the silence is simulated.</p>}
+        {visibleEntries.length > 0
+          ? <ol className="chatter-list">
+              {visibleEntries.map((entry) => (
+                <li key={entry.id} data-social-id={entry.id}>
+                  {/* The channel is named in text as well as coloured, because colour alone is not a
+                      distinction a reader who cannot see it can make. */}
+                  <div className="chatter-meta">
+                    <span className="chatter-channel" data-channel={entry.channel}>[{CHANNEL_LABEL[entry.channel]}]</span>
+                    <bdi data-speaker-name dir="auto">{entry.speaker.displayName}</bdi>
+                    <span>{entry.speaker.role}</span>
+                  </div>
+                  <p>{entry.text}</p>
+                </li>
+              ))}
+            </ol>
+          : <p className="chatter-empty">No fictional messages yet. Even the silence is simulated.</p>}
       </div>
-      {showJump && !muted ? <button type="button" className="btn btn-compact chatter-jump" onClick={jumpToLatest}>Jump to latest chatter</button> : null}
+      {showJump ? <button type="button" className="btn btn-compact chatter-jump" onClick={jumpToLatest}>Jump to latest chatter</button> : null}
     </section>
   );
 };
