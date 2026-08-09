@@ -1,7 +1,7 @@
 import { addInventoryItem, applyQuestReward, applySpellReward, calculateEncumbrance, equipPrice, generateEquipUpgrade, generateItemReward, generateQuest, generateStatReward, generateTaskDescription } from './sim';
 import { BORING_ITEMS, IMPRESSIVE_TITLES, MONSTERS, RACES } from '../data/traits';
 import { MAX_PENDING_TASKS, MAX_PERSISTED_GOLD, MAX_PERSISTED_VALUE } from '../data/limits';
-import { earnGold, goldEarnedBetween } from './gold';
+import { earnGold, goldEarnedBetween, spendGold } from './gold';
 import { storageAllowance } from './storage';
 import { marketFavour } from './marketFavour';
 import { clawbackPerMille } from './clawback';
@@ -476,7 +476,14 @@ export function advanceGame(state: GameTransitionState, elapsedMs: number, rng: 
     } else if (task.type === 'buying') {
       const price = equipPrice(traits.Level);
       if (gold >= price) {
-        gold -= price;
+        // Through `spendGold` rather than subtracting here. It was written alongside `earnGold` in
+        // the decade-shedding change and never wired, so the one place the game spends gold carried
+        // a second copy of the rule — which is how two copies drift.
+        //
+        // The guard stays and is what makes the two identical. `spendGold` clamps at zero when no
+        // decade has been shed, and returns the purse untouched when one has and the balance is
+        // short; behind `gold >= price` neither branch can differ from the subtraction it replaces.
+        ({ gold } = spendGold({ gold, decades: goldDecades }, price));
         const upgrade = generateEquipUpgrade(rng, traits.Level);
         equip = { ...equip, [upgrade.slot]: upgrade.name };
         events.push({ type: 'equipment_purchased', slot: upgrade.slot, name: upgrade.name });

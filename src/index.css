@@ -1042,15 +1042,7 @@ input[type='radio']:checked::before { transform: scale(1); }
   overflow-wrap: anywhere;
 }
 
-.chatter-control {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  font-size: 0.68rem;
-}
 
-.chatter-control select,
-.chatter-mute,
 .chatter-jump,
 .activity-jump { min-height: 2rem; font-size: 0.68rem; }
 
@@ -1229,7 +1221,6 @@ textarea.form-control { resize: vertical; }
 @media (max-width: 1024px) {
   .main-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .chatter-header { grid-template-columns: minmax(0, 1fr); align-items: stretch; }
-  .chatter-control { align-items: stretch; flex-direction: column; }
 }
 
 @media (min-width: 1025px) and (min-height: 760px) {
@@ -1365,8 +1356,6 @@ textarea.form-control { resize: vertical; }
   .world-context-line { align-items: flex-start; flex-direction: column; }
   .world-context-line > span { text-align: left; }
   .world-context-details summary { min-height: 44px; }
-  .chatter-control select,
-  .chatter-mute,
   .chatter-jump,
   .activity-jump { min-width: 0; min-height: 44px; width: 100%; }
 }
@@ -1374,8 +1363,6 @@ textarea.form-control { resize: vertical; }
 @media (pointer: coarse) {
   .world-context-details summary { min-height: 44px; }
   .console-tabs [role='tab'],
-  .chatter-control select,
-  .chatter-mute,
   .chatter-jump,
   .activity-jump { min-height: 44px; }
 }
