@@ -55,6 +55,39 @@ describe('the quest panel says what its bars are counting', () => {
     expect(quest.parentElement?.querySelectorAll('.stat-unit')).toHaveLength(1);
   });
 
+  it('reports whole seconds, because the tracks accumulate fractional ones', () => {
+    // `progressDelta` is `task.durationMs / 1000`, so a live save carries values like 41.92 against
+    // an integer maximum. Two decimal places asserted hundredth-of-a-second accuracy about a running
+    // sum of task durations, and changed on every tick — the two quietest readings in the panel were
+    // the noisiest things on screen.
+    showing((character) => ({
+      ...character,
+      Quest: { ...character.Quest, currentProgress: 41.92, maxProgress: 76 },
+      Plot: { ...character.Plot, currentProgress: 491.76, maxProgress: 21600 },
+    }));
+
+    const quest = screen.getByRole('progressbar', { name: 'Current quest progress' });
+    const plot = screen.getByRole('progressbar', { name: 'Plot act progress' });
+
+    expect(quest.parentElement?.textContent).toContain('42 / 76 s');
+    expect(plot.parentElement?.textContent).toContain('492 / 21600 s');
+    // The announcement too, or a screen reader still reads two decimal places aloud every sample.
+    expect(quest.getAttribute('aria-valuetext')).toBe('42 of 76 seconds');
+    expect(plot.getAttribute('aria-valuetext')).toBe('492 of 21600 seconds');
+  });
+
+  it('keeps the fill exact, so rounding is a label change and not a progress change', () => {
+    // The percentages come off the raw values. A bar rounded before the division would disagree with
+    // itself at the edges — 0.4 of a second showing as a filled pixel, or the reverse.
+    showing((character) => ({ ...character, Quest: { ...character.Quest, currentProgress: 0.6, maxProgress: 100 } }));
+
+    const quest = screen.getByRole('progressbar', { name: 'Current quest progress' });
+    // 0.6 of 100 floors to 0%, while the label rounds to 1 — the two are allowed to disagree because
+    // they answer different questions, and the fill is the one that must not lie.
+    expect(quest.getAttribute('aria-valuenow')).toBe('0');
+    expect(quest.parentElement?.textContent).toContain('1 / 100 s');
+  });
+
   it('announces the same seconds to a screen reader, which the percentage alone did not', () => {
     showing((character) => ({ ...character, Quest: { ...character.Quest, currentProgress: 37, maxProgress: 112 } }));
 

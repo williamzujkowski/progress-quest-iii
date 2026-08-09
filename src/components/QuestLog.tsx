@@ -18,6 +18,26 @@ export const QuestLog: React.FC = () => {
     dockets,
   );
 
+  /*
+   * Whole seconds, at the display layer and nowhere else.
+   *
+   * `progressDelta` is `task.durationMs / 1000`, so both tracks accumulate a fractional number of
+   * seconds and the bars read `41.92 / 76 s` against `491.76 / 21600 s` — two decimal places on the
+   * numerator, a whole number on the denominator, and every other figure on the dashboard an
+   * integer. It asserts hundredth-of-a-second accuracy about a running sum of task durations, and
+   * both digits change on every tick, so the two quietest readings in the panel were the noisiest
+   * things on screen.
+   *
+   * `formatDuration` already refuses exactly this a few modules away — "reporting 4h 12m 37s would
+   * dress a five-minute average up as a stopwatch reading" — and the argument transfers unchanged.
+   *
+   * Rounded here rather than in the engine, which is not a hedge: the stored values are persisted
+   * state and moving them would rewrite every golden to make a bar tidier. The percentages below
+   * still come off the raw values, so the fill stays exact and only the label is coarse.
+   */
+  const questProgress = Math.round(character.Quest.currentProgress);
+  const plotProgress = Math.round(character.Plot.currentProgress);
+
   const taskPct = Math.min(100, Math.floor((character.Task.elapsedMs / character.Task.durationMs) * 100));
   const questPct = Math.min(100, Math.floor((character.Quest.currentProgress / character.Quest.maxProgress) * 100));
   const plotPct = Math.min(100, Math.floor((character.Plot.currentProgress / character.Plot.maxProgress) * 100));
@@ -55,7 +75,7 @@ export const QuestLog: React.FC = () => {
               same bar, and killing a Gnoll advances it by three. The pair are seconds of task time,
               and the world console one card away already prints seconds this way. */}
           <span>
-            <GameNumber value={character.Quest.currentProgress} /> / <GameNumber value={character.Quest.maxProgress} />{' '}
+            <GameNumber value={questProgress} /> / <GameNumber value={character.Quest.maxProgress} />{' '}
             <span className="stat-unit">s</span>
           </span>
         </div>
@@ -66,7 +86,7 @@ export const QuestLog: React.FC = () => {
           aria-valuenow={questPct}
           aria-valuemin={0}
           aria-valuemax={100}
-          aria-valuetext={`${character.Quest.currentProgress} of ${character.Quest.maxProgress} seconds`}
+          aria-valuetext={`${questProgress} of ${character.Quest.maxProgress} seconds`}
         >
           <div className="progress-bar-fill" style={{ width: `${questPct}%` }} />
         </div>
@@ -94,7 +114,7 @@ export const QuestLog: React.FC = () => {
         <div className="progress-label">
           <span>Plot Progress</span>
           <span>
-            <GameNumber value={character.Plot.currentProgress} /> / <GameNumber value={character.Plot.maxProgress} />{' '}
+            <GameNumber value={plotProgress} /> / <GameNumber value={character.Plot.maxProgress} />{' '}
             <span className="stat-unit">s</span>
           </span>
         </div>
@@ -105,7 +125,7 @@ export const QuestLog: React.FC = () => {
           aria-valuenow={plotPct}
           aria-valuemin={0}
           aria-valuemax={100}
-          aria-valuetext={`${character.Plot.currentProgress} of ${character.Plot.maxProgress} seconds`}
+          aria-valuetext={`${plotProgress} of ${character.Plot.maxProgress} seconds`}
         >
           <div className="progress-bar-fill" style={{ width: `${plotPct}%` }} />
         </div>
