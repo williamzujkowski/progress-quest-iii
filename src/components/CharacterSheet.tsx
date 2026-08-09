@@ -133,16 +133,10 @@ export const CharacterSheetView: React.FC = () => {
         <details className="records-details">
           <summary>Records</summary>
           {/*
-            The records scroll as one region rather than each list scrolling separately.
-            Measured at 1372x943 with a mature save: the disclosure's contents came to 2952px inside
-            a card that clips at 624, so the service record began 1575px below the card's bottom edge
-            and the page itself does not scroll — this is a one-screen dashboard. Everything past the
-            first few citations was unreachable, which is worse than absent, because the summary
-            promises it is there.
-
-            One region rather than per-list caps because the point of this disclosure is that it
-            holds several kinds of record: capping each would give a reader four short windows to
-            scrub through instead of one document to read down.
+            Grouped so the stylesheet has one thing to name, and so the records read as a
+            continuous document rather than as four independently scrolling windows. What actually
+            makes them reachable is the card scrolling while this disclosure is open — see the
+            one-screen media query, which records the two narrower fixes that failed first.
           */}
           <div className="records-scroll">
             <Commendations />

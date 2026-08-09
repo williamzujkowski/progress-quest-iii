@@ -340,23 +340,6 @@ input[type='radio']:checked::before { transform: scale(1); }
 .docket-register { margin-top: 0.4rem; }
 
 /*
- * The records disclosure scrolls; the card it sits in does not.
- *
- * `.character-card` clips at `overflow-y: hidden` and the dashboard is a one-screen layout, so the
- * page has no scroll of its own to fall back on. A mature save's records came to 2952px against a
- * 624px card, which put the service record 1575px past the bottom edge with no way to reach it.
- *
- * Capped in viewport units with a rem ceiling: the region should give up its share on a short
- * window rather than push the card, and should not grow without limit on a tall one. `contain`
- * keeps a flick inside the region from scrolling whatever is behind it once it bottoms out.
- */
-.records-scroll {
-  max-height: min(52vh, 30rem);
-  overflow-y: auto;
-  overscroll-behavior: contain;
-}
-
-/*
  * The record is set as a document, not as a panel: prose measure, a subject line, and headings that
  * are quieter than the section labels above them. The surrounding surfaces are tables of figures,
  * and the whole point of this one is that it reads as something typed rather than something totted
@@ -1257,6 +1240,47 @@ textarea.form-control { resize: vertical; }
 
   .character-card {
     overflow: hidden;
+  }
+
+  /*
+   * The card scrolls while the records are open, and only then.
+   *
+   * This media query is the one-screen layout: the card clips at `overflow: hidden`, the grid row is
+   * `minmax(0, 1fr)`, and the page has no scroll of its own to fall back on. Measured at 1372x943
+   * against a mature save, the records disclosure held 2952px of content against a 624px card, so
+   * the service record began 1575px below the bottom edge with no way to reach it. That is worse
+   * than the content being absent — a summary that opens onto a promise the layout declines to keep
+   * is a broken panel, and a screenshot of it looks perfectly fine.
+   *
+   * Two narrower fixes were tried against the real save first and both failed, which is why this one
+   * is written where it is. Capping the region at `min(52vh, 30rem)` still left it 294px past the
+   * edge, because no viewport fraction knows how much room the equipment and the spell book have
+   * already taken. Making the region a shrinkable flex item did not help either: the disclosure
+   * resolved to 206px while its own contents stayed at 2916 and simply overflowed it.
+   *
+   * Letting the card scroll is what the constraint actually asks for. `:has` scopes it to the open
+   * state so the closed dashboard keeps the clipping that holds the one-screen layout together.
+   */
+  .character-card:has(.records-details[open]) {
+    overflow-y: auto;
+  }
+
+  /*
+   * And the spell book stops vanishing.
+   *
+   * It is `flex: 1 1 0%` so it can absorb whatever the card has spare — which resolves to exactly
+   * zero once there is nothing spare. Present in the tree, announced to a screen reader, drawn as
+   * nothing under its own heading. A child allowed to reach zero is worse than one that overflows,
+   * because nothing on screen says it is there.
+   *
+   * Given a fixed band rather than a floor alone: with the card scrolling there is no longer a
+   * leftover to absorb, so growing to fit 79 spells would push the records off the bottom of a very
+   * long card instead.
+   */
+  .character-card:has(.records-details[open]) .spell-list {
+    flex: 0 0 auto;
+    min-height: 6rem;
+    max-height: 10rem;
   }
 
   .activity-card,

@@ -4,6 +4,7 @@ import { expectNoViolations } from './fixtures/accessibility';
 import { readFile } from 'node:fs/promises';
 import { createNewCharacter } from '../src/engine/sim';
 import { DEFAULT_CHECKPOINT_INTERVAL_MS } from '../src/data/limits';
+import { EQUIP_SLOTS } from '../src/data/traits';
 import { archivedSessionStorageState } from './fixtures/archivedSession';
 import { returningSessionStorageState } from './fixtures/returningSession';
 import { expectVisibleFocusRing } from './fixtures/focusVisibility';
@@ -1464,52 +1465,81 @@ test.describe('Progress Quest III terminal dashboard', () => {
 
   test('keeps every record reachable rather than clipped by the card', async ({ page }) => {
     // Measured at 1372x943 against a mature save: the records disclosure came to 2952px of content
-    // inside a card that clips at `overflow-y: hidden` and 624px, on a dashboard whose page does not
+    // inside a card that clips at `overflow: hidden` and 624px, on a dashboard whose page does not
     // scroll. The service record began 1575px below the card's bottom edge with no way to reach it,
     // which is worse than absent — the summary promises it is there.
     //
-    // Asserted through the scroll region's own geometry rather than by screenshot, because what
-    // broke was reachability, not appearance: a screenshot of the clipped version looks fine.
+    // Three things this test had to be taught, each of which let an earlier version pass against a
+    // fix that was measured as broken in a real browser:
+    //
+    // 1. The one-screen layout is `(min-width: 1025px) and (min-height: 760px)` and the default
+    //    Playwright viewport is 720 tall, so the card never clipped and the page scrolled normally.
+    // 2. `loadDenseDashboard` gives 18 spells and no exhibit. A real save leaves the card nothing
+    //    spare, and that is the state that broke.
+    // 3. `overflow: hidden` still scrolls programmatically. Assigning `scrollTop` and finding the
+    //    content moved proves nothing about whether a reader can reach it, so the computed overflow
+    //    is asserted directly — that is the property that decides reachability.
+    await page.setViewportSize({ width: 1372, height: 943 });
     await page.goto('/');
     await loadDenseDashboard(page);
-    await page.evaluate(async () => {
+    await page.evaluate(async (slots: readonly string[]) => {
       const { useGameStore } = await import('/src/state/gameStore.ts');
       const state = useGameStore.getState();
       useGameStore.setState({
-        commendations: { highestLevel: 45, largestSale: 102_815, questsCompleted: 2291, actsCompleted: 3, exhibit: {} },
+        commendations: {
+          highestLevel: 45,
+          largestSale: 102_815,
+          questsCompleted: 2291,
+          actsCompleted: 3,
+          exhibit: Object.fromEntries(slots.map((slot, index) => [
+            slot,
+            { name: `+${index + 7} Certified Insured Lender of Last Resort`, label: 'notable', quality: 10 + index },
+          ])),
+        },
         caseload: {
           kinds: { exterminate: 426, seek: 474, deliver: 460, fetch: 455, placate: 446 },
           targets: { 'Purple Squirrel': 12 },
           targetActs: { 'Purple Squirrel': { first: 2, last: 9 } },
         },
         specimens: { specimens: Array.from({ length: 300 }, (_unused, index) => `item:Specimen ${index}`) },
-        character: { ...state.character, Plot: { ...state.character.Plot, act: 14 } },
+        character: {
+          ...state.character,
+          Plot: { ...state.character.Plot, act: 14 },
+          Spells: Array.from({ length: 79 }, (_unused, index) => ({ name: `Procedural Disappointment ${index + 1}`, level: index + 1 })),
+        },
       });
-    });
+    }, EQUIP_SLOTS as readonly string[]);
 
     await page.locator('.records-details > summary').filter({ hasText: /^Records/ }).click();
-    const region = page.locator('.records-scroll');
-    await expect(region).toBeVisible();
+    const card = page.locator('.character-card');
 
-    const geometry = await region.evaluate((element) => {
-      const card = element.closest('.character-card') as HTMLElement;
+    const geometry = await card.evaluate((element) => {
+      const overflowY = getComputedStyle(element).overflowY;
+      const overflows = element.scrollHeight > element.clientHeight + 4;
       element.scrollTop = element.scrollHeight;
+      const spells = element.querySelector('.spell-list') as HTMLElement | null;
       const document_ = element.querySelector('.service-record') as HTMLElement | null;
       return {
-        scrolls: element.scrollHeight > element.clientHeight + 4,
-        regionBottom: element.getBoundingClientRect().bottom,
-        cardBottom: card.getBoundingClientRect().bottom,
+        overflowY,
+        overflows,
+        cardBottom: element.getBoundingClientRect().bottom,
+        spellHeight: spells ? spells.getBoundingClientRect().height : null,
         documentBottom: document_ ? document_.getBoundingClientRect().bottom : null,
       };
     });
 
-    // The premise: a fixture small enough to fit would make everything below vacuous.
-    expect(geometry.scrolls, 'the fixture must overflow, or this proves nothing').toBe(true);
-    // The region stays inside the card that clips it...
-    expect(geometry.regionBottom).toBeLessThanOrEqual(geometry.cardBottom + 1);
-    // ...and scrolling to the end brings the last thing in it into view rather than past the edge.
+    // The premise: a fixture that fits inside the card would make everything below vacuous.
+    expect(geometry.overflows, 'the fixture must overflow the card, or this proves nothing').toBe(true);
+    // A reader can move it. This is the assertion the fix is actually about — `hidden` would still
+    // have satisfied everything after it.
+    expect(['auto', 'scroll'], `card overflow-y is ${geometry.overflowY}`).toContain(geometry.overflowY);
+    // And moving it to the end brings the last thing in the card into view rather than past the edge.
     expect(geometry.documentBottom).not.toBeNull();
     expect(geometry.documentBottom as number).toBeLessThanOrEqual(geometry.cardBottom + 1);
+    // The spell book is not silently paying for it. Flex handed it the whole shortfall and it
+    // resolved to exactly zero — drawn as nothing under its own heading, which is the kind of
+    // failure a reader cannot see well enough to complain about.
+    expect(geometry.spellHeight as number, 'the spell book must not collapse to nothing').toBeGreaterThan(40);
   });
 
   test('spends a wide viewport on the loadout rather than on the prose column', async ({ page }) => {
