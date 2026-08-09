@@ -96,7 +96,7 @@ describe('what the filing is willing to quote', () => {
 
     const spoken: string[] = [];
     for (let tasks = 0; tasks < 3000; tasks += 1) {
-      for (const line of projectAmbient(SPEAKER, tasks, filing)) spoken.push(line.text);
+      for (const line of projectAmbient(SPEAKER, tasks, { loadout: filing })) spoken.push(line.text);
     }
 
     expect(spoken.length, 'expected the run to actually produce chatter').toBeGreaterThan(0);

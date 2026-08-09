@@ -359,7 +359,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         () => projectAmbient(
           sources.at(-1)?.record.post.hero ?? { name: character.Traits.Name, race: character.Traits.Race, className: character.Traits.Class },
           chatterTasks,
-          fileLoadout(result.state.character),
+          { loadout: fileLoadout(result.state.character), caseload: nextCaseload },
         ),
       );
       chatterCadence = scheduled.cadence;

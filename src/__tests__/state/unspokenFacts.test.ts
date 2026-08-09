@@ -25,7 +25,7 @@ const filing = (modifier: string | null): LoadoutFiling => ({
 });
 
 const sweep = (tasks: number, loadout: LoadoutFiling) =>
-  Array.from({ length: tasks }, (_unused, task) => projectAmbient(HERO, task, loadout)).flat();
+  Array.from({ length: tasks }, (_unused, task) => projectAmbient(HERO, task, { loadout })).flat();
 
 describe('the guild mentions a modifier worn in three places', () => {
   it('reaches the lane at all, which nothing else in this file would prove', () => {
