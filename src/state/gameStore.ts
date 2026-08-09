@@ -367,6 +367,7 @@ export const useGameStore = create<GameStore>((set, get) => {
             // roster, and `scheduleChatter` reaches its ambient branch on a few ticks in twenty
             // thousand.
             predecessor: predecessorFor(get().roster, result.state.character.Traits.Name),
+            commendations: nextCommendations,
           },
         ),
       );

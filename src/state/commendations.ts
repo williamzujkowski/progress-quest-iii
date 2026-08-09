@@ -2,6 +2,7 @@ import { z } from './zod';
 import { readLedger, writeLedger } from './ledgerStorage';
 import { MAX_PERSISTED_GOLD, MAX_PERSISTED_VALUE, MAX_PERSISTED_DESCRIPTION_LENGTH } from '../data/limits';
 import { EQUIP_SLOTS } from '../data/traits';
+import { analyzeItemMechanics } from '../engine/itemMechanics';
 import type { GameTransitionEvent } from '../engine/transition';
 import type { EquipmentClassification } from './worldContext';
 
@@ -74,6 +75,43 @@ export function mergeExhibit(
     ...records,
     exhibit: { ...records.exhibit, [slot]: { name, label: classification.label, quality: classification.quality } },
   };
+}
+
+/** The finest thing ever recorded in any slot, named the way the chatter may quote it. */
+export interface FinestExhibit {
+  readonly slot: string;
+  /** The bare noun. A generated name carries an assessor's mark, and no chatter line may quote one. */
+  readonly base: string;
+}
+
+/**
+ * The best single thing the ledger has ever recorded, across every character it has spanned.
+ *
+ * The exhibit is per-slot and the guild wants one benchmark, not eleven. Ties resolve by slot name
+ * so the answer is stable across reloads rather than dependent on key order — the same rule
+ * `mostLitigated` uses next door, for the same reason.
+ *
+ * Entries whose base noun the analyser cannot resolve are skipped rather than repaired, exactly as
+ * `fileLoadout` skips them: an item with no catalogued noun has no bare noun to quote, and handing
+ * the raw generated string to a chatter line would put an assessor's mark in a bank asserted to
+ * carry no figures.
+ *
+ * Returns null for a fresh ledger, which is every ledger until something is equipped.
+ */
+export function finestExhibit(records: Commendations): FinestExhibit | null {
+  let best: { slot: string; base: string; quality: number } | null = null;
+
+  for (const slot of EQUIP_SLOTS) {
+    const entry = records.exhibit[slot];
+    if (!entry) continue;
+    const base = analyzeItemMechanics({ kind: 'equipment', name: entry.name, slot }).quality?.base;
+    if (!base) continue;
+    if (!best || entry.quality > best.quality || (entry.quality === best.quality && slot < best.slot)) {
+      best = { slot, base: base.name, quality: entry.quality };
+    }
+  }
+
+  return best === null ? null : { slot: best.slot, base: best.base };
 }
 
 /** True when nothing has happened worth filing, so the panel can stay away rather than show zeroes. */

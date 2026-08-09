@@ -3,10 +3,11 @@ import { GRATS } from '../data/socialGrats';
 import { DKP_ALLOCATION, DKP_STANDINGS } from '../data/socialDkp';
 import { recurringAssignments } from './questRecurrence';
 import { boundCodePoints, boundedLabel, MAX_TEXT_CODE_POINTS, formatGameNumber, stableIndex, stableChoice } from '../engine/text';
-import { DOCKET_LINES, PREDECESSOR_MISTELLS, SYSTEM_NOTICES, AUCTION_LINES, MISTELLS, UTILITY_BEATS, AMBIENT_LINES, BLAME_BEATS, EXCHANGES, FEUD_BEATS, ITEM_OF_RECORD_LINES, ONBOARDING_LINES, QUESTION_BEATS, REACTION_LINES, REPEATED_MODIFIER_LINES, TRADE_LINES, type AmbientLine } from '../data/socialAmbient';
+import { DOCKET_LINES, EXHIBIT_LINES, PREDECESSOR_MISTELLS, SYSTEM_NOTICES, AUCTION_LINES, MISTELLS, UTILITY_BEATS, AMBIENT_LINES, BLAME_BEATS, EXCHANGES, FEUD_BEATS, ITEM_OF_RECORD_LINES, ONBOARDING_LINES, QUESTION_BEATS, REACTION_LINES, REPEATED_MODIFIER_LINES, TRADE_LINES, type AmbientLine } from '../data/socialAmbient';
 import type { LoadoutFiling } from '../engine/loadoutFiling';
 import { displayTarget, mostLitigated, type Caseload } from './caseload';
 import type { Predecessor } from './predecessor';
+import { finestExhibit, type Commendations } from './commendations';
 import { projectWorld, type IdentifiedGameTransitionRecord } from './worldContext';
 
 export type SocialChannel = 'guild' | 'world' | 'party' | 'raid' | 'whisper' | 'system' | 'hero';
@@ -742,6 +743,10 @@ const AMBIENT_LANES = [
   // a lane that fired often would say the same thing about the same item all afternoon.
   'item',
   'blame',
+  // A benchmark from a ledger that outlives everyone citing it. One lane's worth, and separate from
+  // the item lane on purpose: that one is about what is worn, this one is about what the file
+  // remembers.
+  'exhibit',
   // Somebody still posting to whoever held this file three characters ago. One lane's worth, and
   // reachable only once the roster holds two characters — which makes it the rarest thing the
   // channel does and the one most worth stumbling on.
@@ -815,6 +820,14 @@ export interface InstitutionalMemory {
    * well as the roster and only the caller has both. Null is the ordinary state of a fresh save.
    */
   readonly predecessor?: Predecessor | null | undefined;
+  /**
+   * Personal bests, of which the chatter reads only the exhibit.
+   *
+   * The whole ledger rather than the one derived answer, unlike `predecessor` above: `finestExhibit`
+   * needs nothing the caller has and the store already holds this object, so deriving it here keeps
+   * one definition of "finest" rather than two places that could disagree about ties.
+   */
+  readonly commendations?: Commendations | undefined;
 }
 
 /**
@@ -830,7 +843,7 @@ export function projectAmbient(
   completedTasks: number,
   memory: InstitutionalMemory = {},
 ): readonly SocialEntry[] {
-  const { loadout, caseload, predecessor } = memory;
+  const { loadout, caseload, predecessor, commendations } = memory;
   if (!Number.isFinite(completedTasks) || completedTasks < 0) return [];
   const cast = castForHero(hero);
   const key = `ambient:${hero.name}:${hero.race}:${hero.className}:${completedTasks}`;
@@ -847,6 +860,10 @@ export function projectAmbient(
   if (lane === 'docket' && docket === null) lane = 'ambient';
   // A roster holding one character, which is every save until somebody makes a second one.
   if (lane === 'predecessor' && !predecessor) lane = 'ambient';
+  // Empty until something has been equipped, and empty again for any ledger whose entries the
+  // analyser cannot resolve a bare noun from.
+  const exhibit = commendations ? finestExhibit(commendations) : null;
+  if (lane === 'exhibit' && exhibit === null) lane = 'ambient';
   // The best thing the hero owns is still entry-tier, so the hall explains itself to them. Anything
   // better equipped ends it, which is why it needs no timer and cannot outstay its welcome.
   if (lane === 'onboarding' && (loadout?.itemOfRecord?.standing ?? 0) > ONBOARDING_STANDING) lane = 'ambient';
@@ -876,6 +893,8 @@ export function projectAmbient(
       ? REPEATED_MODIFIER_LINES[stableChoice(`modifier:${key}`, REPEATED_MODIFIER_LINES.length)]!
     : lane === 'docket'
       ? DOCKET_LINES[stableChoice(`docket:${key}`, DOCKET_LINES.length)]!
+    : lane === 'exhibit'
+      ? EXHIBIT_LINES[stableChoice(`exhibit:${key}`, EXHIBIT_LINES.length)]!
     : lane === 'blame'
       ? beat(BLAME_BEATS)
       : lane === 'feud'
@@ -941,7 +960,11 @@ export function projectAmbient(
       // The name and nothing else. `predecessorFor` also returns a finished sentence and the service
       // record renders it — but that sentence says "last recorded at level 9", which is the file
       // being careful. The joke here is a room that is not being careful at all.
-      .replaceAll('{predecessor}', predecessor?.name ?? 'the previous holder')),
+      .replaceAll('{predecessor}', predecessor?.name ?? 'the previous holder')
+      // The bare noun again, for the reason the item lane gives: a generated name carries an
+      // assessor's mark, and no line in this bank may quote a figure.
+      .replaceAll('{exhibit}', exhibit?.base ?? 'record')
+      .replaceAll('{exhibitSlot}', exhibit?.slot ?? 'slot')),
   }));
 }
 
