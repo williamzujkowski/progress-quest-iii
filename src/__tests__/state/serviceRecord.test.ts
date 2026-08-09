@@ -129,6 +129,39 @@ describe('the document omits rather than reporting a zero', () => {
   });
 });
 
+describe('the document survives a ledger somebody else wrote', () => {
+  it('states no date for a target whose name is inherited from Object.prototype', () => {
+    // A target name is engine-generated in ordinary play, but an imported ledger chooses these keys
+    // and the schema admits any string. A bare `targetActs[target]` read returns a *function* for
+    // `constructor`, `toString` or `valueOf` — so the null check passes, the span's fields are
+    // undefined, and the document stated "The file opens in Act undefined and last records this in
+    // Act undefined." The caseload tally already carries this guard; this file was written without
+    // it. Reproduced before it was fixed.
+    for (const hostile of ['constructor', 'toString', 'valueOf', 'hasOwnProperty']) {
+      const record = projectServiceRecord(input({
+        caseload: { ...EMPTY_CASELOAD, kinds: { fetch: 3 }, targets: { [hostile]: 9 }, targetActs: {} },
+      }))!;
+      const lines = record.sections.flatMap(({ lines: section }) => section).join(' | ');
+
+      // The premise: the register section has to be present, or this asserts nothing.
+      expect(lines, hostile).toContain('One name recurs above the others');
+      expect(lines, hostile).not.toContain('undefined');
+      expect(lines, hostile).not.toContain('The file opens in Act');
+    }
+  });
+
+  it('still dates a target that genuinely has a span, hostile name or not', () => {
+    // The guard must not become a refusal. A ledger that really does hold a span under an awkward
+    // key is not corrupt, and dropping its date would be the fix overshooting.
+    const record = projectServiceRecord(input({
+      caseload: { ...EMPTY_CASELOAD, kinds: { fetch: 3 }, targets: { constructor: 9 }, targetActs: { constructor: { first: 2, last: 6 } } },
+    }))!;
+
+    expect(record.sections.flatMap(({ lines }) => lines).join(' | '))
+      .toContain('The file opens in Act 2 and last records this in Act 6.');
+  });
+});
+
 describe('the document is bounded', () => {
   it('runs to exactly the bound on a maximal file, and no further', () => {
     // This assertion is the bound. There is no truncation pass to test, because two drafts of one
