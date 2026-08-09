@@ -55,17 +55,15 @@ describe('where the paperwork has sent the hero', () => {
     }
   });
 
-  it('varies by hero, but far less than the key suggests', () => {
-    // Written to assert "two heroes walk different routes" and it failed — `Krg the Robot Monk` and
-    // `Vyzoug the Incident Paladin` get the same nine towns in the same order.
+  it('gives different heroes different routes', () => {
+    // This test used to assert the opposite, because the naming used to deserve it: a per-hero index
+    // into a six-wide pool meant the act dominated, and two heroes whose keys landed on the same
+    // offset agreed at every act for ever. Measured then: 400 heroes, **24 distinct routes**, the
+    // largest identical group 25.
     //
-    // Measured across 400 generated heroes: **24 distinct routes**, the largest identical group 25.
-    // The name keys do carry the hero's identity, but the town pool is six wide and the sequence is
-    // dominated by the act, so identity buys an offset rather than a route. That is a property of
-    // the naming already shipped on the world console, not of this projection — filed separately.
-    //
-    // Pinned at what is actually true, so the day the naming is widened this fails and gets updated
-    // deliberately, rather than a stronger claim sitting here unverified.
+    // The pool is now shuffled per hero and the act indexes into the ordering, so the available
+    // sequences go from the pool's length to its factorial out of the same vocabulary. Measured
+    // now: **312 distinct routes**, largest identical group 3.
     const heroes = [
       { name: 'Krg', race: 'Sub-Subprocessor', className: 'Robot Monk', level: 12 },
       { name: 'Vyzoug', race: 'Half Daemon', className: 'Incident Paladin', level: 12 },
@@ -74,11 +72,41 @@ describe('where the paperwork has sent the hero', () => {
     ];
     const routes = heroes.map((hero) => projectRoute(hero, 8).map(({ town }) => town).join('|'));
 
-    // At least two of the four differ, so identity is not ignored outright.
-    expect(new Set(routes).size).toBeGreaterThan(1);
+    // All four differ, which the previous naming could not manage.
+    expect(new Set(routes).size).toBe(heroes.length);
     // And a hero's own route is stable, which is the property the display depends on.
-    for (const hero of heroes) {
-      expect(projectRoute(hero, 8)).toEqual(projectRoute(hero, 8));
+    for (const hero of heroes) expect(projectRoute(hero, 8)).toEqual(projectRoute(hero, 8));
+  });
+
+  it('sends one hero to different towns as the acts pass', () => {
+    // The other half, and the one a per-hero shuffle could quietly lose: an ordering indexed by act
+    // must still advance. A hero who saw the same town in every act would be worse than before.
+    const towns = projectRoute({ name: 'Krg', race: 'Sub-Subprocessor', className: 'Robot Monk', level: 12 }, 5)
+      .slice(0, -1)
+      .map(({ town }) => town);
+
+    expect(new Set(towns).size).toBe(towns.length);
+  });
+
+  it('still names a place when the step it is given is unreadable', () => {
+    // Field names are indexed by the hero's level, which comes off the sheet and is whatever an
+    // imported save said. A negative or non-finite step must land on a real name rather than
+    // `undefined`, because this string is printed on the world console every tick.
+    const bad = (level: number) => projectWorld({
+      kind: 'transition',
+      source: {
+        activityId: 1,
+        record: {
+          event: { type: 'save_requested', characterName: HERO.name },
+          post: snapshot(3, { hero: { ...HERO, level }, nextTask: 'kill' }),
+        },
+      },
+    }).context.location;
+
+    for (const level of [Number.NaN, Number.POSITIVE_INFINITY, -1, -1000]) {
+      const location = bad(level);
+      expect(location, String(level)).not.toContain('undefined');
+      expect(location.length, String(level)).toBeGreaterThan(1);
     }
   });
 
