@@ -39,7 +39,10 @@ describe('the guild talks about itself', () => {
       // Detected by `includes`, not `endsWith`. Anchoring on the end made the check depend on the
       // exact thing a mutation would change — splitting an exchange across scenes appended an index
       // and the assertion below silently stopped running.
-      const isExchange = spoken[0]?.sceneId.includes(':exchange') ?? false;
+      // Two lanes speak more than once: an exchange, and a mistell — which is an exchange that
+      // disagrees with itself about where it was going.
+      const sceneId = spoken[0]?.sceneId ?? '';
+      const isExchange = sceneId.includes(':exchange') || sceneId.includes(':mistell');
       // Was `toBe(isExchange ? spoken.length : 1)`, whose exchange arm compared a value with
       // itself and could not fail. The two cases are now asserted separately and both say something.
       if (!isExchange) expect(spoken.length, `task ${task}`).toBe(1);
@@ -67,12 +70,40 @@ describe('the guild talks about itself', () => {
     }
   });
 
+  it('keeps the slow lanes slow, so no one of them swamps the channel', () => {
+    // The cadence budget, written down. `SCENE_LENGTHS` and `AMBIENT_IN` are both scar tissue from
+    // content that fired too often, and three lanes have been added since the weights were tuned —
+    // utility, mistell, and the two exchange shares. Nothing was checking that the mix still holds.
+    //
+    // Asserted as bands rather than exact figures: the weights are a design decision and should be
+    // free to move, but a lane quietly taking a third of the channel should not pass unnoticed.
+    const TASKS = 3000;
+    const counts = new Map<string, number>();
+    for (let task = 0; task < TASKS; task += 1) {
+      const lane = projectAmbient(HERO, task)[0]?.sceneId.split(':')[2] ?? 'none';
+      counts.set(lane, (counts.get(lane) ?? 0) + 1);
+    }
+    const share = (lane: string) => (counts.get(lane) ?? 0) / TASKS;
+
+    // The running bits are the ones that must stay rare: a feud surfacing often stops being a slow
+    // burn, and a question re-asked every minute is nagging rather than forlorn.
+    for (const slow of ['feud', 'question', 'utility', 'mistell']) {
+      expect(share(slow), `${slow} must stay a slow lane`).toBeGreaterThan(0.02);
+      expect(share(slow), `${slow} must stay a slow lane`).toBeLessThan(0.12);
+    }
+
+    // And the filler still carries the channel, or the room stops sounding like a room between
+    // events. `ambient` absorbs the two loadout lanes when there is nothing worth citing.
+    expect(share('ambient')).toBeGreaterThan(0.25);
+    expect(share('ambient')).toBeLessThan(0.45);
+  });
+
   it('reaches every lane, including the two slow ones', () => {
     // With no loadout there is nothing to cite, so the item and blame lanes fall back — but a hero
     // owning nothing worth citing is exactly the one the hall is still explaining itself to, so
     // onboarding does fire.
     const lanes = new Set(Array.from({ length: 2000 }, (_, task) => projectAmbient(HERO, task)[0]?.sceneId.split(':')[2]));
-    expect(lanes).toEqual(new Set(['ambient', 'reaction', 'trade', 'feud', 'question', 'utility', 'onboarding', 'exchange']));
+    expect(lanes).toEqual(new Set(['ambient', 'reaction', 'trade', 'feud', 'question', 'utility', 'onboarding', 'exchange', 'mistell']));
   });
 
   it('stops explaining the hall once the hero owns something better than a lanyard', () => {
@@ -200,7 +231,7 @@ describe('the guild notices what is being worn', () => {
       .map((entry) => entry?.sceneId.split(':')[2]);
 
   it('reaches the two loadout lanes when there is something to cite', () => {
-    expect(new Set(lanesOf(FILING))).toEqual(new Set(['ambient', 'reaction', 'trade', 'feud', 'question', 'utility', 'item', 'blame', 'exchange']));
+    expect(new Set(lanesOf(FILING))).toEqual(new Set(['ambient', 'reaction', 'trade', 'feud', 'question', 'utility', 'item', 'blame', 'exchange', 'mistell']));
   });
 
   it('says nothing about a loadout that earns nothing, rather than falling silent', () => {
