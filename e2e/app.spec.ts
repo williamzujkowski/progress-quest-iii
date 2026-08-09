@@ -1561,7 +1561,7 @@ test.describe('Progress Quest III terminal dashboard', () => {
       });
     }, EQUIP_SLOTS as readonly string[]);
 
-    await page.locator('.records-details > summary').filter({ hasText: /^Records/ }).click();
+    await page.locator('.records-details > summary').filter({ hasText: /^Departmental records/ }).click();
     const card = page.locator('.character-card');
 
     const geometry = await card.evaluate((element) => {
@@ -1632,7 +1632,7 @@ test.describe('Progress Quest III terminal dashboard', () => {
     // Closed: no stop, because a stop that announces a name and does nothing is the original defect.
     await expect(card).not.toHaveAttribute('tabindex', '0');
 
-    await page.locator('.records-details > summary').filter({ hasText: /^Records/ }).click();
+    await page.locator('.records-details > summary').filter({ hasText: /^Departmental records/ }).click();
     await expect(card).toHaveAttribute('tabindex', '0');
 
     // And it is genuinely operable: focus it and drive it from the keyboard alone.
@@ -1654,7 +1654,7 @@ test.describe('Progress Quest III terminal dashboard', () => {
     await expectVisibleFocusRing(card, 'records card');
 
     // Closing it takes the stop away again.
-    await page.locator('.records-details > summary').filter({ hasText: /^Records/ }).click();
+    await page.locator('.records-details > summary').filter({ hasText: /^Departmental records/ }).click();
     await expect(card).not.toHaveAttribute('tabindex', '0');
 
     // And a narrow viewport takes it away even with the disclosure open, because the clipping lives
@@ -1662,7 +1662,7 @@ test.describe('Progress Quest III terminal dashboard', () => {
     // `overflow: visible`, the page scrolls instead, and a stop that announces a name and does
     // nothing is the defect this was written to remove. Measured at 390x844 the card was 3637px
     // tall, scrolled nothing, and took the stop anyway.
-    await page.locator('.records-details > summary').filter({ hasText: /^Records/ }).click();
+    await page.locator('.records-details > summary').filter({ hasText: /^Departmental records/ }).click();
     await expect(card).toHaveAttribute('tabindex', '0');
     await page.setViewportSize({ width: 390, height: 844 });
     await expect(card).not.toHaveAttribute('tabindex', '0');
@@ -1704,7 +1704,7 @@ test.describe('Progress Quest III terminal dashboard', () => {
       });
     }, EQUIP_SLOTS as readonly string[]);
 
-    await page.locator('.records-details > summary').filter({ hasText: /^Records/ }).click();
+    await page.locator('.records-details > summary').filter({ hasText: /^Departmental records/ }).click();
     // The premise: an audit of an empty disclosure would pass and prove nothing.
     await expect(page.locator('.citation-list .citation-item').first()).toBeVisible();
     await expect(page.locator('.service-record')).toBeVisible();
@@ -1804,7 +1804,7 @@ test.describe('Progress Quest III terminal dashboard', () => {
       for (let tick = 0; tick < 200; tick += 1) useGameStore.getState().tick(1000);
     });
 
-    await page.locator('.records-details > summary').filter({ hasText: /^Records/ }).click();
+    await page.locator('.records-details > summary').filter({ hasText: /^Departmental records/ }).click();
     const record = page.locator('.service-record');
     await expect(record).toBeVisible();
     const text = await record.innerText();

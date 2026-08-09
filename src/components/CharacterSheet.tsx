@@ -172,7 +172,7 @@ export const CharacterSheetView: React.FC = () => {
       */}
       {hasRecords && (
         <details className="records-details" onToggle={(event) => setRecordsOpen(event.currentTarget.open)}>
-          <summary>Records</summary>
+          <summary>Departmental records</summary>
           {/*
             Grouped so the stylesheet has one thing to name, and so the records read as a
             continuous document rather than as four independently scrolling windows. What actually
@@ -180,6 +180,27 @@ export const CharacterSheetView: React.FC = () => {
             one-screen media query, which records the two narrower fixes that failed first.
           */}
           <div className="records-scroll">
+            {/*
+              Whose these are, said once at the top.
+
+              The ledgers are global on purpose — `startSession` carries the commendations, the
+              caseload and the specimen log through a new character, because a hero starting over
+              must not erase the record. Every module that reads them says so, and each takes the
+              same precaution: never address the reader. That makes the prose honest and leaves the
+              placement lying, because the whole thing renders inside a card headed Character
+              Loadout, under this hero's equipment, with their own postings interleaved.
+
+              So a brand-new level-one character opened this and read "Highest level attained: 14".
+              The only line that ever said whose — the precedent — needs a roster entry, which needs
+              an explicit save, which a watcher may never make.
+
+              One sentence fixes it without a roster and without breaking the voice: the institution
+              may be precise, it just may not be helpful.
+            */}
+            <p className="records-provenance">
+              Retained by the department across every appointment, including those preceding this
+              one. Nothing here is a statement about the current holder.
+            </p>
             <Commendations />
             <Caseload />
             <Route />
