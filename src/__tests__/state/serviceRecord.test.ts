@@ -78,11 +78,21 @@ describe('the document reports only what it was handed', () => {
     expect(said).toContain('The file opens in Act 2 and last records this in Act 7.');
   });
 
-  it('states that the exhibit bore on nothing', () => {
-    // `worldContext` classifies equipment as prestige and CONTEXT.md is explicit that it makes no
-    // combat contribution. A document listing the exhibit without saying so lets the reader infer a
-    // mechanic that does not exist, which is the one thing every derived surface here avoids.
-    expect(allLines(projectServiceRecord(FULL)!).join(' ')).toMatch(/bore on the outcome of anything/);
+  it('says what the exhibit did not do, without overclaiming what it did not do', () => {
+    // Two failures are possible here and the assertion has to separate them.
+    //
+    // Listing the exhibit and saying nothing lets a reader infer a combat mechanic that does not
+    // exist — CONTEXT.md is explicit that equipment contributes no attack and no mitigation.
+    //
+    // But the first version said "none of which bore on the outcome of anything", and that is false
+    // in the other direction: ADR 0008 gave equipment a real effect, `sim.ts` multiplies encounter
+    // duration by `encounterSpeedMultiplier(loadoutQuality(character))`, and the world console
+    // renders "Processing time reduced by N%" citing these same items. So the line is pinned to the
+    // narrow claim, and the broad one is forbidden.
+    const said = allLines(projectServiceRecord(FULL)!).join(' ');
+
+    expect(said).toMatch(/contributed attack or mitigation/);
+    expect(said, 'the document must not deny an effect the engine applies').not.toMatch(/bore on the outcome of anything/);
   });
 
   it('reaches for no clock and no randomness', () => {
@@ -194,6 +204,43 @@ describe('the document survives a ledger somebody else wrote', () => {
 
     expect(record.sections.flatMap(({ lines }) => lines).join(' | '))
       .toContain('The file opens in Act 2 and last records this in Act 6.');
+  });
+});
+
+describe('the document counts in English', () => {
+  it('writes one filing as a time and one slot as a slot', () => {
+    // It wrote "filed against 1 times" and "retained in 1 slots" — reachable after the first
+    // completed extermination, and inconsistent with the quest log, which pluralises the same kind
+    // of tally correctly two panels away.
+    const single = projectServiceRecord(input({
+      caseload: { ...EMPTY_CASELOAD, kinds: { fetch: 1 }, targets: { Gnoll: 1 }, targetActs: {} },
+      commendations: { highestLevel: 3, largestSale: 0, questsCompleted: 1, actsCompleted: 0, exhibit: { Weapon: { name: 'A Stick', label: 'questionable', quality: 1 } } },
+    }))!;
+    const said = single.sections.flatMap(({ lines }) => lines).join(' | ');
+
+    expect(said).toContain('filed against 1 time.');
+    expect(said).not.toContain('1 times');
+    expect(said).toContain('retained in 1 slot.');
+    expect(said).not.toContain('1 slots');
+  });
+
+  it('still pluralises when there is more than one', () => {
+    const said = projectServiceRecord(FULL)!.sections.flatMap(({ lines }) => lines).join(' | ');
+
+    expect(said).toContain('times');
+    expect(said).toMatch(/retained in \d+ slots/);
+  });
+
+  it('does not claim a recurrence when nothing recurred', () => {
+    // "One name recurs above the others" with a single target filed once asserts both a repetition
+    // and a field of competitors, and there is neither.
+    const single = projectServiceRecord(input({
+      caseload: { ...EMPTY_CASELOAD, kinds: { fetch: 1 }, targets: { Gnoll: 1 }, targetActs: {} },
+    }))!;
+    const said = single.sections.flatMap(({ lines }) => lines).join(' | ');
+
+    expect(said).not.toContain('recurs above the others');
+    expect(said).toContain('One name is on the docket');
   });
 });
 
