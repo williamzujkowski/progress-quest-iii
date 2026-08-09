@@ -133,6 +133,25 @@ export { BY_SLOT as ARMOUR_BY_SLOT };
  * on the result to find a name silently returns -1 every time, which is how a whole feature once
  * shipped green while doing nothing at all.
  */
+/*
+ * Built once per slot rather than on every call, for the reason the modifier tables beside it are.
+ *
+ * Both inputs are frozen module constants, so the pairing can never differ between calls — it was
+ * allocating one outer array and twenty tuples each time `analyzeItemMechanics` reached an armour
+ * slot, and eleven of those happen whenever a loadout is derived or a tooltip renders.
+ */
+const TABLE_BY_SLOT = new Map<string, readonly [string, number][]>(
+  Object.entries(BY_SLOT).map(([slot, names]) => [
+    slot,
+    names.map((name, index) => [name, ARMORS[index]![1]] as [string, number]),
+  ]),
+);
+
 export function armourTableForSlot(slot: ArmourSlot): readonly [string, number][] {
-  return BY_SLOT[slot].map((name, index) => [name, ARMORS[index]![1]] as [string, number]);
+  const table = TABLE_BY_SLOT.get(slot);
+  // Refused explicitly rather than by accident. The previous form threw because `BY_SLOT[slot]` was
+  // undefined and `.map` failed on it; a precomputed lookup would have returned `undefined` and let
+  // a caller carry on with nothing, which the type refusal alone would not have caught at runtime.
+  if (table === undefined) throw new TypeError(`${slot} has no armour vocabulary of its own`);
+  return table;
 }
