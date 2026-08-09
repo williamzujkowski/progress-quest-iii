@@ -277,6 +277,17 @@ function noticesFor(source: IdentifiedGameTransitionRecord, context: WorldContex
   return [];
 }
 
+/**
+ * Whether there is a route worth showing.
+ *
+ * Exported so the `Records` disclosure and this component agree about it. The disclosure is gated on
+ * having something to file — an empty heading is a promise of nothing — and if the two decided
+ * separately, a hero whose only record was a route would get a triangle that opened onto nothing.
+ *
+ * One act is the threshold: a hero still in the prologue has been exactly nowhere.
+ */
+export const hasRoute = (act: number): boolean => Number.isFinite(act) && act >= 1;
+
 /** One act the hero has been through, or the one they have not reached yet. */
 export interface RouteStop {
   readonly act: number;
