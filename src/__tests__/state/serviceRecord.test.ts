@@ -3,6 +3,7 @@ import { MAX_RECORD_LINES, projectServiceRecord, type ServiceRecordInput } from 
 import { EMPTY_CASELOAD, QUEST_KINDS } from '../../state/caseload';
 import { EMPTY_COMMENDATIONS } from '../../state/commendations';
 import { EQUIP_SLOTS } from '../../data/traits';
+import { formatGameNumber } from '../../engine/text';
 import { createNewCharacter } from '../../engine/sim';
 
 const predecessorSheet = createNewCharacter('Bendrel', 'Double Tenant', 'Incident Paladin', 'bendrel-seed');
@@ -95,6 +96,40 @@ describe('the document reports only what it was handed', () => {
       now.mockRestore();
       random.mockRestore();
     }
+  });
+});
+
+describe('the document writes figures the way the rest of the screen does', () => {
+  it('routes every figure through the shared formatter', () => {
+    // It shipped interpolating them raw, which agrees with `GameNumber` up to a million and then
+    // stops: past that the panels read "1.00e6" and the document read "1000000", for the same value
+    // on the same screen. `largestSale` crosses that in ordinary play — a mature save measured
+    // 102 815 after a few days.
+    const record = projectServiceRecord(input({
+      caseload: { ...EMPTY_CASELOAD, kinds: { fetch: 4_000_000 }, targets: { Gnoll: 2_000_000 }, targetActs: {} },
+      commendations: { highestLevel: 3_000_000, largestSale: 5_000_000, questsCompleted: 1, actsCompleted: 7_000_000, exhibit: {} },
+      specimenCount: 6_000_000,
+    }))!;
+    const said = record.sections.flatMap(({ lines }) => lines).join(' | ');
+
+    for (const [value, raw] of [[4_000_000, '4000000'], [2_000_000, '2000000'], [3_000_000, '3000000'], [5_000_000, '5000000'], [7_000_000, '7000000'], [6_000_000, '6000000']] as const) {
+      expect(said, `${value} must be formatted`).toContain(formatGameNumber(value));
+      expect(said, `${value} must not appear raw`).not.toContain(raw);
+    }
+  });
+
+  it('leaves ordinary figures alone, because the formatter does', () => {
+    // The formatter is not an abbreviation pass — below its threshold it returns the plain digits,
+    // so this must not start rendering "1.02e5" for a figure the panels show in full.
+    const record = projectServiceRecord(input({
+      commendations: { highestLevel: 45, largestSale: 102_815, questsCompleted: 1, actsCompleted: 3, exhibit: {} },
+      specimenCount: 300,
+    }))!;
+    const said = record.sections.flatMap(({ lines }) => lines).join(' | ');
+
+    expect(said).toContain('102815');
+    expect(said).toContain('45');
+    expect(said).toContain('300');
   });
 });
 
