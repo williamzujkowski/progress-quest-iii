@@ -39,6 +39,11 @@ If a cached shell ever becomes impressively confused, use the browser's site set
 - Records kept in the institution's own filing cabinet: personal bests, the best equipment ever
   held per slot, a tally of casework by kind, the closed-quest archive, and a count of every
   distinct specimen ever acquired.
+- Citations the record already supports, stated only once they hold — no locked entries, no
+  denominators, nothing to pursue.
+- A register that dates the docket by act, periods the file names for itself out of it, and a
+  service record composing all of the above into one document that declines to conclude anything
+  from it — including a line naming whoever held the file before this character.
 - Simulated chatter from a fictional cast, generated locally and sent nowhere. Nobody is online.
 - Responsive desktop and mobile layouts with bounded scrolling panels, and records folded behind
   native disclosures so the live numbers keep the room.
