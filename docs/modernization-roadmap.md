@@ -42,7 +42,7 @@ After trace coverage exists, the engine exposes one deep operation:
 ```ts
 advanceGame(state, elapsedMs, rng) -> {
   state,
-  events,
+  records,          // Array<{ event, post }>
   remainingElapsedMs,
 }
 ```
@@ -51,6 +51,14 @@ The operation is pure, owns transition ordering, never imports browser or React
 code, does not mutate the input snapshot, and returns typed domain events. Zustand
 only schedules elapsed time, stores the returned snapshot, and translates events
 to presentation effects such as sound.
+
+`records` rather than a bare `events`, and the difference is load-bearing rather
+than cosmetic. Each record pairs an event with the presentation snapshot taken
+immediately after it, because several things a reader needs are on the snapshot and
+not on the event: `quest_completed` carries a description while its classification
+lives on `post.completedQuest`, and the caseload tally exists only because that pair
+survives together. A consumer handed events alone would have to reconstruct state it
+was never given, which is the coupling this seam is drawn to prevent.
 
 ### Failure and diagnostics
 
