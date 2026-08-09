@@ -47,8 +47,14 @@ describe('loadout quality', () => {
     // stays a usable number rather than becoming NaN and reaching a duration calculation.
     character.Equip.Weapon = '999999999999999999999 Mandate';
 
-    expect(Number.isFinite(loadoutQuality(character))).toBe(true);
-    expect(loadoutQuality(character)).toBeGreaterThanOrEqual(0);
+    // Compared against the same item without the unreadable mark, because finite-and-non-negative is
+    // guaranteed by the return expression: `Number.isFinite(total) ? Math.max(0, total) : 0` cannot
+    // produce anything else for any input, so the previous pair of assertions held whatever the
+    // function did. If the twenty-one-digit mark ever started parsing, quality would be about 1e21 —
+    // finite, positive, and still passing both.
+    const bare = { ...character, Equip: { ...character.Equip, Weapon: 'Mandate' } };
+
+    expect(loadoutQuality(character)).toBe(loadoutQuality(bare));
   });
 });
 

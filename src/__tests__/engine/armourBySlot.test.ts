@@ -74,10 +74,15 @@ describe('armour named by where it is worn', () => {
     // inherited a real-looking table for the wrong slot with a green suite behind it.
     //
     // The refusal is at the type, which is the only kind that cannot be ignored at a call site.
+    // `toThrow`, not `toBeDefined`. An arrow-function literal is always defined, so the previous
+    // form never invoked either call and would have stayed green through the exact regression the
+    // comment above describes. The type refusal is still the primary guard and still runs under
+    // `tsc -b`; this is the runtime half, which was decorative.
+    //
     // @ts-expect-error Weapon is not an armour slot.
-    expect(() => armourTableForSlot('Weapon')).toBeDefined();
+    expect(() => armourTableForSlot('Weapon')).toThrow();
     // @ts-expect-error Shield is not an armour slot.
-    expect(() => armourNameForSlot('Shield', 0)).toBeDefined();
+    expect(() => armourNameForSlot('Shield', 0)).toThrow();
 
     // And every slot that does have one is still answered, or the refusal would be over-broad.
     for (const slot of ARMOUR_SLOTS) {
