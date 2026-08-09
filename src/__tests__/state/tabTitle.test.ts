@@ -11,7 +11,7 @@ describe('tab title', () => {
     expect(shown[0]).toBe(`Lvl 12 · ${BASE_TITLE}`);
     expect(shown[1]).toBe(`340 GP · ${BASE_TITLE}`);
     expect(shown[2]).toBe(`Act 2 · ${BASE_TITLE}`);
-    expect(shown[3]).toBe(`615/hr · ${BASE_TITLE}`);
+    expect(shown[3]).toBe(`615 filed/hr · ${BASE_TITLE}`);
     expect(shown[4]).toBe(shown[0]);
   });
 
