@@ -690,6 +690,14 @@ input[type='radio']:checked::before { transform: scale(1); }
 /* Sits under the quest bar it annotates, in the muted register the archive speaks in. */
 /* Matches the disclosure the world console already uses, including its coarse-pointer target
    size, so the two read as the same control rather than as two conventions. */
+/* The postings list. Numerals left, place right, matching the equipment rows it sits beside — the
+   record reads as another filing rather than as a widget. The current posting is marked in text as
+   well as weight, because a reader who cannot see the emphasis still needs to know where they are. */
+.route-place { color: var(--text-muted); text-align: right; overflow-wrap: anywhere; }
+.route-current .equip-slot,
+.route-current .route-place { color: var(--text-main); font-weight: 750; }
+.route-pending { font-style: italic; }
+
 .records-details {
   margin-top: var(--space-3);
   border-top: 1px solid var(--panel-border);

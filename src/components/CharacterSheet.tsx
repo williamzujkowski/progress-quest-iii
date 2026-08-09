@@ -37,6 +37,8 @@ import { GameNumber } from './GameNumber';
 import { ItemTooltip } from './ItemTooltip';
 import { Commendations } from './Commendations';
 import { Caseload } from './Caseload';
+import { hasRoute } from '../state/worldContext';
+import { Route } from './Route';
 import { isEmpty as caseloadIsEmpty } from '../state/caseload';
 import { isEmpty as commendationsIsEmpty } from '../state/commendations';
 
@@ -52,7 +54,9 @@ export const CharacterSheetView: React.FC = () => {
   // file. An empty "Records" heading is a promise of nothing, and takes up the vertical room the
   // one-screen desktop layout is measured against.
   const hasRecords = useGameStore(
-    (state) => !commendationsIsEmpty(state.commendations) || !caseloadIsEmpty(state.caseload),
+    (state) => !commendationsIsEmpty(state.commendations)
+      || !caseloadIsEmpty(state.caseload)
+      || hasRoute(state.character.Plot.act),
   );
 
   // The card carries no tabIndex: measured at `overflow: visible` with nothing to scroll, so the
@@ -129,6 +133,7 @@ export const CharacterSheetView: React.FC = () => {
           <summary>Records</summary>
           <Commendations />
           <Caseload />
+          <Route />
         </details>
       )}
     </section>
