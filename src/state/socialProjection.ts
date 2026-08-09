@@ -3,13 +3,14 @@ import { GRATS } from '../data/socialGrats';
 import { DKP_ALLOCATION, DKP_STANDINGS } from '../data/socialDkp';
 import { recurringAssignments } from './questRecurrence';
 import { boundCodePoints, boundedLabel, MAX_TEXT_CODE_POINTS, formatGameNumber, stableIndex, stableChoice } from '../engine/text';
-import { DOCKET_LINES, ERA_LINES, VENUE_LINES, EXHIBIT_LINES, PREDECESSOR_MISTELLS, SYSTEM_NOTICES, AUCTION_LINES, MISTELLS, UTILITY_BEATS, AMBIENT_LINES, BLAME_BEATS, EXCHANGES, FEUD_BEATS, ITEM_OF_RECORD_LINES, ONBOARDING_LINES, QUESTION_BEATS, REACTION_LINES, REPEATED_MODIFIER_LINES, TRADE_LINES, type AmbientLine } from '../data/socialAmbient';
+import { DOCKET_LINES, ERA_LINES, SPECIMEN_LINES, VENUE_LINES, EXHIBIT_LINES, PREDECESSOR_MISTELLS, SYSTEM_NOTICES, AUCTION_LINES, MISTELLS, UTILITY_BEATS, AMBIENT_LINES, BLAME_BEATS, EXCHANGES, FEUD_BEATS, ITEM_OF_RECORD_LINES, ONBOARDING_LINES, QUESTION_BEATS, REACTION_LINES, REPEATED_MODIFIER_LINES, TRADE_LINES, type AmbientLine } from '../data/socialAmbient';
 import type { LoadoutFiling } from '../engine/loadoutFiling';
 import { displayTarget, mostLitigated, type Caseload } from './caseload';
 import type { Predecessor } from './predecessor';
 import { finestExhibit, type Commendations } from './commendations';
 import { namedEras } from './namedEras';
 import { venueBulletin } from './venueBulletin';
+import { itemSpecimens, type SpecimenLog } from './specimenLog';
 import { projectWorld, type IdentifiedGameTransitionRecord, type WorldContext } from './worldContext';
 
 export type SocialChannel = 'guild' | 'world' | 'party' | 'raid' | 'whisper' | 'system' | 'hero';
@@ -745,6 +746,10 @@ const AMBIENT_LANES = [
   // a lane that fired often would say the same thing about the same item all afternoon.
   'item',
   'blame',
+  // One thing out of everything the archive holds. Ranked last of the seven and kept to one lane's
+  // worth for the reason it was ranked there: it is the quietest of them, and a room that asked
+  // after a different mislaid object every minute would be a room with a storage problem.
+  'specimen',
   // Local business, for as long as the hero is standing somewhere that has any. One lane's worth,
   // and the only lane whose availability changes during a session rather than across one — a road
   // and a cinematic have no catalogue, so the channel loses its local colour and later gets it back.
@@ -845,6 +850,8 @@ export interface InstitutionalMemory {
    * is actually consumed — and so this cannot quietly start depending on the rest of the projection.
    */
   readonly venue?: Pick<WorldContext, 'venue' | 'location' | 'act'> | undefined;
+  /** Everything the hero has ever held, once each, across every character the roster has held. */
+  readonly specimens?: SpecimenLog | undefined;
 }
 
 /**
@@ -860,7 +867,7 @@ export function projectAmbient(
   completedTasks: number,
   memory: InstitutionalMemory = {},
 ): readonly SocialEntry[] {
-  const { loadout, caseload, predecessor, commendations, venue } = memory;
+  const { loadout, caseload, predecessor, commendations, venue, specimens } = memory;
   if (!Number.isFinite(completedTasks) || completedTasks < 0) return [];
   const cast = castForHero(hero);
   const key = `ambient:${hero.name}:${hero.race}:${hero.className}:${completedTasks}`;
@@ -890,6 +897,10 @@ export function projectAmbient(
   // place at all.
   const bulletin = venue ? venueBulletin(venue) : null;
   if (lane === 'venue' && (bulletin === null || bulletin.length === 0)) lane = 'ambient';
+  // Empty until the hero has picked something up, and empty for a log holding only equipment —
+  // not a state a save reaches, but one a caller can hand over.
+  const curios = specimens ? itemSpecimens(specimens) : [];
+  if (lane === 'specimen' && curios.length === 0) lane = 'ambient';
   // The best thing the hero owns is still entry-tier, so the hall explains itself to them. Anything
   // better equipped ends it, which is why it needs no timer and cannot outstay its welcome.
   if (lane === 'onboarding' && (loadout?.itemOfRecord?.standing ?? 0) > ONBOARDING_STANDING) lane = 'ambient';
@@ -925,6 +936,8 @@ export function projectAmbient(
       ? ERA_LINES[stableChoice(`era:${key}`, ERA_LINES.length)]!
     : lane === 'venue'
       ? VENUE_LINES[stableChoice(`venue:${key}`, VENUE_LINES.length)]!
+    : lane === 'specimen'
+      ? SPECIMEN_LINES[stableChoice(`specimen:${key}`, SPECIMEN_LINES.length)]!
     : lane === 'blame'
       ? beat(BLAME_BEATS)
       : lane === 'feud'
@@ -1001,8 +1014,18 @@ export function projectAmbient(
       .replaceAll('{era}', era?.name ?? 'intervening')
       // One office off the board of three, drawn from the same key so a scene keeps its office.
       // Quoted whole, because the status after the comma is the joke.
-      .replaceAll('{office}', bulletin?.[stableChoice(`office:${key}`, bulletin.length)] ?? 'the office')
-      .replaceAll('{venue}', venue?.location ?? 'the district')),
+      //
+      // Length-guarded rather than optional-chained. `?.[]` skips the whole member access when the
+      // base is nullish — which covers a road and a cinematic — but an *empty* array is not nullish,
+      // and `stableChoice` throws on a length of zero rather than returning anything. No catalogue
+      // is empty today, so this is a hazard rather than a bug here; it was a live crash one line
+      // below, where the specimen collection legitimately starts empty.
+      .replaceAll('{office}', bulletin && bulletin.length > 0 ? bulletin[stableChoice(`office:${key}`, bulletin.length)]! : 'the office')
+      .replaceAll('{venue}', venue?.location ?? 'the district')
+      // One out of the whole collection, drawn from the same key so a scene asks after one thing.
+      // Guarded before the draw, not after: `?? 'article'` would never have been reached, because
+      // `stableChoice` throws on a length of zero instead of returning an index nothing indexes.
+      .replaceAll('{specimen}', curios.length > 0 ? curios[stableChoice(`curio:${key}`, curios.length)]! : 'article')),
   }));
 }
 

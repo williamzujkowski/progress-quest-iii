@@ -294,6 +294,32 @@ export const DOCKET_LINES: readonly AmbientLine[] = [
 ];
 
 /**
+ * Somebody asking after one thing the archive has, out of the three hundred it holds.
+ *
+ * The specimen log is the collection record — everything the hero has ever held, once each, across
+ * every character the file has held — and it reaches two surfaces as a *count*. A count is the least
+ * interesting thing about a collection. What the log actually knows is that somewhere in it is a
+ * rubber duck, and nobody has ever said so.
+ *
+ * The register is a lost-property office that is certain of its records and useless about its
+ * shelves. Filed, catalogued, confirmed, and nowhere in particular — which is exactly true of this
+ * log: it stores identities and no locations, quantities or dates, deliberately. A line implying it
+ * could produce the thing would be a line about a feature the ledger does not have.
+ *
+ * The definite article throughout. Boring items are lower-case and generated ones are title case,
+ * and both read correctly after "the" — so no line has to choose between "a" and "an" over a bank of
+ * names it has never seen.
+ */
+export const SPECIMEN_LINES: readonly AmbientLine[] = [
+  { seat: 'support', channel: 'guild', text: 'Has anybody seen the {specimen}. It was on the shelf.' },
+  { seat: 'support', channel: 'guild', text: 'The {specimen} has been logged. The log is not a location.' },
+  { seat: 'official', channel: 'guild', text: 'A specimen matching the {specimen} is already on file. The file declines to say where.' },
+  { seat: 'logistics', channel: 'guild', text: 'The {specimen} was catalogued once and has not been produced since.' },
+  { seat: 'logistics', channel: 'world', text: 'WTB the {specimen}. I am told the archive holds one.' },
+  { seat: 'field', channel: 'party', text: 'Somebody asked after the {specimen}. I said I would look into it.' },
+];
+
+/**
  * An office in the place the hero is currently standing, quoted by somebody reading the directory.
  *
  * `venueBulletin` gives every settlement, field and dungeon a handful of departments — *Committee
