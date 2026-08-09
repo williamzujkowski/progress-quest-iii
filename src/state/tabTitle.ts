@@ -31,7 +31,12 @@ export function tabTitleFacts(facts: TabFacts): string[] {
   ];
   // Act 0 is the prologue and has no number worth reporting.
   if (facts.act > 0) readings.push(`Act ${formatGameNumber(facts.act)}`);
-  if (facts.velocity !== null) readings.push(`${formatGameNumber(facts.velocity)}/hr`);
+  // The only reading here that was not a labelled quantity. `Lvl 7`, `4210 GP` and `Act 3` all
+  // name what they are; `1240/hr` sat among them naming nothing, in a strip that has no hover to
+  // fall back on and carries neither a `title` nor an `sr-only` gloss. Six characters against the
+  // roughly thirty legible ones, which is real and is worth it — a rate with no noun beside a gold
+  // figure reads as gold per hour, and being briefly wrong is worse than being briefly truncated.
+  if (facts.velocity !== null) readings.push(`${formatGameNumber(facts.velocity)} filed/hr`);
   return readings;
 }
 

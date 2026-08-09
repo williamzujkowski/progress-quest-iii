@@ -773,6 +773,21 @@ input[type='radio']:checked::before { transform: scale(1); }
 /* Experience rides in the hero banner's identity column, which has vertical slack because the
    banner's height is set by the stats grid beside it. It is a bare track with no label row:
    the level badge above it already says what it is counting toward. */
+/*
+ * The label row the bar never had, at the weight the banner can afford.
+ *
+ * `.progress-label` is shared with the quest panel, where it sits on a full-width card; here it is
+ * annotating a four-pixel hairline under a name, so it takes the muted register the sub-line and the
+ * projections beside it already use. Loud enough to be read, quiet enough that the hero's name stays
+ * the largest thing in the block.
+ */
+.hero-experience-label {
+  margin-top: 0.5rem;
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  letter-spacing: 0.03em;
+}
+
 .hero-experience {
   margin-top: 0.35rem;
   height: 4px;

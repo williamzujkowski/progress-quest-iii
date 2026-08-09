@@ -48,6 +48,19 @@ export const HeroBanner: React.FC = () => {
           <span>{character.Traits.Name}</span>
           <span className="badge" title="Character Level">Lvl{' '}<GameNumber value={character.Traits.Level} /></span>
         </div>
+        {/* The bar is four pixels of accent under the hero's name, and until now the word
+            "Experience" appeared in the rendered interface zero times — it lived in `aria-label` and
+            `aria-valuetext`, which is to say for screen readers only. The nearest labelled thing to
+            it was a heart icon reading HP Max, so a watcher reads a filling bar as health and then
+            cannot explain why it empties on promotion.
+            The one line that ever named it — "Next promotion expected in…" — is absent for the first
+            minute and absent again after *every* level-up, because the projection discards any
+            window straddling a reset. Missing, in other words, at exactly the moments the bar does
+            something dramatic. So the label is unconditional and the figure travels with it. */}
+        <div className="progress-label hero-experience-label">
+          <span>Experience</span>
+          <span>{experiencePct}%</span>
+        </div>
         <div
           className="hero-experience"
           role="progressbar"
@@ -114,7 +127,11 @@ export const HeroBanner: React.FC = () => {
           <div className="stat-pill velocity-pill" title="Completed tasks per hour, averaged over the last few minutes">
             <Gauge size={16} aria-hidden="true" />
             <span>
-              <GameNumber value={velocity} />{' '}<span className="stat-unit">/hr</span>
+              {/* The noun, on the surface rather than in the tooltip. `1240 /hr` sits beside
+                  `0 GP` and a watcher reads it as gold per hour — and on touch there is no hover to
+                  correct them. `filed` is the internal name for what it counts and is already the
+                  right word. */}
+              <GameNumber value={velocity} />{' '}<span className="stat-unit">filed/hr</span>
               <span className="sr-only"> tasks filed per hour</span>
             </span>
           </div>
