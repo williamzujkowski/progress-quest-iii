@@ -550,7 +550,7 @@ const monsterLootStory = ({ monster, drop }: { monster: string; drop: string }, 
     'The donor remains unavailable for a satisfaction survey.',
     'Its chain of custody is mostly decorative.',
     'The market has standards, but none relevant here.',
-    'A second sample was requested by nobody sober enough to sign.',
+    'A second sample was requested by somebody who has since been reassigned.',
     'The evidence bag has begun negotiating overtime.',
   ], `${monster}:${drop}:aftermath`);
   return `${finding.slice(0, -1)}; evidence was ${dossierBeat(monsterIndex, monster, 0, stage)}. ${consequence}`;
@@ -615,7 +615,7 @@ export function describeInventoryItem(name: string, quantity: number, act = 0, l
   const monsterLoot = monsterLootParts(name);
   const label = boundedLabel(name, 'unnamed object');
   const closer = [
-    'It is not edible, unless the situation has become unusually philosophical.',
+    'It is not edible. This has been established twice.',
     'It will become someone else’s problem at the next market visit.',
     'It occupies space with the quiet confidence of a tax audit.',
   ];
