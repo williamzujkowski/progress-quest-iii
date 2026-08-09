@@ -40,11 +40,21 @@ export const InventoryView: React.FC = () => {
         </div>
         <div className={`inventory-weight${atCapacity ? ' inventory-weight-full' : ''}`}>
           <Weight size={16} aria-hidden="true" />
+          {/* The noun, on screen rather than under it.
+              This read `0 / 14` beside a weight icon, with "cubits" living only in an `sr-only`
+              span and the progressbar's own label — and on touch there is no hover to reach either.
+              Third instance of the same pattern after the filing rate and the two second-denominated
+              bars, and the rule it keeps proving: a figure whose noun lives only in `title` or
+              `sr-only` is unlabelled for most of the people looking at it.
+              Legacy already had it visible — `$position/$max cubits`, per the comment below — so
+              this is a restoration rather than an invention.
+              The `sr-only` span keeps only the capacity clause. Repeating "cubits" there would have
+              a screen reader say it twice, and the clause is doing real work: at capacity the bar
+              turns red, which is otherwise colour-only signalling. */}
           <span>
-            <GameNumber value={encumbrance} /> / <GameNumber value={encumbranceMax} />
-            <span className="sr-only">
-              {' '}cubits carried of capacity{atCapacity ? ', at capacity' : ''}
-            </span>
+            <GameNumber value={encumbrance} /> / <GameNumber value={encumbranceMax} />{' '}
+            <span className="stat-unit">cubits</span>
+            {atCapacity && <span className="sr-only">, at capacity</span>}
           </span>
         </div>
       </div>
