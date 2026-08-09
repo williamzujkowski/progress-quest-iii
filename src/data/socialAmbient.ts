@@ -414,6 +414,48 @@ export const MISTELLS: readonly (readonly AmbientLine[])[] = [
   ],
 ];
 
+/**
+ * Somebody is still posting to the hero who held this file three characters ago.
+ *
+ * The mistell mechanism already shipped, and it is exactly the right shape borrowed for exactly the
+ * wrong mistake. A shipped mistell is a message that went to the wrong *channel* and is retracted a
+ * beat later. This is a message that went to the wrong *person* — somebody who has not been on file
+ * for three characters — and the retraction fixes the channel, or the location, or the timing.
+ *
+ * Nobody corrects the name. That is the whole joke and it is why these must stay two-beat units: a
+ * single line naming a predecessor is a mistake, and a mistake followed by a scrupulous correction
+ * of something else is an institution.
+ *
+ * Third person throughout. The room talks *about* the predecessor as though they were down the
+ * corridor, which is funnier than talking to them and keeps every line clear of a second person a
+ * watcher could mistake for themselves.
+ *
+ * Dead until the roster holds two characters, which is the honest condition — `predecessorFor`
+ * returns null for a fresh save and this lane falls back with it.
+ */
+export const PREDECESSOR_MISTELLS: readonly (readonly AmbientLine[])[] = [
+  [
+    { seat: 'logistics', channel: 'guild', text: "{predecessor}'s requisition is ready for collection." },
+    { seat: 'logistics', channel: 'guild', text: 'Correction: ready for collection at the annexe.' },
+  ],
+  [
+    { seat: 'official', channel: 'party', text: '{predecessor} should take the left approach here.' },
+    { seat: 'official', channel: 'guild', text: 'That was routing advice and belonged in the party channel. It reached it.' },
+  ],
+  [
+    { seat: 'support', channel: 'guild', text: 'Has anyone heard back from {predecessor} about the forms.' },
+    { seat: 'support', channel: 'guild', text: 'Withdrawn. I have found the forms.' },
+  ],
+  [
+    { seat: 'field', channel: 'party', text: '{predecessor} knows this route better than I do.' },
+    { seat: 'field', channel: 'party', text: 'I will ask them when they are next available.' },
+  ],
+  [
+    { seat: 'logistics', channel: 'world', text: 'WTS the set {predecessor} was collecting. No rush.' },
+    { seat: 'logistics', channel: 'guild', text: 'Apologies for the world channel. The offer stands.' },
+  ],
+];
+
 export const EXCHANGES: readonly (readonly AmbientLine[])[] = [
   /*
    * Loot drama, which is the oldest argument in raiding and belongs here rather than in a lane of

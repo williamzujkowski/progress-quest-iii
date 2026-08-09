@@ -16,6 +16,7 @@ import { EMPTY_CASELOAD, mergeRecords, readCaseload, writeCaseload, type Caseloa
 import { EMPTY_DIGEST, accumulateDigest, describeDigest, type AbsenceDigest } from './absenceDigest';
 import { EMPTY_SPECIMEN_LOG, mergeSpecimens, readSpecimenLog, writeSpecimenLog, type SpecimenLog } from './specimenLog';
 import { loadRoster, saveToRoster } from './saveManager';
+import { predecessorFor } from './predecessor';
 
 // Read once at module load, the same way the roster is read: a ledger that cannot be read is
 // simply an empty one, never a reason for the game not to start.
@@ -359,7 +360,14 @@ export const useGameStore = create<GameStore>((set, get) => {
         () => projectAmbient(
           sources.at(-1)?.record.post.hero ?? { name: character.Traits.Name, race: character.Traits.Race, className: character.Traits.Class },
           chatterTasks,
-          { loadout: fileLoadout(result.state.character), caseload: nextCaseload },
+          {
+            loadout: fileLoadout(result.state.character),
+            caseload: nextCaseload,
+            // Computed inside the thunk like everything else here: `predecessorFor` walks the whole
+            // roster, and `scheduleChatter` reaches its ambient branch on a few ticks in twenty
+            // thousand.
+            predecessor: predecessorFor(get().roster, result.state.character.Traits.Name),
+          },
         ),
       );
       chatterCadence = scheduled.cadence;
