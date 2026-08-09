@@ -100,6 +100,35 @@ export const TRADE_LINES: readonly AmbientLine[] = [
 ];
 
 /**
+ * The auction channel, which is a different rhythm from a trade advertisement.
+ *
+ * `TRADE_LINES` already carries the long advertisement and already understands that repetition is
+ * the joke rather than the failure. What it does not carry is the channel's *forms* — the price
+ * check, the bump, the repost, the undercut, the thing offered free that nobody takes. Those are
+ * distinct utterances rather than variations on an advertisement, and half of them are two words
+ * long, so they belong in a bank of their own.
+ *
+ * On `world`, not on a channel of its own. A `SocialChannel` value is a claim about who can hear a
+ * line, and `world` already means a broadcast not scoped to guild or party — the audience of an
+ * auction is that same audience. What made the tunnel legible was never the prefix; it was `WTS`,
+ * `PC`, `up`, `obo`, and the same line again forty seconds later.
+ *
+ * The scheduler declines a line whose text is still in `recentTexts`, which is correct here and
+ * should be left alone: a bump should read as forty seconds later, not four lines later.
+ */
+export const AUCTION_LINES: readonly AmbientLine[] = [
+  { seat: 'logistics', channel: 'world', text: 'PC on a lot of assorted. It has been assorted for some time.' },
+  { seat: 'logistics', channel: 'world', text: 'up' },
+  { seat: 'logistics', channel: 'world', text: 'Still up.' },
+  { seat: 'official', channel: 'world', text: 'Reposting. The channel moved and took the offer with it.' },
+  { seat: 'logistics', channel: 'world', text: 'Undercut. The undercutting party is also me.' },
+  { seat: 'field', channel: 'world', text: 'Free to a good home. Free to any home. Free.' },
+  { seat: 'logistics', channel: 'world', text: 'WTB nothing in particular. Paying above the odds for it.' },
+  { seat: 'field', channel: 'world', text: 'LF group for anything. Will travel. Have travelled.' },
+  { seat: 'official', channel: 'world', text: 'Offer withdrawn pending valuation. Valuation withdrawn pending offer.' },
+];
+
+/**
  * One to three words, which is the most common utterance in any real channel and was zero per cent
  * of this one.
  *
@@ -297,6 +326,11 @@ export const MISTELLS: readonly (readonly AmbientLine[])[] = [
 ];
 
 export const EXCHANGES: readonly (readonly AmbientLine[])[] = [
+  [
+    { seat: 'logistics', channel: 'world', text: 'Sold.' },
+    { seat: 'official', channel: 'world', text: 'To whom?' },
+    { seat: 'logistics', channel: 'world', text: 'The channel.' },
+  ],
   [
     { seat: 'official', channel: 'guild', text: 'Did you sign the intake sheet?' },
     { seat: 'logistics', channel: 'guild', text: 'I initialled it, which is legally similar.' },
