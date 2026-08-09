@@ -37,7 +37,6 @@ export default defineConfig({
         // scripts/test-coverage-exclusions.mjs now fails when an entry acquires a matching test.
         'src/App.tsx',
         'src/components/CharacterSheet.tsx',
-        'src/components/InventoryView.tsx',
         'src/components/Navbar.tsx',
         'src/components/PwaStatus.tsx',
       ],
