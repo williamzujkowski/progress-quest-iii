@@ -187,6 +187,11 @@ const SEEDED_PAIRS = [
   { name: 'citation note', selector: '.citation-note' },
   { name: 'service record line', selector: '.service-record-lines li' },
   { name: 'service record closing', selector: '.service-record-closing' },
+  // The section headings, which the first pass over this surface missed: three selectors were added
+  // and the fourth on the same element tree was not. `--text-muted` in small caps at the inherited
+  // 0.8125rem is small text under AA and wants 4.5:1, and it was found by looking at the themes
+  // rather than by measuring them — which is the whole argument for doing both.
+  { name: 'service record heading', selector: '.service-record-heading' },
 ] as const;
 
 test.describe('theme contrast on surfaces that need a session', () => {
