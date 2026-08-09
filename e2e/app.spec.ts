@@ -810,6 +810,55 @@ test.describe('Progress Quest III terminal dashboard', () => {
     for (const { text, width } of cells) expect(width, text).toBeGreaterThan(40);
   });
 
+  test('never draws two world-console rows on top of each other', async ({ page }) => {
+    // The companion to the starvation sweep, and the failure it did not catch. Three different lists
+    // wear `world-context-services` — venue notices, the raid muster, the loadout filing — and more
+    // than one renders at a time. Assigning them a named grid area pinned them all to the same cell,
+    // so they drew over one another: legible-looking text, doubled and unreadable.
+    //
+    // A width check cannot see this. Overlap is a position failure, not a size one.
+    await page.setViewportSize({ width: 1790, height: 900 });
+    await page.goto('/');
+    await appReady(page);
+    // Two lists have to be on screen at once, which is the condition that produces the bug. Injected
+    // rather than played into: `world-context-services` is worn by venue notices, the raid muster and
+    // the loadout filing, and which of them render depends on where the hero happens to be standing.
+    // A second one of the same class is the whole condition, and injecting it keeps the guard honest
+    // whatever the game state does later.
+    await page.evaluate(() => {
+      const context = document.querySelector('.world-context');
+      if (!context) throw new Error('expected a world console to lay out');
+      for (const text of ['Notices for this venue', 'Item of record // a filing of the same kind']) {
+        const list = document.createElement('ul');
+        list.className = 'world-context-services';
+        list.innerHTML = `<li>${text}</li>`;
+        context.append(list);
+      }
+    });
+
+    const overlaps = await page.evaluate(() => {
+      const rows = Array.from(document.querySelectorAll('.world-context > *'))
+        .map((el) => ({ cls: String(el.className), rect: el.getBoundingClientRect() }))
+        .filter(({ rect }) => rect.width > 0 && rect.height > 0);
+
+      const found: string[] = [];
+      for (let i = 0; i < rows.length; i += 1) {
+        for (let j = i + 1; j < rows.length; j += 1) {
+          const a = rows[i]!.rect;
+          const b = rows[j]!.rect;
+          const vertical = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+          const horizontal = Math.min(a.right, b.right) - Math.max(a.left, b.left);
+          if (vertical > 2 && horizontal > 2) found.push(`${rows[i]!.cls} over ${rows[j]!.cls}`);
+        }
+      }
+      return { found, rowCount: rows.length };
+    });
+
+    // The premise: a layout that rendered a single row could not overlap and would pass by vacancy.
+    expect(overlaps.rowCount).toBeGreaterThan(2);
+    expect(overlaps.found).toEqual([]);
+  });
+
   test('renders no visible text in a box too narrow to hold a word', async ({ page }) => {
     // The general form of the defect the test above pins. That one was found by looking at the
     // running game, not by any of the eight hundred tests, and its cause — a grid child with no
@@ -1013,20 +1062,15 @@ test.describe('Progress Quest III terminal dashboard', () => {
     await chatterTab.click();
     await page.setViewportSize({ width: 1025, height: 760 });
 
-    await page.getByRole('combobox', { name: 'Chatter channel' }).selectOption('world');
-    await expect(messages).toContainText('No fictional messages on this channel');
-    await page.getByRole('combobox', { name: 'Chatter channel' }).selectOption('all');
-    await page.getByRole('button', { name: 'Mute fictional chatter' }).click();
-    await expect(messages).toContainText('Fictional chatter is muted');
+    // One blended stream: no channel filter and no mute. The channels are told apart by the prefix,
+    // the way this genre has always done it, so there is nothing here to drive a round trip through.
+    expect(await page.getByRole('combobox', { name: 'Chatter channel' }).count()).toBe(0);
+    expect(await page.getByRole('button', { name: /mute/i }).count()).toBe(0);
     expect(networkRequests).toEqual([]);
     expect(externalRequests).toEqual([]);
 
     await page.emulateMedia({ forcedColors: 'active', reducedMotion: 'reduce' });
     await page.setViewportSize({ width: 320, height: 900 });
-    const filter = page.getByRole('combobox', { name: 'Chatter channel' });
-    await filter.focus();
-    await expect(filter).toBeFocused();
-    await expectVisibleFocusRing(filter, 'log filter');
     const selectedColors = await chatterTab.evaluate((element) => ({
       tab: getComputedStyle(element).color,
       label: getComputedStyle(element.querySelector('span')!).color,
@@ -1042,7 +1086,7 @@ test.describe('Progress Quest III terminal dashboard', () => {
     await page.keyboard.press('Home');
     await expect(chatterTab).toBeFocused();
     await expect(chatterTab).toHaveAttribute('aria-selected', 'true');
-    for (const control of [chatterTab, activityTab, filter, page.getByRole('button', { name: 'Unmute fictional chatter' })]) {
+    for (const control of [chatterTab, activityTab]) {
       expect((await control.boundingBox())?.height).toBeGreaterThanOrEqual(44);
     }
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
@@ -1073,8 +1117,9 @@ test.describe('Progress Quest III terminal dashboard', () => {
     await expect(page.getByRole('region', { name: 'Activity Event Log' })).toBeVisible();
     await chatterTab.tap();
     await expect(page.getByRole('region', { name: 'Simulated chatter' })).toBeVisible();
-    await page.getByRole('button', { name: 'Mute fictional chatter' }).tap();
-    await expect(page.getByRole('region', { name: 'Fictional chatter messages' })).toContainText('Fictional chatter is muted');
+    // The chatter panel is reachable by tap and shows its stream. There is no mute to round-trip
+    // through any more, so the assertion is that the messages region is the thing that arrives.
+    await expect(page.getByRole('region', { name: 'Fictional chatter messages' })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
     expectNoPageErrors();
     await context.close();

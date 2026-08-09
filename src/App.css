@@ -569,13 +569,19 @@
     grid-template-areas:
       'truth truth'
       'location location'
-      'meta filings'
-      'tenor tenor'
-      'services services';
+      'meta filings';
   }
 
-  .world-context-tenor { grid-area: tenor; }
-  .world-context-services { grid-area: services; }
+  /* Full-width rows rather than named areas.
+     These were given `grid-area: services` and `grid-area: tenor`, which fixed the starvation but
+     introduced a worse bug: `world-context-services` is worn by three different lists — venue
+     notices, the raid muster, and the loadout filing — and two of them render at once. A named area
+     is a *place*, so both were pinned to the same one and drew on top of each other.
+     `grid-column: 1 / -1` says "span every column" without saying where, so each list takes its own
+     implicit row however many of them there are. That is the property actually wanted: they are
+     prose, they want the full width, and they must not share a cell. */
+  .world-context-tenor,
+  .world-context-services { grid-column: 1 / -1; }
 
   .world-context-truth {
     font-size: 0.72rem;
