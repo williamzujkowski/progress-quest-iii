@@ -1,4 +1,4 @@
-import { boundCodePoints, formatGameNumber, MAX_TEXT_CODE_POINTS } from '../engine/text';
+import { boundCodePoints, formatGameNumber, MAX_TEXT_CODE_POINTS, plural } from '../engine/text';
 import { KIND_LABELS, QUEST_KINDS, describeSpan, displayTarget, mostLitigated, type Caseload } from './caseload';
 import type { Commendations } from './commendations';
 import { namedEras } from './namedEras';
@@ -131,7 +131,13 @@ function theRegister(caseload: Caseload): ServiceRecordSection | null {
   const frequent = mostLitigated(caseload);
   if (!frequent) return null;
 
-  const lines = [bound(`One name recurs above the others: ${displayTarget(frequent.target)}, filed against ${formatGameNumber(frequent.count)} times.`)];
+  // Two sentences rather than one, because the single form asserted a recurrence it could not
+  // support: with one target filed once, nothing recurred and there were no others, and it still
+  // said so. The count decides which is true rather than the wording covering both badly.
+  const filings = `${formatGameNumber(frequent.count)} ${frequent.count === 1 ? 'time' : 'times'}`;
+  const lines = [bound(frequent.count === 1
+    ? `One name is on the docket: ${displayTarget(frequent.target)}, filed against ${filings}.`
+    : `One name recurs above the others: ${displayTarget(frequent.target)}, filed against ${filings}.`)];
   // `hasOwn` rather than a bare read, which is the guard the caseload tally already carries two
   // files away and this one was written without.
   //
@@ -167,10 +173,17 @@ function standing(commendations: Commendations, specimenCount: number): ServiceR
 
   const exhibited = Object.entries(commendations.exhibit).filter(([, entry]) => entry !== undefined);
   if (exhibited.length > 0) {
-    // Stated rather than implied. `worldContext` classifies equipment as prestige and CONTEXT.md is
-    // explicit that it makes no combat contribution, so a document listing the exhibit without
-    // saying so would be letting the reader infer a mechanic that does not exist.
-    lines.push(bound(`Items of record retained in ${formatGameNumber(exhibited.length)} slots, none of which bore on the outcome of anything.`));
+    // Stated rather than implied, and stated *narrowly*, which the first version was not.
+    //
+    // `worldContext` classifies equipment as prestige and CONTEXT.md is explicit that it makes no
+    // combat contribution — no attack, no mitigation — so a document listing the exhibit without
+    // saying so would let a reader infer a mechanic that does not exist. But this line used to
+    // escalate that to "none of which bore on the outcome of anything", which is false: ADR 0008
+    // gave equipment a real mechanical effect, `sim.ts` multiplies encounter duration by
+    // `encounterSpeedMultiplier(loadoutQuality(character))`, and the world console renders
+    // "Processing time reduced by N%" citing the very items the exhibit holds. The document was
+    // contradicting the panel two hundred lines away on the same screen.
+    lines.push(bound(`Items of record retained in ${formatGameNumber(exhibited.length)} ${exhibited.length === 1 ? 'slot' : plural('slot')}. None contributed attack or mitigation; the schedule benefited regardless.`));
   }
 
   return lines.length === 0 ? null : { heading: 'Standing', lines };
