@@ -9,6 +9,22 @@ import {
 } from '../data/traits';
 import type { EquipSlot } from './types';
 
+/*
+ * Joined once rather than on every analysis.
+ *
+ * These are two frozen module tables spread into a fresh array per call, and the call is not rare:
+ * every tooltip analyses its slot, and `loadoutQuality` and `fileLoadout` each walk eleven. The same
+ * argument `poolsFor` in `worldContext` already makes for its own tables — built once per stage
+ * rather than per call — and there is no reason for these to differ.
+ *
+ * Modest on its own now that both loadout derivations are cached on the equipment's identity, so
+ * analyses happen when equipment changes rather than every tick. Kept because it is four lines, it
+ * removes an allocation from a path that still runs on every tooltip render, and the tables it
+ * joins never change.
+ */
+const OFFENSE_MODIFIERS: readonly (readonly [string, number])[] = [...OFFENSE_ATTRIB, ...OFFENSE_BAD];
+const DEFENSE_MODIFIERS: readonly (readonly [string, number])[] = [...DEFENSE_ATTRIB, ...DEFENSE_BAD];
+
 interface QualityPart {
   name: string;
   value: number;
@@ -65,9 +81,7 @@ export function analyzeItemMechanics(request: ItemMechanicsRequest): EquipmentMe
   // Reading every slot against the shared list would find no base for eight of the nine, which
   // costs the tooltips their breakdown and `loadoutQuality` its entire contribution.
   const baseTable = slot === 'Weapon' ? WEAPONS : slot === 'Shield' ? SHIELDS : armourTableForSlot(slot);
-  const modifierTable = slot === 'Weapon'
-    ? [...OFFENSE_ATTRIB, ...OFFENSE_BAD]
-    : [...DEFENSE_ATTRIB, ...DEFENSE_BAD];
+  const modifierTable = slot === 'Weapon' ? OFFENSE_MODIFIERS : DEFENSE_MODIFIERS;
   const baseEntry = baseTable.find(([label]) => name.includes(label));
   const base = baseEntry ? { name: baseEntry[0], value: baseEntry[1] } : null;
   const modifiers = modifierTable
