@@ -24,6 +24,38 @@ afterEach(() => {
   useGameStore.setState(originalState, true);
 });
 
+describe('the empty channel says the right kind of empty', () => {
+  /*
+   * `socialEntries` is reset to `[]` on every load path while `log` is restored from the checkpoint,
+   * and chatter is the default tab — so a returning player's first sight was an empty panel reading
+   * "No fictional messages yet" beside a full activity log. "Yet" is a promise about something
+   * arriving, and nothing said before the reload is going to.
+   */
+  it('says nothing has happened when nothing has', () => {
+    useGameStore.setState({ socialEntries: [], progression: { ...originalState.progression, completedTasks: 0 } });
+    render(<ChatterFeed />);
+
+    expect(screen.getByText(/No fictional messages yet/)).toBeTruthy();
+  });
+
+  it('says the channel is not kept when the file plainly has a past', () => {
+    // The state after any reload of a running save: tasks completed, no chatter restored.
+    useGameStore.setState({ socialEntries: [], progression: { ...originalState.progression, completedTasks: 412 } });
+    render(<ChatterFeed />);
+
+    expect(screen.getByText(/not minuted between sessions/)).toBeTruthy();
+    expect(screen.queryByText(/yet/)).toBeNull();
+  });
+
+  it('shows neither once the channel has anything in it', () => {
+    useGameStore.setState({ socialEntries: [entry(1, 'guild')], progression: { ...originalState.progression, completedTasks: 412 } });
+    render(<ChatterFeed />);
+
+    expect(document.querySelector('.chatter-empty')).toBeNull();
+    expect(screen.getByText('Message 1')).toBeTruthy();
+  });
+});
+
 describe('simulated chatter accessibility', () => {
   it('is a quiet, explicitly fictional plain-text transcript', () => {
     useGameStore.setState({ socialEntries: [entry(3, 'hero', 'hero'), entry(2, 'world'), entry(1, 'guild')] });
