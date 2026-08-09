@@ -295,7 +295,14 @@ Adapted rather than copied. That playbook governs federal development, and most 
 
 1. **Feature Branches**: All non-trivial work MUST be done on a dedicated branch (e.g. `feat/game-state-machine`, `feat/save-system`, `fix/encumbrance-calc`).
 2. **Pull Requests**: Submit PRs via `gh pr create` with clear titles, descriptions, and linked issue numbers.
-3. **Verification**: Run `npm test` and `npm run typecheck` before opening or merging any PR.
+3. **Verification**: Run `npm run quality` before opening or merging any PR. Not `npm test` and
+   `npm run typecheck`, which is what this line used to say and is narrower than the gate: `quality`
+   is `lint`, `lint:workflows`, `typecheck`, `test`, `audit`, `test:e2e` and `test:pwa`, and it is
+   what CI runs and what the deploy job runs before it publishes. A branch verified the narrow way
+   passes locally and fails on lint, an e2e assertion, or a workflow-lint rule — which has happened
+   in this repository, twice on one pull request. Use `npm run quality:full` when the change could
+   plausibly behave differently on WebKit; that adds the WebKit suite, which is on its own runner
+   for the reason ADR 0007 records.
 4. **Branch each step off `main`.** Multi-step work lands sequentially: open one pull request, merge it, pull, then branch the next step. Do not stack a branch on another open branch.
 
 ### Why stacking costs more than it saves
