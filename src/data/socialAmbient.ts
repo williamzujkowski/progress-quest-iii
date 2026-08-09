@@ -253,6 +253,49 @@ export const ONBOARDING_LINES: readonly AmbientLine[] = [
  * says more than one thing at a time. Two lines is the shape a real exchange usually has: somebody
  * asks, somebody answers, and the channel moves on. None of them resolves anything.
  */
+/**
+ * A line that went to the wrong channel, and the correction that follows it.
+ *
+ * The joke only became tellable when the panel started showing the channel. One blended stream with
+ * a coloured prefix per line is how this genre has always rendered chat, and it is also what makes a
+ * mistell legible: the reader sees `[Raid]` on a remark about a sandwich before anybody says a word
+ * about it. A filtered feed showing one channel at a time could not have carried this at all.
+ *
+ * The correction always lands on a different channel from the slip, which is how it actually
+ * happens and which means the two prefixes disagree on screen. That disagreement is the gag, and it
+ * is carried by the layout rather than by the words.
+ *
+ * Kept inside `AmbientChannel` — guild, world and party. `raid` and `whisper` would have been the
+ * sharper jokes and are deliberately not in that type: raid chatter outside a raid and a private
+ * whisper arriving in the ambient stream are both claims about the world that are not true. Widening
+ * the type for a better punchline would have been paying for a joke with a lie.
+ *
+ * Nobody is embarrassed. An institution that mistells and then files a correction is funnier than a
+ * person who apologises, and it keeps the cast from acquiring feelings the game does not model.
+ */
+export const MISTELLS: readonly (readonly AmbientLine[])[] = [
+  [
+    { seat: 'logistics', channel: 'world', text: 'Bringing the sandwich. Do not wait.' },
+    { seat: 'logistics', channel: 'guild', text: 'The sandwich notice was intended for a smaller audience.' },
+  ],
+  [
+    { seat: 'support', channel: 'world', text: 'He does this every single quarter and everyone pretends not to notice.' },
+    { seat: 'support', channel: 'party', text: 'That was meant for three people. It reached rather more.' },
+  ],
+  [
+    { seat: 'official', channel: 'party', text: 'Approved, but only because I stopped reading.' },
+    { seat: 'official', channel: 'guild', text: 'The previous remark has been reclassified as internal.' },
+  ],
+  [
+    { seat: 'field', channel: 'party', text: 'Train to the annexe. Sorry. Sorry.' },
+    { seat: 'field', channel: 'world', text: 'The warning has been reissued to the people it concerned.' },
+  ],
+  [
+    { seat: 'logistics', channel: 'guild', text: 'I have not been paid since the reorganisation.' },
+    { seat: 'logistics', channel: 'party', text: 'Please disregard the guild-wide salary enquiry.' },
+  ],
+];
+
 export const EXCHANGES: readonly (readonly AmbientLine[])[] = [
   [
     { seat: 'official', channel: 'guild', text: 'Did you sign the intake sheet?' },

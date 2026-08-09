@@ -2,7 +2,7 @@ import { SOCIAL_PERSONAS, type SocialPersona, type SocialSeat } from '../data/so
 import { GRATS } from '../data/socialGrats';
 import { DKP_ALLOCATION, DKP_STANDINGS } from '../data/socialDkp';
 import { boundCodePoints, boundedLabel, MAX_TEXT_CODE_POINTS, formatGameNumber, stableIndex, stableChoice } from '../engine/text';
-import { UTILITY_BEATS, AMBIENT_LINES, BLAME_BEATS, EXCHANGES, FEUD_BEATS, ITEM_OF_RECORD_LINES, ONBOARDING_LINES, QUESTION_BEATS, REACTION_LINES, TRADE_LINES, type AmbientLine } from '../data/socialAmbient';
+import { MISTELLS, UTILITY_BEATS, AMBIENT_LINES, BLAME_BEATS, EXCHANGES, FEUD_BEATS, ITEM_OF_RECORD_LINES, ONBOARDING_LINES, QUESTION_BEATS, REACTION_LINES, TRADE_LINES, type AmbientLine } from '../data/socialAmbient';
 import type { LoadoutFiling } from '../engine/loadoutFiling';
 import { projectWorld, type IdentifiedGameTransitionRecord } from './worldContext';
 
@@ -550,6 +550,10 @@ const AMBIENT_LANES = [
   // Two lanes' worth, because an exchange is the form that most changes how the channel reads and
   // it is the only one that speaks more than once.
   'exchange', 'exchange',
+  // A mistell is an exchange that disagrees with itself about where it was going. One lane's worth:
+  // it is the most conspicuous thing the channel does, and a room where somebody posts to the wrong
+  // window every minute is a room with a problem rather than a joke.
+  'mistell',
   // Only reachable while the loadout is entry-tier, which is a state a character leaves within
   // minutes and never returns to. Weighted as though it were an ordinary lane so it is loud while
   // it lasts rather than rare during the one window it can occur in.
@@ -638,7 +642,9 @@ export function projectAmbient(
   // The scheduler gates whole scenes anyway, so an exchange arrives entire or not at all.
   const lines: readonly AmbientLine[] = lane === 'exchange'
     ? EXCHANGES[stableChoice(`swap:${key}`, EXCHANGES.length)]!
-    : [line()];
+    : lane === 'mistell'
+      ? MISTELLS[stableChoice(`slip:${key}`, MISTELLS.length)]!
+      : [line()];
 
   const sceneId = `ambient:${completedTasks}:${lane}`;
   return lines.map((spoken, index) => ({
