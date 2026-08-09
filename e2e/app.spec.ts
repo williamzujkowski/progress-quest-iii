@@ -952,7 +952,7 @@ test.describe('Progress Quest III terminal dashboard', () => {
     await expect(page.locator('.service-record')).toBeVisible();
     await expect(page.locator('.citation-note').first()).toBeVisible();
 
-    const starved = await page.evaluate(() => {
+    const starved = await page.evaluate(async () => {
       const hidden = (el: Element): boolean => {
         for (let node: Element | null = el; node; node = node.parentElement) {
           const style = getComputedStyle(node);
@@ -961,7 +961,7 @@ test.describe('Progress Quest III terminal dashboard', () => {
         }
         return false;
       };
-      return Array.from(document.querySelectorAll('*'))
+      const measure = () => Array.from(document.querySelectorAll('*'))
         .filter((el) => el.children.length === 0 && (el.textContent ?? '').trim().length > 12)
         // `option` has no CSS box — the browser draws the list natively — so its zero width is not
         // a layout failure. Excluded by what it is rather than by what it measures.
@@ -976,6 +976,31 @@ test.describe('Progress Quest III terminal dashboard', () => {
         // sweep passed against the broken layout. Anything genuinely absent is already removed by
         // the visibility check above.
         .filter(({ width }) => width < 40);
+
+      const first = measure();
+      if (first.length === 0) return [];
+
+      /*
+       * Measured a second time, a frame later, and only to describe what was found.
+       *
+       * The assertion below is unchanged and still fires on the first measurement: nothing here can
+       * turn a starved element into a pass. What it adds is the one fact the failure was missing when
+       * this sweep went red once and could not be diagnosed — whether the element was still narrow a
+       * frame afterwards. A persistent starved cell is the defect this guards; one that resolves
+       * immediately is a measurement taken mid-layout, and the two are indistinguishable in the
+       * report as it stood.
+       *
+       * Deliberately not used to filter. Polling until two samples agree would make a transient red
+       * disappear, which is the change that could make this blind to a real flash of broken layout —
+       * the failure mode its own history already records twice.
+       */
+      await new Promise((resolve) => { requestAnimationFrame(() => requestAnimationFrame(resolve)); });
+      const laterWidths = new Map(measure().map((entry) => [`${entry.tag}|${entry.cls}|${entry.text}`, entry.width]));
+
+      return first.map((entry) => {
+        const later = laterWidths.get(`${entry.tag}|${entry.cls}|${entry.text}`);
+        return { ...entry, widthOneFrameLater: later ?? null, persisted: later !== undefined && later < 40 };
+      });
     });
 
     expect(starved, 'text squeezed below the width of a single short word').toEqual([]);
