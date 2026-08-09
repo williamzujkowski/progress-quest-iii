@@ -110,11 +110,11 @@ describe('the guild talks about itself', () => {
     // The joke is that the worst loadout in the game has the loudest voice. It has to end on its
     // own, and it does: the window closes the moment anything above entry-tier is equipped, which
     // is why it needs no timer.
-    const wellEquipped = Array.from({ length: 2000 }, (_, task) => projectAmbient(HERO, task, FILING)[0]?.sceneId.split(':')[2]);
+    const wellEquipped = Array.from({ length: 2000 }, (_, task) => projectAmbient(HERO, task, { loadout: FILING })[0]?.sceneId.split(':')[2]);
     expect(wellEquipped).not.toContain('onboarding');
 
     const entryTier = { ...FILING, itemOfRecord: { ...FILING.itemOfRecord, base: 'Lanyard', standing: 1 } };
-    const starting = Array.from({ length: 2000 }, (_, task) => projectAmbient(HERO, task, entryTier)[0]?.sceneId.split(':')[2]);
+    const starting = Array.from({ length: 2000 }, (_, task) => projectAmbient(HERO, task, { loadout: entryTier })[0]?.sceneId.split(':')[2]);
     expect(starting).toContain('onboarding');
   });
 
@@ -227,7 +227,7 @@ describe('the written bank', () => {
 
 describe('the guild notices what is being worn', () => {
   const lanesOf = (loadout?: typeof FILING) =>
-    Array.from({ length: 3000 }, (_, task) => projectAmbient(HERO, task, loadout)[0])
+    Array.from({ length: 3000 }, (_, task) => projectAmbient(HERO, task, { loadout })[0])
       .map((entry) => entry?.sceneId.split(':')[2]);
 
   it('reaches the two loadout lanes when there is something to cite', () => {
@@ -246,7 +246,7 @@ describe('the guild notices what is being worn', () => {
   it('quotes the bare noun, never the generated name', () => {
     // A full name carries an assessor's mark, and a figure in an ambient line asserts state nothing
     // computed. The noun is the funny part anyway.
-    const spoken = Array.from({ length: 3000 }, (_, task) => projectAmbient(HERO, task, FILING)[0])
+    const spoken = Array.from({ length: 3000 }, (_, task) => projectAmbient(HERO, task, { loadout: FILING })[0])
       .filter((entry) => entry?.sceneId.endsWith(':item') || entry?.sceneId.endsWith(':blame'))
       .map((entry) => entry?.text ?? '');
 
@@ -261,7 +261,7 @@ describe('the guild notices what is being worn', () => {
   });
 
   it('walks the blame beats in order and starts them again', () => {
-    const beats = Array.from({ length: 6000 }, (_, task) => projectAmbient(HERO, task, FILING)[0])
+    const beats = Array.from({ length: 6000 }, (_, task) => projectAmbient(HERO, task, { loadout: FILING })[0])
       .filter((entry) => entry?.sceneId.endsWith(':blame'))
       .map((entry) => entry?.text);
     expect(new Set(beats).size).toBe(BLAME_BEATS.length);

@@ -3,8 +3,9 @@ import { GRATS } from '../data/socialGrats';
 import { DKP_ALLOCATION, DKP_STANDINGS } from '../data/socialDkp';
 import { recurringAssignments } from './questRecurrence';
 import { boundCodePoints, boundedLabel, MAX_TEXT_CODE_POINTS, formatGameNumber, stableIndex, stableChoice } from '../engine/text';
-import { SYSTEM_NOTICES, AUCTION_LINES, MISTELLS, UTILITY_BEATS, AMBIENT_LINES, BLAME_BEATS, EXCHANGES, FEUD_BEATS, ITEM_OF_RECORD_LINES, ONBOARDING_LINES, QUESTION_BEATS, REACTION_LINES, REPEATED_MODIFIER_LINES, TRADE_LINES, type AmbientLine } from '../data/socialAmbient';
+import { DOCKET_LINES, SYSTEM_NOTICES, AUCTION_LINES, MISTELLS, UTILITY_BEATS, AMBIENT_LINES, BLAME_BEATS, EXCHANGES, FEUD_BEATS, ITEM_OF_RECORD_LINES, ONBOARDING_LINES, QUESTION_BEATS, REACTION_LINES, REPEATED_MODIFIER_LINES, TRADE_LINES, type AmbientLine } from '../data/socialAmbient';
 import type { LoadoutFiling } from '../engine/loadoutFiling';
+import { displayTarget, mostLitigated, type Caseload } from './caseload';
 import { projectWorld, type IdentifiedGameTransitionRecord } from './worldContext';
 
 export type SocialChannel = 'guild' | 'world' | 'party' | 'raid' | 'whisper' | 'system' | 'hero';
@@ -740,6 +741,11 @@ const AMBIENT_LANES = [
   // a lane that fired often would say the same thing about the same item all afternoon.
   'item',
   'blame',
+  // The name the hero keeps filing against, said out loud by somebody who has stopped pretending it
+  // is a stranger. One lane's worth: the joke is that the quartermaster has quietly reclassified an
+  // adversary as a colleague, and a reclassification announced every minute is a running gag rather
+  // than a drift.
+  'docket',
   // The same adjective in three slots at once, which the filing has always found and nobody has
   // ever said. One lane's worth and gated: measured over three 4 000-tick runs it is available for
   // 0%, 15% and 15% of a session, and when it is available it is the same modifier the whole time,
@@ -776,6 +782,30 @@ const AMBIENT_BEAT_TASKS = 40;
 const ONBOARDING_STANDING = 2;
 
 /**
+ * What the institution remembers, offered to the channel.
+ *
+ * This was one optional `LoadoutFiling`, and the narrowness was the problem. `projectAmbient` is the
+ * only funnel into the guild's non-event chatter, and the store calling it is holding `caseload`,
+ * `commendations`, `specimens` and a live `roster` on the same line — every one of them a globally
+ * scoped institutional memory that outlives the hero, and none of them reaching a word of chat. The
+ * building has a filing cabinet and has never once mentioned it.
+ *
+ * A bag rather than a growing parameter list, because the alternative is a seventh positional
+ * argument nobody can read at a call site. Every field is optional and every lane that reads one
+ * falls back when it is missing, so a caller that knows less produces a quieter channel rather than
+ * a broken one — which is what the tests do, and what an older save does.
+ *
+ * Nothing here is engine state and nothing here is new state. All of it is already computed, already
+ * persisted, and already on screen somewhere nobody watches.
+ */
+export interface InstitutionalMemory {
+  /** What the hero is wearing, as the world console files it. */
+  readonly loadout?: LoadoutFiling | undefined;
+  /** Who the hero keeps filing against, across every character the roster has held. */
+  readonly caseload?: Caseload | undefined;
+}
+
+/**
  * A line the guild says when the hero has done nothing worth mentioning.
  *
  * Deterministic from the hero and the task count, the same way everything else here is, so the same
@@ -786,8 +816,9 @@ const ONBOARDING_STANDING = 2;
 export function projectAmbient(
   hero: HeroIdentity,
   completedTasks: number,
-  loadout?: LoadoutFiling,
+  memory: InstitutionalMemory = {},
 ): readonly SocialEntry[] {
+  const { loadout, caseload } = memory;
   if (!Number.isFinite(completedTasks) || completedTasks < 0) return [];
   const cast = castForHero(hero);
   const key = `ambient:${hero.name}:${hero.race}:${hero.className}:${completedTasks}`;
@@ -798,6 +829,10 @@ export function projectAmbient(
   // Same reasoning, different fact: three slots sharing a modifier is a coincidence rather than a
   // guarantee, and most loadouts do not have one.
   if (lane === 'modifier' && !loadout?.repeatedModifier) lane = 'ambient';
+  // A caseload the store has not passed, or one nothing has been filed into yet. Both are ordinary:
+  // the roster starts empty and the tests pass no memory at all.
+  const docket = caseload ? mostLitigated(caseload) : null;
+  if (lane === 'docket' && docket === null) lane = 'ambient';
   // The best thing the hero owns is still entry-tier, so the hall explains itself to them. Anything
   // better equipped ends it, which is why it needs no timer and cannot outstay its welcome.
   if (lane === 'onboarding' && (loadout?.itemOfRecord?.standing ?? 0) > ONBOARDING_STANDING) lane = 'ambient';
@@ -825,6 +860,8 @@ export function projectAmbient(
     ? ITEM_OF_RECORD_LINES[stableChoice(`item:${key}`, ITEM_OF_RECORD_LINES.length)]!
     : lane === 'modifier'
       ? REPEATED_MODIFIER_LINES[stableChoice(`modifier:${key}`, REPEATED_MODIFIER_LINES.length)]!
+    : lane === 'docket'
+      ? DOCKET_LINES[stableChoice(`docket:${key}`, DOCKET_LINES.length)]!
     : lane === 'blame'
       ? beat(BLAME_BEATS)
       : lane === 'feud'
@@ -878,7 +915,13 @@ export function projectAmbient(
       // Lower-cased, because these are adjectives mid-sentence and the filing holds them
       // capitalised the way the item names carry them — "Everything the hero owns is Bonded" is a
       // proper noun the world does not have.
-      .replaceAll('{modifier}', loadout?.repeatedModifier?.name.toLowerCase() ?? 'unmarked')),
+      .replaceAll('{modifier}', loadout?.repeatedModifier?.name.toLowerCase() ?? 'unmarked')
+      // The name only, never the count. `mostLitigated` returns both, and the count is the one thing
+      // that would turn a colleague back into a tally — "filed against forty times" is a statistic,
+      // "still no reply" is a person. The bank is asserted to quote no figures either way.
+      //
+      // Through `displayTarget`, because the caseload keys on a composite the reader never sees.
+      .replaceAll('{docket}', docket ? displayTarget(docket.target) : 'the file')),
   }));
 }
 

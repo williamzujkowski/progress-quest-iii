@@ -268,6 +268,32 @@ export const ITEM_OF_RECORD_LINES: readonly AmbientLine[] = [
 ];
 
 /**
+ * The name on the docket, said by somebody who has stopped pretending it is a stranger.
+ *
+ * The caseload has counted this since it was written, and it reaches one panel a reader opens
+ * occasionally. The watcher, meanwhile, has been seeing that name go past in the activity log for an
+ * hour — which is what makes this the cheapest payoff in the project: the joke is already set up,
+ * by the game, at length, and nobody has ever cashed it.
+ *
+ * The register is reclassification. Not "the hero has killed many gnolls" — a tally the panel
+ * already gives better — but an institution that has quietly moved an adversary into the column
+ * marked colleague and filled in the forms accordingly. Nobody involved finds this strange.
+ *
+ * No count, ever. `mostLitigated` returns one and it is the thing that would turn the colleague back
+ * into a statistic: "filed against forty times" is a number, "still no reply" is a person.
+ */
+export const DOCKET_LINES: readonly AmbientLine[] = [
+  { seat: 'logistics', channel: 'guild', text: 'I have put {docket} on the standing distribution. It has not asked to be removed.' },
+  { seat: 'logistics', channel: 'guild', text: 'Correspondence with {docket} is now handled as routine rather than as incident.' },
+  { seat: 'official', channel: 'guild', text: 'The file on {docket} has been reclassified from adversary to recurring party.' },
+  { seat: 'official', channel: 'guild', text: 'A desk has been allocated to {docket}, pending clarification of the reason.' },
+  { seat: 'support', channel: 'guild', text: 'I sent {docket} the agenda out of habit. Still no reply.' },
+  { seat: 'field', channel: 'party', text: 'We have met {docket} often enough that I no longer announce it.' },
+  { seat: 'logistics', channel: 'world', text: 'WTB anything {docket} is known to want. Enquiries have gone unanswered.' },
+  { seat: 'official', channel: 'guild', text: 'Nobody has raised {docket} at review, and review is where things are raised.' },
+];
+
+/**
  * The same adjective, in three places at once.
  *
  * `loadoutFiling` has found this since it was written — bases cannot collide any more, but modifiers
