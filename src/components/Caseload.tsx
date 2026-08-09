@@ -2,7 +2,7 @@ import { Scale } from 'lucide-react';
 import React from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '../state/gameStore';
-import { KIND_LABELS, QUEST_KINDS, displayTarget, isEmpty, mostLitigated } from '../state/caseload';
+import { KIND_LABELS, QUEST_KINDS, describeSpan, displayTarget, isEmpty, mostLitigated } from '../state/caseload';
 import { GameNumber } from './GameNumber';
 
 /**
@@ -23,6 +23,8 @@ export const Caseload: React.FC = () => {
     return count ? [[KIND_LABELS[kind], count] as const] : [];
   });
   const frequent = mostLitigated(caseload);
+  // Absent on any ledger written before the register existed, which is every ledger already on disk.
+  const span = frequent ? describeSpan(caseload.targetActs[frequent.target]) : null;
 
   return (
     <>
@@ -45,6 +47,9 @@ export const Caseload: React.FC = () => {
           </li>
         )}
       </ul>
+      {/* Outside the list, because it is a sentence rather than a row: the register dates what the
+          row counts, and setting it as a value would make an act ordinal look like a second tally. */}
+      {span && <p className="docket-register">{span}</p>}
     </>
   );
 };

@@ -44,16 +44,37 @@ export const MAX_TRACKED_TARGETS = 50;
 
 const countSchema = z.number().int().min(0).max(MAX_PERSISTED_VALUE);
 
+/**
+ * When a target first entered the file and when it was last seen there, in act ordinals.
+ *
+ * ADR 0011 settles what a date is here and why the register is global. Briefly: there is no wall
+ * clock available — the determinism contract asserts every projection byte-stable under spies that
+ * *throw* on `Date.now` — and the act ordinal is the game's own unit of elapsed narrative, already
+ * on the snapshot as `post.act`.
+ *
+ * `first` is written once and never moves. `last` moves forward only. Both are therefore monotone,
+ * which keeps this a statement about the past rather than a status that could be lost.
+ */
+const actSpanSchema = z.object({
+  first: z.number().int().min(0).max(MAX_PERSISTED_VALUE),
+  last: z.number().int().min(0).max(MAX_PERSISTED_VALUE),
+}).strict();
+
+export type ActSpan = z.infer<typeof actSpanSchema>;
+
 const caseloadSchema = z.object({
   // partialRecord rather than record: zod treats an enum-keyed record as exhaustive, which would
   // reject every tally that has not yet seen all five kinds.
   kinds: z.partialRecord(z.enum(QUEST_KINDS), countSchema).default({}),
   targets: z.record(z.string().min(1).max(MAX_PERSISTED_DESCRIPTION_LENGTH), countSchema).default({}),
+  // Parallel to `targets` rather than folded into it, so every ledger written before this existed
+  // still loads without a migration. Defaulted for the same reason.
+  targetActs: z.record(z.string().min(1).max(MAX_PERSISTED_DESCRIPTION_LENGTH), actSpanSchema).default({}),
 }).strict();
 
 export type Caseload = z.infer<typeof caseloadSchema>;
 
-export const EMPTY_CASELOAD: Caseload = { kinds: {}, targets: {} };
+export const EMPTY_CASELOAD: Caseload = { kinds: {}, targets: {}, targetActs: {} };
 
 /**
  * The name a target is known by, out of the key it is filed under.
@@ -66,6 +87,24 @@ export const EMPTY_CASELOAD: Caseload = { kinds: {}, targets: {} };
 export function displayTarget(target: string): string {
   const name = target.split('|')[0];
   return name && name.length > 0 ? name : target;
+}
+
+/**
+ * The dated register in one sentence, or null when the file has no date for this target.
+ *
+ * Null rather than a placeholder: a ledger written before ADR 0011 has counts and no spans, and
+ * "recorded in Act ?" is worse than saying nothing.
+ *
+ * **Nothing here addresses the hero.** ADR 0011 keeps the register global — the same decision the
+ * counts already carry — which means an act ordinal in this file may belong to a character who
+ * retired several heroes ago. "The file last records this in Act 7" is true of the institution
+ * whoever is reading it; "you last fought this in Act 7" is a claim about a person who may never
+ * have been there. The distinction is tested, not merely written down here.
+ */
+export function describeSpan(span: ActSpan | undefined): string | null {
+  if (!span) return null;
+  if (span.last <= span.first) return `The file records this only in Act ${span.first}.`;
+  return `The file opens in Act ${span.first} and last records this in Act ${span.last}.`;
 }
 
 /** True when nothing has been filed, so the panel can stay away rather than show five zeroes. */
@@ -100,6 +139,19 @@ function boundTargets(targets: Record<string, number>): Record<string, number> {
 }
 
 /**
+ * Keeps the dated register in step with the counts it sits beside.
+ *
+ * The two maps are bounded by the same rule, so they have to be bounded by the same *decision* — a
+ * span surviving a target whose count was dropped is a date for something the file no longer says
+ * happened. Derived from the bounded counts rather than re-deciding, which is the only way the two
+ * cannot disagree.
+ */
+function boundSpans(spans: Record<string, ActSpan>, targets: Record<string, number>): Record<string, ActSpan> {
+  const kept = Object.entries(spans).filter(([target]) => Object.hasOwn(targets, target));
+  return kept.length === Object.keys(spans).length ? spans : Object.fromEntries(kept);
+}
+
+/**
  * Folds a batch of transition records into the tally. Pure, and returns the same object when
  * nothing changed so a caller can skip a write and a render.
  *
@@ -131,12 +183,26 @@ export function mergeRecords(caseload: Caseload, records: readonly GameTransitio
       // downstream shouts: the schema quietly refuses to persist a NaN while the caller keeps
       // retrying the same write, so the ledger simply stops saving for the rest of the session.
       const filed = Object.hasOwn(next.targets, target) ? next.targets[target] ?? 0 : 0;
+      const targets = boundTargets({
+        ...next.targets,
+        [target]: Math.min(MAX_PERSISTED_VALUE, filed + 1),
+      });
+      // Same `hasOwn` guard as the count above, and for the same reason: a prototype key would make
+      // the read return a function, and `span.first` on a function is `undefined` rather than a
+      // number, which the schema then silently refuses to persist for the rest of the session.
+      const span = Object.hasOwn(next.targetActs, target) ? next.targetActs[target] : undefined;
+      const act = Math.max(0, Math.min(MAX_PERSISTED_VALUE, Math.floor(Number.isFinite(post.act) ? post.act : 0)));
       next = {
         ...next,
-        targets: boundTargets({
-          ...next.targets,
-          [target]: Math.min(MAX_PERSISTED_VALUE, filed + 1),
-        }),
+        targets,
+        // `first` is written once and never moved; `last` only ever moves forward. A batch can carry
+        // records from more than one act, and `Math.max` is what keeps a late record from an early
+        // act — or a ledger carried across a character who is further back — from walking it
+        // backwards.
+        targetActs: boundSpans({
+          ...next.targetActs,
+          [target]: span ? { first: span.first, last: Math.max(span.last, act) } : { first: act, last: act },
+        }, targets),
       };
     }
   }
@@ -150,7 +216,10 @@ export function mergeRecords(caseload: Caseload, records: readonly GameTransitio
  */
 export function readCaseload(storage: Pick<Storage, 'getItem'> | undefined): Caseload {
   return readLedger(storage, CASELOAD_STORAGE_KEY, caseloadSchema, EMPTY_CASELOAD,
-    (value) => ({ ...value, targets: boundTargets(value.targets) }));
+    (value) => {
+      const targets = boundTargets(value.targets);
+      return { ...value, targets, targetActs: boundSpans(value.targetActs, targets) };
+    });
 }
 
 /** Writes are best-effort; the shared writer owns that. */
