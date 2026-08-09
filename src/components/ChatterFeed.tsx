@@ -26,6 +26,17 @@ const CHANNEL_LABEL: Readonly<Record<SocialChannel, string>> = {
 
 export const ChatterFeed: React.FC<{ readonly active?: boolean }> = ({ active = true }) => {
   const entries = useGameStore((state) => state.socialEntries);
+  /*
+   * Whether this file has a past, which decides what an empty channel means.
+   *
+   * `socialEntries` is reset to `[]` on every load path while `log` is restored from the checkpoint,
+   * so a returning player's first sight is an empty default tab beside a full one. The old copy said
+   * "yet" to somebody whose save reads *0:10:12 adventure elapsed*, which is the wrong word and the
+   * wrong promise — nothing is coming that was said before.
+   *
+   * The panel stays empty either way. This only stops it being empty and wrong.
+   */
+  const hasHistory = useGameStore((state) => state.progression.completedTasks > 0);
   const [showJump, setShowJump] = useState(false);
   const messagesRef = useRef<HTMLDivElement>(null);
   const followingLatest = useRef(true);
@@ -98,7 +109,15 @@ export const ChatterFeed: React.FC<{ readonly active?: boolean }> = ({ active = 
                 </li>
               ))}
             </ol>
-          : <p className="chatter-empty">No fictional messages yet. Even the silence is simulated.</p>}
+          : (
+            <p className="chatter-empty">
+              {hasHistory
+                // "Minuted" is the catch-up row's word for the same distinction — the channel
+                // continues whether or not anybody writes it down, and this one is not written down.
+                ? 'The channel is not minuted between sessions. Anything said before now is not on file.'
+                : 'No fictional messages yet. Even the silence is simulated.'}
+            </p>
+          )}
       </div>
       {showJump ? <button type="button" className="btn btn-compact chatter-jump" onClick={jumpToLatest}>Jump to latest chatter</button> : null}
     </section>
