@@ -368,6 +368,9 @@ export const useGameStore = create<GameStore>((set, get) => {
             // thousand.
             predecessor: predecessorFor(get().roster, result.state.character.Traits.Name),
             commendations: nextCommendations,
+            // Where the hero ends the batch standing, taken from the projections already computed
+            // above rather than projecting the world a second time.
+            venue: projections.at(-1)?.projection.context,
           },
         ),
       );

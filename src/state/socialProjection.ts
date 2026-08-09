@@ -3,13 +3,14 @@ import { GRATS } from '../data/socialGrats';
 import { DKP_ALLOCATION, DKP_STANDINGS } from '../data/socialDkp';
 import { recurringAssignments } from './questRecurrence';
 import { boundCodePoints, boundedLabel, MAX_TEXT_CODE_POINTS, formatGameNumber, stableIndex, stableChoice } from '../engine/text';
-import { DOCKET_LINES, ERA_LINES, EXHIBIT_LINES, PREDECESSOR_MISTELLS, SYSTEM_NOTICES, AUCTION_LINES, MISTELLS, UTILITY_BEATS, AMBIENT_LINES, BLAME_BEATS, EXCHANGES, FEUD_BEATS, ITEM_OF_RECORD_LINES, ONBOARDING_LINES, QUESTION_BEATS, REACTION_LINES, REPEATED_MODIFIER_LINES, TRADE_LINES, type AmbientLine } from '../data/socialAmbient';
+import { DOCKET_LINES, ERA_LINES, VENUE_LINES, EXHIBIT_LINES, PREDECESSOR_MISTELLS, SYSTEM_NOTICES, AUCTION_LINES, MISTELLS, UTILITY_BEATS, AMBIENT_LINES, BLAME_BEATS, EXCHANGES, FEUD_BEATS, ITEM_OF_RECORD_LINES, ONBOARDING_LINES, QUESTION_BEATS, REACTION_LINES, REPEATED_MODIFIER_LINES, TRADE_LINES, type AmbientLine } from '../data/socialAmbient';
 import type { LoadoutFiling } from '../engine/loadoutFiling';
 import { displayTarget, mostLitigated, type Caseload } from './caseload';
 import type { Predecessor } from './predecessor';
 import { finestExhibit, type Commendations } from './commendations';
 import { namedEras } from './namedEras';
-import { projectWorld, type IdentifiedGameTransitionRecord } from './worldContext';
+import { venueBulletin } from './venueBulletin';
+import { projectWorld, type IdentifiedGameTransitionRecord, type WorldContext } from './worldContext';
 
 export type SocialChannel = 'guild' | 'world' | 'party' | 'raid' | 'whisper' | 'system' | 'hero';
 export type SocialSceneKind = 'level' | 'quest' | 'equipment' | 'loot' | 'market' | 'zone' | 'milestone' | 'catch_up' | 'ambient';
@@ -744,6 +745,10 @@ const AMBIENT_LANES = [
   // a lane that fired often would say the same thing about the same item all afternoon.
   'item',
   'blame',
+  // Local business, for as long as the hero is standing somewhere that has any. One lane's worth,
+  // and the only lane whose availability changes during a session rather than across one — a road
+  // and a cinematic have no catalogue, so the channel loses its local colour and later gets it back.
+  'venue',
   // A period the file named after the fact. One lane's worth: the bore is funny at the rate a bore
   // is actually encountered, and a clerk who raises the same decade every minute is a different and
   // worse joke.
@@ -833,6 +838,13 @@ export interface InstitutionalMemory {
    * one definition of "finest" rather than two places that could disagree about ties.
    */
   readonly commendations?: Commendations | undefined;
+  /**
+   * Where the hero is standing, in the three fields the bulletin reads.
+   *
+   * Narrowed to those three rather than the whole `WorldContext`, so a caller only has to know what
+   * is actually consumed — and so this cannot quietly start depending on the rest of the projection.
+   */
+  readonly venue?: Pick<WorldContext, 'venue' | 'location' | 'act'> | undefined;
 }
 
 /**
@@ -848,7 +860,7 @@ export function projectAmbient(
   completedTasks: number,
   memory: InstitutionalMemory = {},
 ): readonly SocialEntry[] {
-  const { loadout, caseload, predecessor, commendations } = memory;
+  const { loadout, caseload, predecessor, commendations, venue } = memory;
   if (!Number.isFinite(completedTasks) || completedTasks < 0) return [];
   const cast = castForHero(hero);
   const key = `ambient:${hero.name}:${hero.race}:${hero.className}:${completedTasks}`;
@@ -873,6 +885,11 @@ export function projectAmbient(
   // Empty for every caseload until then, and for every caller that passes no memory.
   const era = caseload ? namedEras(caseload)[0] ?? null : null;
   if (lane === 'era' && era === null) lane = 'ambient';
+  // Null on a road and in a cinematic, which is `venueBulletin`'s own decision rather than one
+  // repeated here: a road is passed through rather than administered, and a cinematic is not a
+  // place at all.
+  const bulletin = venue ? venueBulletin(venue) : null;
+  if (lane === 'venue' && (bulletin === null || bulletin.length === 0)) lane = 'ambient';
   // The best thing the hero owns is still entry-tier, so the hall explains itself to them. Anything
   // better equipped ends it, which is why it needs no timer and cannot outstay its welcome.
   if (lane === 'onboarding' && (loadout?.itemOfRecord?.standing ?? 0) > ONBOARDING_STANDING) lane = 'ambient';
@@ -906,6 +923,8 @@ export function projectAmbient(
       ? EXHIBIT_LINES[stableChoice(`exhibit:${key}`, EXHIBIT_LINES.length)]!
     : lane === 'era'
       ? ERA_LINES[stableChoice(`era:${key}`, ERA_LINES.length)]!
+    : lane === 'venue'
+      ? VENUE_LINES[stableChoice(`venue:${key}`, VENUE_LINES.length)]!
     : lane === 'blame'
       ? beat(BLAME_BEATS)
       : lane === 'feud'
@@ -979,7 +998,11 @@ export function projectAmbient(
       // The name alone. `namedEras` also returns the dated phrase and the service record prints it
       // properly; assembling those ordinals a second time here is how two surfaces start disagreeing
       // about the same period, and this bank states no figures.
-      .replaceAll('{era}', era?.name ?? 'intervening')),
+      .replaceAll('{era}', era?.name ?? 'intervening')
+      // One office off the board of three, drawn from the same key so a scene keeps its office.
+      // Quoted whole, because the status after the comma is the joke.
+      .replaceAll('{office}', bulletin?.[stableChoice(`office:${key}`, bulletin.length)] ?? 'the office')
+      .replaceAll('{venue}', venue?.location ?? 'the district')),
   }));
 }
 

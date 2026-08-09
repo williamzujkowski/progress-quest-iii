@@ -4,6 +4,8 @@ import * as banks from '../../data/socialAmbient';
 import { AMBIENT_LINES, BLAME_BEATS, EXCHANGES, FEUD_BEATS, ITEM_OF_RECORD_LINES, QUESTION_BEATS, REACTION_LINES, TRADE_LINES } from '../../data/socialAmbient';
 import { projectAmbient } from '../../state/socialProjection';
 import { SOCIAL_PERSONAS } from '../../data/socialCatalog';
+import { EMPTY_CASELOAD } from '../../state/caseload';
+import { EMPTY_COMMENDATIONS } from '../../state/commendations';
 
 const HERO = { name: 'Krg', race: 'Sub-Subprocessor', className: 'Robot Monk' } as const;
 const ALL = [...AMBIENT_LINES, ...TRADE_LINES, ...REACTION_LINES, ...FEUD_BEATS, ...QUESTION_BEATS];
@@ -31,6 +33,26 @@ const DISCOVERED = Object.entries(banks)
   .filter(([, lines]) => lines.length > 0);
 
 const EVERY_LINE = DISCOVERED.flatMap(([, lines]) => lines);
+/**
+ * A channel with the whole filing cabinet behind it, which is what a session past its first minutes
+ * actually has. Every memory-fed lane is reachable from this and none is reachable without it.
+ */
+const FURNISHED = {
+  loadout: {
+    itemOfRecord: { slot: 'Gauntlets' as const, name: '-4 Lapsed Skeleton Key', quality: 3, base: 'Skeleton Key', standing: 10 },
+    reductionPercent: 3,
+    contributors: [{ slot: 'Gauntlets' as const, name: '-4 Lapsed Skeleton Key', quality: 3, base: 'Skeleton Key', standing: 10 }],
+    repeatedModifier: { name: 'Lapsed', slots: 4 },
+  },
+  caseload: { ...EMPTY_CASELOAD, targets: { 'Gnoll|2|hide': 31 }, targetActs: { 'Gnoll|2|hide': { first: 3, last: 7 } } },
+  predecessor: { name: 'Vashenko', phrase: 'This file continues one opened for Vashenko.' },
+  commendations: {
+    ...EMPTY_COMMENDATIONS,
+    exhibit: { Gauntlets: { name: '+9 Bonded Signing Authority', label: 'legendary' as const, quality: 40 } },
+  },
+  venue: { venue: 'town' as const, location: 'Ashfield', act: 3 },
+};
+
 const FILING = {
   itemOfRecord: { slot: 'Gauntlets' as const, name: '-4 Lapsed Skeleton Key', quality: 3, base: 'Skeleton Key', standing: 10 },
   reductionPercent: 3,
@@ -116,9 +138,37 @@ describe('the guild talks about itself', () => {
     }
 
     // And the filler still carries the channel, or the room stops sounding like a room between
-    // events. `ambient` absorbs the two loadout lanes when there is nothing worth citing.
+    // events. This sweep passes no memory, so `ambient` is absorbing eight lanes at once — the two
+    // loadout ones plus every lane the institution's filing cabinet feeds. That is the honest
+    // ceiling for a save in its first minutes and the worst case the mix ever reaches.
     expect(share('ambient')).toBeGreaterThan(0.25);
-    expect(share('ambient')).toBeLessThan(0.45);
+    expect(share('ambient')).toBeLessThan(0.5);
+  });
+
+  it('spreads much wider once the institution has something to remember', () => {
+    // The band above measures a channel that knows nothing, which is a real state and a brief one.
+    // It is not the state a session spends its time in, and tuning the weights against it alone
+    // would be tuning against the first minute — so the furnished mix is asserted separately and
+    // held to the tighter bound.
+    const TASKS = 3000;
+    const counts = new Map<string, number>();
+    for (let task = 0; task < TASKS; task += 1) {
+      const lane = projectAmbient(HERO, task, FURNISHED)[0]?.sceneId.split(':')[2] ?? 'none';
+      counts.set(lane, (counts.get(lane) ?? 0) + 1);
+    }
+
+    // Seventeen lanes reachable, and not one of them taking a sixth of the channel. The filler is
+    // still the largest single lane, which is the shape intended — it is just no longer half.
+    expect(counts.size).toBeGreaterThanOrEqual(15);
+    for (const [lane, count] of counts) {
+      expect(count / TASKS, `${lane} swamps the furnished channel`).toBeLessThan(0.2);
+    }
+    expect((counts.get('ambient') ?? 0) / TASKS).toBeLessThan(0.25);
+    // Every memory-fed lane is actually reached, or the spread above is an average over lanes that
+    // never fire.
+    for (const fed of ['docket', 'modifier', 'predecessor', 'exhibit', 'era', 'venue', 'item', 'blame']) {
+      expect(counts.get(fed) ?? 0, `${fed} never fired`).toBeGreaterThan(0);
+    }
   });
 
   it('reaches every lane, including the two slow ones', () => {
@@ -311,7 +361,7 @@ describe('every bank in the module, whether or not anybody listed it', () => {
   it('leaves no placeholder unresolvable, so no bank can ship a substitution nothing fills', () => {
     // A `{whatever}` that `projectAmbient` does not replace renders as braces in the feed. Checked
     // against the substitutions the projection actually performs rather than a list kept here.
-    const KNOWN = new Set(['item', 'slot', 'modifier', 'docket', 'predecessor', 'exhibit', 'exhibitSlot', 'era']);
+    const KNOWN = new Set(['item', 'slot', 'modifier', 'docket', 'predecessor', 'exhibit', 'exhibitSlot', 'era', 'office', 'venue']);
     for (const [name, lines] of DISCOVERED) {
       for (const { text } of lines) {
         for (const match of text.matchAll(/\{(\w+)\}/g)) {
