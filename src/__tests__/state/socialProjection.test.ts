@@ -115,8 +115,8 @@ describe('deterministic social batch projection', () => {
     expect(castIds(makeBatch(1, 10)).size).toBeGreaterThanOrEqual(2);
   });
 
-  it('keeps only the newest three complete scenes and one truthful catch-up row', () => {
-    const input = Array.from({ length: 7 }, (_, index) => source(
+  it('consolidates past the cap and says truthfully how many', () => {
+    const input = Array.from({ length: 12 }, (_unused, index) => source(
       200 + index,
       { type: 'quest_started', description: `Untrusted ${index}` },
       snapshot({ completedTasks: index, activeQuest: { kind: 'seek' } }),
@@ -125,17 +125,48 @@ describe('deterministic social batch projection', () => {
     const entries = projectSocialBatch(input);
     const scenes = [...new Set(entries.map(({ sceneId }) => sceneId))];
 
-    expect(scenes).toHaveLength(4);
-    expect(entries[0]).toMatchObject({ sceneKind: 'catch_up', channel: 'system', sourceActivityId: 204 });
+    // Eight retained plus the row that explains the rest.
+    expect(scenes).toHaveLength(9);
+    expect(entries[0]).toMatchObject({ sceneKind: 'catch_up', channel: 'system' });
     expect(entries[0]?.text).toContain('4 routine social scenes');
-    // Three scenes are retained; how many lines each speaks is drawn. The invariant that matters is
-    // that every retained scene speaks at least once and never more than it wrote.
+    // How many lines each retained scene speaks is drawn. The invariant that matters is that every
+    // one speaks at least once and never more than it wrote.
     for (const sceneId of scenes.slice(1)) {
       const spoken = entries.filter((entry) => entry.sceneId === sceneId);
       expect(spoken.length).toBeGreaterThanOrEqual(1);
       expect(spoken.length).toBeLessThanOrEqual(3);
     }
-    expect(entries.at(-1)?.sourceActivityId).toBe(206);
+    // With every scene equally interesting the newest survive, so the batch still ends where it did.
+    expect(entries.at(-1)?.sourceActivityId).toBe(211);
+  });
+
+  it('keeps the interesting scenes rather than whichever came last', () => {
+    // The point of the change. A player tabbed out for ten minutes returns to one batch carrying
+    // hundreds of scenes; taking the last few showed them whichever sales happened to fall at the
+    // end, and consolidated the level-up away. `chooseCandidate` already ranks these — milestones at
+    // 100 and 95, a level at 90, a sale at 60 — and nothing was using that ladder for this.
+    const sale = (activityId: number) => source(
+      activityId,
+      { type: 'inventory_sold', gold: 12 },
+      snapshot({ completedTasks: activityId, marketSale: { name: 'nit tail', quantity: 1, gold: 12 } }),
+    );
+
+    // One level early in the batch, then far more sales than the cap allows.
+    const input = [
+      source(300, { type: 'level_gained', level: 9 }, snapshot({ completedTasks: 0 })),
+      ...Array.from({ length: 20 }, (_unused, index) => sale(301 + index)),
+    ];
+
+    const entries = projectSocialBatch(input);
+    const kinds = new Set(entries.map(({ sceneKind }) => sceneKind));
+
+    expect(kinds).toContain('level');
+    expect(kinds).toContain('catch_up');
+    // And it is still in the order it happened, not promoted to the top: a feed that reordered
+    // itself by importance would stop being a transcript.
+    const levelAt = entries.findIndex(({ sceneKind }) => sceneKind === 'level');
+    const lastSaleAt = entries.map(({ sceneKind }) => sceneKind).lastIndexOf('market');
+    expect(levelAt).toBeLessThan(lastSaleAt);
   });
 
   it('reports only typed level, quest scope, sale, equipment, location, and raid facts', () => {
@@ -273,11 +304,14 @@ describe('deterministic social batch projection', () => {
 
     expect(result.records.length).toBeGreaterThan(10);
     expect(entries[0]?.sceneKind).toBe('catch_up');
-    // One catch-up row plus three retained scenes of drawn length. The row and the scene count are
+    // One catch-up row plus the retained scenes, of drawn length. The row and the scene count are
     // the invariants; the line total is not one, and asserting it would re-pin the fixed shape.
-    expect(new Set(entries.slice(1).map(({ sceneId }) => sceneId))).toHaveLength(3);
-    expect(entries.length).toBeGreaterThanOrEqual(4);
-    expect(entries.length).toBeLessThanOrEqual(10);
+    expect(new Set(entries.slice(1).map(({ sceneId }) => sceneId))).toHaveLength(8);
+    // One row plus eight scenes of one to three lines each. The bound moved with the cap: a return
+    // from ten minutes away is exactly when a player wants more than three scenes to scroll through,
+    // and the feed drops whole scenes off its own end regardless.
+    expect(entries.length).toBeGreaterThanOrEqual(9);
+    expect(entries.length).toBeLessThanOrEqual(25);
   });
 
   it('returns nothing for routine records with no approved social scene', () => {
