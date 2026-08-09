@@ -93,7 +93,7 @@ export const QuestLog: React.FC = () => {
           hides its contents without hiding the triangle inviting someone to look for them. */}
       {hasClosedCasework && (
         <details className="records-details">
-          <summary>Case archive</summary>
+          <summary>Matters on file</summary>
           <ClosedCasework />
         </details>
       )}

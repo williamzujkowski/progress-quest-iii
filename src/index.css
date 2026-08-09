@@ -395,6 +395,15 @@ input[type='radio']:checked::before { transform: scale(1); }
   font-style: italic;
 }
 
+/* The one entry in the file that has not been closed. Quiet, because it is a status rather than an
+   announcement, and the list is read for its contents rather than for this. */
+.casework-open {
+  margin-left: 0.4rem;
+  color: var(--text-muted);
+  font-variant-caps: all-small-caps;
+  letter-spacing: var(--tracking-caps);
+}
+
 /* Quieter than gold: a rate is context for the totals beside it, not a headline of its own. */
 .velocity-pill {
   color: var(--text-muted);
