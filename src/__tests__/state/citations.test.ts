@@ -32,6 +32,9 @@ const EVERYTHING: CitationLedgers = {
   caseload: {
     kinds: Object.fromEntries(QUEST_KINDS.map((kind) => [kind, 20])),
     targets: { 'A Recurring Matter': 40 },
+    // Dated, because a real ledger is. No citation reads the register — a citation states that
+    // something happened, and the register states when, which is the next child epic's business.
+    targetActs: { 'A Recurring Matter': { first: 2, last: 9 } },
   },
   specimens: { specimens: Array.from({ length: 300 }, (_unused, index) => `item:Specimen ${index}`) },
 };
