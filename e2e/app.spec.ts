@@ -1600,6 +1600,20 @@ test.describe('Progress Quest III terminal dashboard', () => {
     // Closing it takes the stop away again.
     await page.locator('.records-details > summary').filter({ hasText: /^Records/ }).click();
     await expect(card).not.toHaveAttribute('tabindex', '0');
+
+    // And a narrow viewport takes it away even with the disclosure open, because the clipping lives
+    // in a `(min-width: 1025px) and (min-height: 760px)` query — below it the card is
+    // `overflow: visible`, the page scrolls instead, and a stop that announces a name and does
+    // nothing is the defect this was written to remove. Measured at 390x844 the card was 3637px
+    // tall, scrolled nothing, and took the stop anyway.
+    await page.locator('.records-details > summary').filter({ hasText: /^Records/ }).click();
+    await expect(card).toHaveAttribute('tabindex', '0');
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(card).not.toHaveAttribute('tabindex', '0');
+    // The premise: the records must still be open and present, or this asserts that a hidden panel
+    // has no tab stop.
+    await expect(page.locator('.service-record')).toBeVisible();
+    await expect(card).toHaveJSProperty('scrollHeight', await card.evaluate((element) => element.clientHeight));
   });
 
   test('audits the records disclosure with everything in it', async ({ page }) => {
