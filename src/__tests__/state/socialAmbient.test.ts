@@ -70,6 +70,34 @@ describe('the guild talks about itself', () => {
     }
   });
 
+  it('keeps the slow lanes slow, so no one of them swamps the channel', () => {
+    // The cadence budget, written down. `SCENE_LENGTHS` and `AMBIENT_IN` are both scar tissue from
+    // content that fired too often, and three lanes have been added since the weights were tuned —
+    // utility, mistell, and the two exchange shares. Nothing was checking that the mix still holds.
+    //
+    // Asserted as bands rather than exact figures: the weights are a design decision and should be
+    // free to move, but a lane quietly taking a third of the channel should not pass unnoticed.
+    const TASKS = 3000;
+    const counts = new Map<string, number>();
+    for (let task = 0; task < TASKS; task += 1) {
+      const lane = projectAmbient(HERO, task)[0]?.sceneId.split(':')[2] ?? 'none';
+      counts.set(lane, (counts.get(lane) ?? 0) + 1);
+    }
+    const share = (lane: string) => (counts.get(lane) ?? 0) / TASKS;
+
+    // The running bits are the ones that must stay rare: a feud surfacing often stops being a slow
+    // burn, and a question re-asked every minute is nagging rather than forlorn.
+    for (const slow of ['feud', 'question', 'utility', 'mistell']) {
+      expect(share(slow), `${slow} must stay a slow lane`).toBeGreaterThan(0.02);
+      expect(share(slow), `${slow} must stay a slow lane`).toBeLessThan(0.12);
+    }
+
+    // And the filler still carries the channel, or the room stops sounding like a room between
+    // events. `ambient` absorbs the two loadout lanes when there is nothing worth citing.
+    expect(share('ambient')).toBeGreaterThan(0.25);
+    expect(share('ambient')).toBeLessThan(0.45);
+  });
+
   it('reaches every lane, including the two slow ones', () => {
     // With no loadout there is nothing to cite, so the item and blame lanes fall back — but a hero
     // owning nothing worth citing is exactly the one the hall is still explaining itself to, so
