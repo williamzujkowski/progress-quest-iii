@@ -539,9 +539,28 @@ describe('the item vocabulary the generator composes', () => {
   });
 
   it('names no real vendor, product, model, or person', () => {
-    const serialized = withoutReviewedCollisions(JSON.stringify([
-      ...Object.values(ITEM_TABLES).flat(), ...ITEM_ATTRIB, ...ITEM_OFS, ...SPECIALS, ...BORING_ITEMS,
-    ]).toLowerCase());
+    // The corpus is pinned, not assembled and trusted. This scan is built inline from five sources,
+    // and cutting it to `ITEM_ATTRIB` alone leaves the file 83/83 green — so a table dropped from the
+    // list silently stops being scanned, which is this file's own documented failure mode on a
+    // different corpus. The count below is what makes the omission a failure rather than a shrug.
+    const corpus = [...Object.values(ITEM_TABLES).flat(), ...ITEM_ATTRIB, ...ITEM_OFS, ...SPECIALS, ...BORING_ITEMS];
+
+    // Each source is checked against the corpus by name, not by arithmetic over the same expression
+    // that built it. A count compared against a sum of the same five terms is a tautology — drop a
+    // term from both and it still passes, which is the trap this assertion exists to close rather
+    // than to re-enter.
+    for (const [label, table] of [
+      ['ITEM_TABLES', Object.values(ITEM_TABLES).flat()],
+      ['ITEM_ATTRIB', ITEM_ATTRIB],
+      ['ITEM_OFS', ITEM_OFS],
+      ['SPECIALS', SPECIALS],
+      ['BORING_ITEMS', BORING_ITEMS],
+    ] as const) {
+      expect(table.length, `${label} must not be empty`).toBeGreaterThan(0);
+      for (const entry of table) expect(corpus, `${label} must be in the scan`).toContain(entry);
+    }
+
+    const serialized = withoutReviewedCollisions(JSON.stringify(corpus).toLowerCase());
     for (const forbidden of FORBIDDEN_NAMES) expect(serialized, `item vocabulary must not name ${forbidden}`).not.toContain(forbidden);
     expect(serialized).not.toContain('http');
     expect(serialized).not.toMatch(/[<>\u202a-\u202e\u2066-\u2069]/u);

@@ -137,7 +137,10 @@ describe('what the guild says when the hero has done nothing', () => {
   it('does not bypass the gap', () => {
     // Ambient is what fills the silence between lines, not a way around the rate limit.
     const first = scheduleChatter([], NEW_CADENCE, 100, ambient());
-    if (first.entries.length === 0) return;
+    // Asserted rather than returned past. The early return meant a regression where ambient stopped
+    // speaking at all reported green while the feature this guards was dead — the sibling banks
+    // assert their premise for exactly this reason.
+    expect(first.entries.length, 'ambient has to speak at all before a gap can be bypassed').toBeGreaterThan(0);
     expect(scheduleChatter([], first.cadence, 100, ambient()).entries).toHaveLength(0);
   });
 });

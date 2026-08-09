@@ -1274,7 +1274,10 @@ test.describe('Progress Quest III terminal dashboard', () => {
       return { duration, iterations: style.animationIterationCount, scrollBehavior: getComputedStyle(element.parentElement!).scrollBehavior };
     });
     expect(motion.duration).toBeLessThanOrEqual(1);
-    expect(motion.iterations).toBe('1');
+    // Not the iteration count. `.log-entry-animated` sets the `animation` shorthand, which resets
+    // `animation-iteration-count` to its initial `1`, so it computes as '1' whether or not the
+    // reduced-motion block is honoured — the assertion held under both and therefore said nothing.
+    // Duration and scroll behaviour are the two that actually move.
     expect(motion.scrollBehavior).toBe('auto');
   });
 

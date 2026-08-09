@@ -149,12 +149,23 @@ describe('Game Store State Machine', () => {
     const retained = useGameStore.getState().socialEntries;
     expect(retained.length).toBeLessThanOrEqual(MAX_SOCIAL_ENTRIES);
     expect(retained[0]?.sceneKind).toBe('level');
-    for (const sceneId of new Set(retained.map(({ sceneId }) => sceneId))) {
-      // The cap must never cut a scene in half. What it must not do is truncate; how many lines a
-      // scene speaks is decided before it gets here.
+    // Every retained scene must be whole, and "whole" is the count it was seeded with rather than a
+    // range. The previous bounds were `>= 1` and `<= 3`: the first is structurally guaranteed, since
+    // the sceneId came out of `retained` in the first place, and the second only pins how long a
+    // scene is authored. A cap that cut a three-line scene down to two satisfied both — which is
+    // precisely the half-cut this test is named for.
+    // Seeded scenes are three lines each; anything the tick added is whole by construction, so its
+    // own retained count is the reference.
+    const seeded = new Map<string, number>();
+    for (const entry of existing) seeded.set(entry.sceneId, (seeded.get(entry.sceneId) ?? 0) + 1);
+
+    const scenes = new Set(retained.map(({ sceneId }) => sceneId));
+    expect(scenes.size, 'the fixture must retain more than one scene, or wholeness is trivial').toBeGreaterThan(1);
+    for (const sceneId of scenes) {
       const spoken = retained.filter((entry) => entry.sceneId === sceneId);
-      expect(spoken.length).toBeGreaterThanOrEqual(1);
-      expect(spoken.length).toBeLessThanOrEqual(3);
+      const expected = seeded.get(sceneId);
+      if (expected === undefined) continue;
+      expect(spoken.length, `${sceneId} was cut`).toBe(expected);
     }
   });
 
