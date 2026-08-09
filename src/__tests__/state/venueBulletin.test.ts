@@ -13,6 +13,26 @@ describe('venue bulletins', () => {
     }
   });
 
+  it('gives every field notice a status worth reading', () => {
+    // The catalogues differ because the joke differs — a town is over-administered, a field is
+    // under-administered. Under-administered is not the same as unfinished, and four of these were
+    // noun-plus-neutral-adjective with no joke in them at all, beside a town list where every entry
+    // lands. Asserted as a shape rather than as wording: a bare participle is the tell.
+    // Swept across acts and locations, because the bulletin shows a window into the catalogue
+    // rather than all of it — checking one draw would leave most of the bank unchecked.
+    const field = new Set<string>();
+    for (let act = 0; act < 12; act += 1) {
+      for (const location of ['Bleeding Cliffs', 'The Compliance Fen', 'Reclaimed Thermal Downs']) {
+        for (const entry of venueBulletin({ ...town(), venue: 'field', act, location })!) field.add(entry);
+      }
+    }
+
+    expect(field.size, 'the sweep has to reach the whole bank').toBeGreaterThan(6);
+    for (const entry of field) {
+      expect(entry, entry).not.toMatch(/,\s*(?:provisional|unresolved|dormant|forwarded|pending|outstanding)$/i);
+    }
+  });
+
   it('gives the field and the dungeon their own notices rather than the town ones', () => {
     const townOffices = venueBulletin(town())!;
     const field = venueBulletin({ ...town(), venue: 'field' })!;

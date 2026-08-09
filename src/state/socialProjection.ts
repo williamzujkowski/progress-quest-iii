@@ -669,7 +669,16 @@ export function projectSocialBatch(
     sourceActivityId: first.source.activityId,
     channel: 'system',
     speaker: SYSTEM_SPEAKER,
-    text: `${suppressed} routine social scene${suppressed === 1 ? ' was' : 's were'} consolidated during accelerated progress.`,
+    // The institution's words, not the engine's.
+    //
+    // This is the first line a returning watcher reads, and it used to say "consolidated during
+    // accelerated progress" — "routine social scene" and "accelerated progress" are both terms from
+    // the transition layer, and neither is something an organisation would write. Minuting rather
+    // than transcribing is exactly what consolidation *is*, said by a body that takes minutes.
+    //
+    // The figure stays. It is the one thing this line must not lose: it is the only place the
+    // watcher learns how much they missed.
+    text: `The channel continued in the interval. ${suppressed} routine scene${suppressed === 1 ? ' was' : 's were'} minuted rather than transcribed.`,
   }, ...detailed];
 }
 

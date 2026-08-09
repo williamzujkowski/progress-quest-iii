@@ -138,7 +138,13 @@ describe('deterministic social batch projection', () => {
     // Eight retained plus the row that explains the rest.
     expect(scenes).toHaveLength(9);
     expect(entries[0]).toMatchObject({ sceneKind: 'catch_up', channel: 'system' });
-    expect(entries[0]?.text).toContain('4 routine social scenes');
+    // The figure is what this row exists for — it is the only place a returning watcher learns how
+    // much they missed — so it is asserted separately from the wording around it.
+    expect(entries[0]?.text).toContain('4 routine scenes');
+    expect(entries[0]?.text).toMatch(/minuted rather than transcribed/);
+    // And it speaks as the institution rather than as the transition layer, which is what it used
+    // to do on the first line a returner reads.
+    expect(entries[0]?.text).not.toMatch(/accelerated progress|social scene/);
     // How many lines each retained scene speaks is drawn. The invariant that matters is that every
     // one speaks at least once and never more than it wrote.
     for (const sceneId of scenes.slice(1)) {
