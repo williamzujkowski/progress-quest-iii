@@ -24,7 +24,7 @@ import type { WorldContext } from './worldContext';
  * character level, exactly as it is everywhere else.
  */
 
-export type Attendance = 'present' | 'regrets' | 'absent';
+export type Attendance = 'present' | 'regrets' | 'absent' | 'retired';
 
 export interface MusterEntry {
   readonly name: string;
@@ -36,6 +36,15 @@ const ATTENDANCE_LABELS: Record<Attendance, string> = {
   present: 'attending',
   regrets: 'sends regrets',
   absent: 'unaccounted for',
+  /**
+   * Still on the sheet, years after leaving.
+   *
+   * Guild rosters that outlive the people on them are the most quietly affecting thing about the
+   * genre — a page listing members who retired a decade ago, kept because nobody wanted to be the
+   * one to remove them. An institution that never closes a record is this game's whole subject, and
+   * here it lands as tenderness rather than satire, which is a register it has not used before.
+   */
+  retired: 'retired, still listed',
 };
 
 export function attendanceLabel(attendance: Attendance): string {
@@ -70,7 +79,18 @@ export function raidMuster(
     // shuffle. Weighted so most turn up: a sheet where nobody attends stops being a joke about
     // attendance and becomes one about nobody, which is a different and worse joke.
     const roll = stableIndex(`${persona.id}:${context.location}:${context.act}`, 6);
-    const attendance: Attendance = roll === 0 ? 'absent' : roll === 1 ? 'regrets' : 'present';
+    // `retired` splits the absent face rather than taking one of its own, which keeps the four in
+    // six who turn up exactly where they were — a state added on top would have thinned the
+    // attendance this sheet is a joke about, and the "mostly attended" assertion would have been
+    // left passing on hash luck at exactly one half.
+    //
+    // Splitting *absent* specifically is the better joke as well as the safer arithmetic: the sheet
+    // cannot tell somebody who is missing from somebody who left years ago, because it never closed
+    // either record.
+    const departed = stableIndex(`${persona.id}:${context.location}:retired`, 3) === 0;
+    const attendance: Attendance = roll === 0 ? (departed ? 'retired' : 'absent')
+      : roll === 1 ? 'regrets'
+        : 'present';
     entries.push({ name: persona.displayName, role: persona.role, attendance });
   }
 
