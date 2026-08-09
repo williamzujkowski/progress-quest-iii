@@ -277,6 +277,62 @@ function noticesFor(source: IdentifiedGameTransitionRecord, context: WorldContex
   return [];
 }
 
+/** One act the hero has been through, or the one they have not reached yet. */
+export interface RouteStop {
+  readonly act: number;
+  /** The act's town, or null for an act that has not been reached. */
+  readonly town: string | null;
+  readonly dungeon: string | null;
+  readonly raid: string | null;
+  readonly current: boolean;
+}
+
+/**
+ * Everywhere the paperwork has sent the hero, recomputed rather than remembered.
+ *
+ * Nothing here is stored, and that is the point. Every place name in this game is already a pure
+ * function of the hero's identity and an act — `choose(townNamesAt(act), '<name>:<class>:town:<act>')`
+ * and its two siblings — so an act the hero finished names its own town, dungeon and raid on demand,
+ * exactly as it did at the time. A route therefore needs no new field on the sheet and no schema
+ * change, which matters more than it sounds: every persisted addition is a migration against a
+ * directive that reads `player data > correctness`.
+ *
+ * The names are drawn through the same helpers the world console uses rather than re-derived from
+ * the same tables. Two derivations of one name is how they drift apart, and a route that disagreed
+ * with the console about where the hero had been would be worse than no route.
+ *
+ * A *route*, not a map. The engine has no coordinates, no adjacency and no travel between named
+ * places beyond `Road to X`, so drawing a map would assert a world that does not exist. An ordered
+ * list of postings is what the engine actually models, and reads as a service record rather than a
+ * fantasy atlas — which is the right register anyway.
+ */
+export function projectRoute(hero: GamePresentationSnapshot['hero'], act: number, limit = 12): readonly RouteStop[] {
+  if (!Number.isFinite(act) || act < 0) return [];
+
+  const named = (current: number): RouteStop => {
+    const post = { hero, act: current } as GamePresentationSnapshot;
+    return {
+      act: current,
+      town: townName(post).split(' // ')[0] ?? null,
+      dungeon: milestoneName(post, 'dungeon').split(' // ')[0] ?? null,
+      raid: milestoneName(post, 'raid').split(' // ')[0] ?? null,
+      current: current === act,
+    };
+  };
+
+  // The most recent stops, oldest first. A hero deep into the acts has a service record longer than
+  // anything else on the page, and the interesting end of it is the recent one.
+  const reached = Math.min(act, Number.MAX_SAFE_INTEGER);
+  const first = Math.max(0, reached - limit + 1);
+  const stops: RouteStop[] = [];
+  for (let current = first; current <= reached; current += 1) stops.push(named(current));
+
+  // The act ahead, deliberately unnamed. An institution that has not yet decided where you are going
+  // is this game's register, and not naming a place preserves the discovery for free.
+  stops.push({ act: reached + 1, town: null, dungeon: null, raid: null, current: false });
+  return stops;
+}
+
 export function projectWorld(input: WorldProjectionInput): WorldProjection {
   if (input.kind === 'current') {
     return {
