@@ -83,13 +83,23 @@ const RULES: readonly CitationRule[] = [
   {
     id: 'item-of-record',
     title: 'Item Of Record',
-    note: 'Something legendary passed through the equipment and was superseded by something better. It survives in the exhibit case and nowhere else.',
+    // Not "was superseded", which the ledger cannot support: `mergeExhibit` keeps the *maximum*
+    // quality each slot has ever held and ties keep the incumbent, so a legendary in the case is by
+    // construction the best that slot has seen and nothing ever displaced it. It may also still be
+    // equipped, which made "and nowhere else" false as well. The true version is funnier anyway — a
+    // record that can only be equalled is a record nobody can take from you.
+    note: 'Something legendary has been worn. The case keeps the finest each slot has ever held, so the entry can be equalled and never beaten.',
     holds: ({ commendations }) => Object.values(commendations.exhibit).some((entry) => entry?.label === 'legendary'),
   },
   {
     id: 'extensive-sampling',
     title: 'Extensive Sampling',
-    note: 'A great many distinct things have been held exactly once. The institution kept the list rather than the things.',
+    // Not "exactly once". `specimenLog` says outright that quantity and time are not identity —
+    // holding four of something is one specimen, and holding it again next week is still one — and
+    // `mergeSpecimens` is a set insert that stores no counts at all. The log knows each identity was
+    // held *at least* once, and repeat drops are the norm, so the original claim was both
+    // unsupportable and usually false.
+    note: 'A great many distinct things have been held at least once. How many times each is not recorded, which spares everyone the tally.',
     holds: ({ specimens }) => specimens.specimens.length >= THRESHOLDS.extensiveSampling,
   },
   {

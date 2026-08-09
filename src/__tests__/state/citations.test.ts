@@ -119,6 +119,40 @@ describe('a citation cannot be lost', () => {
   });
 });
 
+describe('a citation claims only what its ledger models', () => {
+  it('does not say a legendary was superseded, because the exhibit cannot record that', () => {
+    // `mergeExhibit` keeps the maximum quality each slot has ever held, ties keeping the incumbent.
+    // A legendary in the case is therefore the best that slot has seen and nothing displaced it —
+    // and it may still be equipped, so "survives in the exhibit case and nowhere else" was false
+    // twice over.
+    const said = citationsFor(EVERYTHING).find(({ id }) => id === 'item-of-record')?.note ?? '';
+
+    expect(said, 'the citation must be reachable').not.toBe('');
+    expect(said).not.toMatch(/superseded|replaced by|nowhere else/i);
+    expect(said).toMatch(/equalled and never beaten/);
+  });
+
+  it('does not say a specimen was held exactly once, because nothing counts', () => {
+    // `specimenLog` is explicit: quantity and time are not identity, and `mergeSpecimens` is a set
+    // insert storing no counts. "At least once" is the whole of what the ledger knows, and repeat
+    // drops make "exactly once" usually false as well as unsupportable.
+    const said = citationsFor(EVERYTHING).find(({ id }) => id === 'extensive-sampling')?.note ?? '';
+
+    expect(said, 'the citation must be reachable').not.toBe('');
+    expect(said).not.toMatch(/exactly once/i);
+    expect(said).toMatch(/at least once/i);
+  });
+
+  it('states no frequency anywhere, since no ledger behind these records one', () => {
+    // The class rather than the two sites. Commendations hold maxima, the caseload holds totals and
+    // act ordinals, the specimen log holds identities — none of them stores how often, so no
+    // citation may imply it.
+    for (const { id, note } of citationsFor(EVERYTHING)) {
+      expect(note, id).not.toMatch(/\bexactly \w+ times?\b|\bonly once\b|\bnever again\b|\beach time\b/i);
+    }
+  });
+});
+
 describe('the thresholds do not read as targets', () => {
   it('sits on no round number', () => {
     // A round threshold reads as a figure somebody set for the player to reach; an odd one reads as
