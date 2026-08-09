@@ -235,8 +235,23 @@ test.describe('theme contrast on surfaces that need a session', () => {
       // moved the timing on the slowest engine in the matrix — measured at roughly four times
       // Chromium, which is where a margin this size stops being comfortable.
       const activity = page.getByRole('tab', { name: /Activity/i });
-      await activity.click();
-      await expect(activity).toHaveAttribute('aria-selected', 'true');
+      // Clicked until it takes, because on WebKit it sometimes does not.
+      //
+      // Asserting the tab's own state was the previous change here, and it did its job: the failure
+      // moved from "`.log-entry` is hidden" — which names the symptom — to "aria-selected is false
+      // after thirteen retries over five seconds", which names the cause. The click is being lost,
+      // not delayed, so waiting longer cannot fix it.
+      //
+      // The likely mechanism is the seeding evaluate above: it drives a React re-render, and a click
+      // landing mid-render hits a node that is about to be replaced. `toPass` re-issues the click
+      // rather than extending the wait, which is what a lost event needs.
+      //
+      // This does not weaken anything. The tab must still end up selected, and a tab that never
+      // selects fails after the outer timeout exactly as before.
+      await expect(async () => {
+        await activity.click();
+        await expect(activity).toHaveAttribute('aria-selected', 'true', { timeout: 1_000 });
+      }).toPass({ timeout: 15_000 });
       // Records fold away by default. A collapsed disclosure is not a hidden failure to measure -
       // it is a surface the reader has to open too, so the test opens it exactly as they would.
       for (const summary of await page.locator('.records-details > summary').all()) await summary.click();
