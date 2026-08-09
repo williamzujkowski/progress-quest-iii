@@ -29,11 +29,20 @@ import type { CharacterSheet } from '../engine/types';
  * somebody who is still on file.
  */
 
+/**
+ * Narrower than the sheet on purpose.
+ *
+ * The first version returned the race, the class and the level beside the name, on the reasoning
+ * that a caller might want to lay the citation out itself. Nothing did — the document renders
+ * `phrase` and the tests assert on `name` — so those three fields were an API promising a
+ * flexibility no caller had asked for, and each one was a second place the citation could be
+ * assembled and disagree with this one.
+ *
+ * `name` stays because selection is worth asserting separately from wording: a test proving the
+ * right character was chosen should not fail when the sentence is rephrased.
+ */
 export interface Predecessor {
   readonly name: string;
-  readonly race: string;
-  readonly className: string;
-  readonly level: number;
   /** The file's sentence, in the institution's voice and addressed to nobody. */
   readonly phrase: string;
 }
@@ -69,9 +78,6 @@ export function predecessorFor(
   const { Name, Race, Class, Level } = best.Traits;
   return {
     name: Name,
-    race: Race,
-    className: Class,
-    level: Level,
     // No verb for what happened to them, because nothing knows. They have not retired or died; they
     // have not been loaded lately, which is not a fate and must not be written as one.
     phrase: `This file continues one opened for ${Name}, ${Race} ${Class}, last recorded at level ${Level}.`,
