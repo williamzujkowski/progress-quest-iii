@@ -810,6 +810,44 @@ test.describe('Progress Quest III terminal dashboard', () => {
     for (const { text, width } of cells) expect(width, text).toBeGreaterThan(40);
   });
 
+  test('wraps a chatter message instead of clipping it', async ({ page }) => {
+    // Chatter lines are authored short, but nothing stops one being long — an item-of-record line
+    // quotes a generated noun, and the DKP bank runs to a full sentence. The panel already sets
+    // `overflow-wrap: anywhere` and no `nowrap`, so this asserts the property rather than adding it:
+    // the message grows downward and is never cut off to the right.
+    await page.goto('/');
+    await appReady(page);
+
+    const { lineHeight, height, scrollWidth, clientWidth } = await page.evaluate(async () => {
+      const { useGameStore } = await import('/src/state/gameStore.ts');
+      useGameStore.setState({
+        socialEntries: [{
+          id: 'wrap:0',
+          sceneId: 'wrap',
+          sceneKind: 'ambient',
+          sourceActivityId: 1,
+          channel: 'guild',
+          speaker: { id: 'cast-1', kind: 'cast', displayName: 'Persona', role: 'Clerk', fictional: true, automaticHero: false },
+          text: 'The drop was allocated by seniority, then reallocated by whoever was still online, and the ledger records this as consensus reached without objection from anybody who was asked.',
+        }],
+      });
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      const paragraph = document.querySelector('.chatter-list li p')!;
+      const style = getComputedStyle(paragraph);
+      return {
+        lineHeight: Number.parseFloat(style.lineHeight),
+        height: paragraph.getBoundingClientRect().height,
+        scrollWidth: paragraph.scrollWidth,
+        clientWidth: paragraph.clientWidth,
+      };
+    });
+
+    // More than one line tall, so it wrapped rather than overflowing on a single line.
+    expect(height).toBeGreaterThan(lineHeight * 1.5);
+    // And nothing is hidden off to the right.
+    expect(scrollWidth).toBeLessThanOrEqual(clientWidth + 1);
+  });
+
   test('never draws two world-console rows on top of each other', async ({ page }) => {
     // The companion to the starvation sweep, and the failure it did not catch. Three different lists
     // wear `world-context-services` — venue notices, the raid muster, the loadout filing — and more
