@@ -1,4 +1,4 @@
-import { boundCodePoints, MAX_TEXT_CODE_POINTS } from '../engine/text';
+import { boundCodePoints, formatGameNumber, MAX_TEXT_CODE_POINTS } from '../engine/text';
 import { KIND_LABELS, QUEST_KINDS, describeSpan, displayTarget, mostLitigated, type Caseload } from './caseload';
 import type { Commendations } from './commendations';
 import { namedEras } from './namedEras';
@@ -31,6 +31,11 @@ import type { GamePresentationSnapshot } from '../engine/transition';
  * **It says nothing it was not given.** Every figure comes from a ledger or from the route. There is
  * no total computed here, no rate, no ranking — a document that did arithmetic of its own would
  * disagree with the panels the moment either moved.
+ *
+ * And every figure is written the way the rest of the application writes figures, through
+ * `formatGameNumber`. This shipped interpolating them raw, which agrees with `GameNumber` up to a
+ * million and then stops: past that the panels read `1.00e6` and the document read `1000000`, for
+ * the same value, on the same screen. `largestSale` crosses that in ordinary play.
  *
  * **It omits rather than reports a zero.** The same rule the panels already follow. A section with
  * nothing in it does not appear, because "Assignments closed: none" reads as a broken document
@@ -117,7 +122,7 @@ function postings(hero: GamePresentationSnapshot['hero'], act: number): ServiceR
 function casework(caseload: Caseload): ServiceRecordSection | null {
   const lines = QUEST_KINDS.flatMap((kind) => {
     const count = caseload.kinds[kind];
-    return count ? [bound(`${KIND_LABELS[kind]}: ${count}`)] : [];
+    return count ? [bound(`${KIND_LABELS[kind]}: ${formatGameNumber(count)}`)] : [];
   });
   return lines.length === 0 ? null : { heading: 'Casework', lines };
 }
@@ -126,7 +131,7 @@ function theRegister(caseload: Caseload): ServiceRecordSection | null {
   const frequent = mostLitigated(caseload);
   if (!frequent) return null;
 
-  const lines = [bound(`One name recurs above the others: ${displayTarget(frequent.target)}, filed against ${frequent.count} times.`)];
+  const lines = [bound(`One name recurs above the others: ${displayTarget(frequent.target)}, filed against ${formatGameNumber(frequent.count)} times.`)];
   // `hasOwn` rather than a bare read, which is the guard the caseload tally already carries two
   // files away and this one was written without.
   //
@@ -155,17 +160,17 @@ function periods(caseload: Caseload): ServiceRecordSection | null {
 
 function standing(commendations: Commendations, specimenCount: number): ServiceRecordSection | null {
   const lines: string[] = [];
-  if (commendations.highestLevel > 0) lines.push(bound(`Highest level attained: ${commendations.highestLevel}.`));
-  if (commendations.actsCompleted > 0) lines.push(bound(`Acts concluded: ${commendations.actsCompleted}.`));
-  if (commendations.largestSale > 0) lines.push(bound(`Largest single disposal: ${commendations.largestSale} gold.`));
-  if (specimenCount > 0) lines.push(bound(`Distinct specimens filed: ${specimenCount}.`));
+  if (commendations.highestLevel > 0) lines.push(bound(`Highest level attained: ${formatGameNumber(commendations.highestLevel)}.`));
+  if (commendations.actsCompleted > 0) lines.push(bound(`Acts concluded: ${formatGameNumber(commendations.actsCompleted)}.`));
+  if (commendations.largestSale > 0) lines.push(bound(`Largest single disposal: ${formatGameNumber(commendations.largestSale)} gold.`));
+  if (specimenCount > 0) lines.push(bound(`Distinct specimens filed: ${formatGameNumber(specimenCount)}.`));
 
   const exhibited = Object.entries(commendations.exhibit).filter(([, entry]) => entry !== undefined);
   if (exhibited.length > 0) {
     // Stated rather than implied. `worldContext` classifies equipment as prestige and CONTEXT.md is
     // explicit that it makes no combat contribution, so a document listing the exhibit without
     // saying so would be letting the reader infer a mechanic that does not exist.
-    lines.push(bound(`Items of record retained in ${exhibited.length} slots, none of which bore on the outcome of anything.`));
+    lines.push(bound(`Items of record retained in ${formatGameNumber(exhibited.length)} slots, none of which bore on the outcome of anything.`));
   }
 
   return lines.length === 0 ? null : { heading: 'Standing', lines };
