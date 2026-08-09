@@ -2204,10 +2204,10 @@ test.describe('closed casework archive', () => {
 
     await expect(page.getByRole('heading', { name: 'Questing & Progression' })).toBeVisible();
     // An empty archive reads as a broken panel rather than a new one, so there is no empty state.
-    await expect(page.getByRole('list', { name: /Closed casework/i })).toHaveCount(0);
+    await expect(page.getByRole('list', { name: /Matters on file/i })).toHaveCount(0);
     // And no disclosure inviting anyone to open it. Asserting only the list's absence is what let
     // a summary that opens onto nothing ship: the contents were hidden, the triangle was not.
-    await expect(page.locator('.records-details > summary').filter({ hasText: /Case archive/i }))
+    await expect(page.locator('.records-details > summary').filter({ hasText: /Matters on file/i }))
       .toHaveCount(0);
     expectNoPageErrors();
     await context.close();
@@ -2221,11 +2221,15 @@ test.describe('closed casework archive', () => {
     await page.goto('/');
 
     // The archive lives behind a disclosure now, so opening it is part of reaching it.
-    await page.locator('.records-details > summary').filter({ hasText: /Case archive/i }).click();
-    const archive = page.getByRole('list', { name: /Closed casework/i });
+    await page.locator('.records-details > summary').filter({ hasText: /Matters on file/i }).click();
+    const archive = page.getByRole('list', { name: /Matters on file/i });
     await expect(archive).toBeVisible();
     await expect(archive.locator('li')).toHaveCount(40);
-    await expect(archive.locator('li').first()).toHaveText('Matter number 39');
+    // The head carries an "open" marker now: `Quest.history` holds the live assignment as its last
+    // entry, so the newest row is the matter currently in hand rather than a closed one.
+    await expect(archive.locator('li').first()).toContainText('Matter number 39');
+    await expect(archive.locator('li').first().locator('.casework-open')).toHaveText('open');
+    await expect(archive.locator('li').nth(1).locator('.casework-open')).toHaveCount(0);
 
     // The archive scrolls inside itself. If it ever stops doing so it will grow the questing
     // card without limit, which is the failure this panel is one trim away from.
