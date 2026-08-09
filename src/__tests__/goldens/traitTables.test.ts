@@ -1,5 +1,6 @@
 import { plural as pluralize } from '../../engine/text';
 import { describe, expect, it } from 'vitest';
+import { MONSTER_PREFIXES } from '../../engine/sim';
 import { isUnrenderable } from '../../engine/text';
 import {
   ALL_STATS,
@@ -319,27 +320,68 @@ describe('what race and class are worth', () => {
   });
 });
 
+/**
+ * Names no shipped string may contain, in one place.
+ *
+ * There were two of these lists, checked against two different corpora, and they had drifted: eight
+ * names were in one only and `kevlar` in the other. Neither covered `MONSTERS` — the largest table
+ * in the game at 232 entries, in the most product-adjacent register it has — or `SPELLS`, so the
+ * guard passed green over both.
+ *
+ * Matched as substrings, which is the only tool available and is why the list needs judgement rather
+ * than enthusiasm. `meta` is deliberately absent: it is inside `Bare Metal`, a shipped armour name
+ * and an ordinary technical term, and a guard that fails on it teaches the next person to weaken the
+ * guard. The vendor is caught by `facebook` instead.
+ */
+/**
+ * Strings reviewed and kept, which the substring guard would otherwise reject.
+ *
+ * Kept deliberately tiny, and each entry carries its reason. An allowlist is the failure mode of a
+ * guard like this — it can grow until it swallows the rule — so the bar is that the collision has to
+ * be *accidental*, not merely inconvenient.
+ */
+const REVIEWED_COLLISIONS: readonly [string, string][] = [
+  // Ordinary workplace vocabulary for somebody who changes jobs often. The collision with a real
+  // computer scientist is a substring accident and the phrase is squarely in this game's register.
+  ['job hopper', 'hopper'],
+];
+
+const withoutReviewedCollisions = (serialized: string): string =>
+  REVIEWED_COLLISIONS.reduce((text, [phrase]) => text.replaceAll(phrase, ''), serialized);
+
+/**
+ * Everything a player can read that comes out of the trait tables, in one place.
+ *
+ * Built once and shared, because the test proving the guard covers these tables built its own copy
+ * and therefore proved nothing: dropping `MONSTERS` from the guard left the coverage assertion
+ * passing against its private corpus. A guard and its coverage check reading two different arrays is
+ * the same defect this file was opened to fix, one level up.
+ */
+const GUARDED_TRAITS = [...RACES, ...KLASSES, ...MONSTERS, ...SPELLS];
+
+const FORBIDDEN_NAMES: readonly string[] = [
+  // Vendors and clouds.
+  'aws', 'amazon', 'azure', 'google', 'microsoft', 'oracle', 'ibm', 'apple', 'facebook',
+  'nvidia', 'intel', 'salesforce', 'vmware', 'cloudflare', 'datadog', 'atlassian', 'sap',
+  // Products and platforms whose names would otherwise fit this register far too well.
+  'kubernetes', 'docker', 'terraform', 'jira', 'slack', 'github', 'gitlab', 'jenkins',
+  'splunk', 'grafana', 'kafka', 'hadoop', 'postgres', 'mysql', 'redis', 'nginx',
+  'systemd', 'ansible', 'databricks', 'snowflake', 'servicenow', 'workday', 'kevlar',
+  // Labs and models, on the separate ground that they date the writing.
+  'openai', 'anthropic', 'deepmind', 'chatgpt', 'claude', 'gemini', 'copilot', 'llama',
+  // People.
+  'turing', 'lovelace', 'mccarthy', 'minsky', 'hopper', 'torvalds', 'stallman', 'ritchie',
+];
+
 describe('the compute-industrial trait catalogue', () => {
   // Written in the manner of the social catalogue's own guard. These tables moved from 2002 high
   // fantasy to job titles that should not exist, and the hazard the register brings with it
   // is naming something real: a vendor, a product, a model, or a person. An invented Vermineer is
   // the joke; a real trademark in a shipped table is somebody else's property doing the work.
-  const serialized = JSON.stringify([...RACES, ...KLASSES]).toLowerCase();
+  const serialized = withoutReviewedCollisions(JSON.stringify(GUARDED_TRAITS).toLowerCase());
 
   it('names no real vendor, product, model, or person', () => {
-    for (const forbidden of [
-      // Vendors and clouds.
-      'aws', 'amazon', 'azure', 'google', 'microsoft', 'oracle', 'ibm', 'meta', 'apple',
-      'nvidia', 'intel', 'salesforce', 'vmware', 'cloudflare', 'datadog', 'atlassian',
-      // Products and platforms whose names would otherwise fit this register far too well.
-      'kubernetes', 'docker', 'terraform', 'jira', 'slack', 'github', 'gitlab', 'jenkins',
-      'splunk', 'grafana', 'kafka', 'hadoop', 'postgres', 'mysql', 'redis', 'nginx',
-      'systemd', 'ansible', 'databricks', 'snowflake', 'servicenow', 'workday', 'sap',
-      // Labs and models, on the separate ground that they date the writing.
-      'openai', 'anthropic', 'deepmind', 'chatgpt', 'claude', 'gemini', 'copilot', 'llama',
-      // People.
-      'turing', 'lovelace', 'mccarthy', 'minsky', 'hopper', 'torvalds', 'stallman', 'ritchie',
-    ]) expect(serialized, `trait tables must not name ${forbidden}`).not.toContain(forbidden);
+    for (const forbidden of FORBIDDEN_NAMES) expect(serialized, `trait tables must not name ${forbidden}`).not.toContain(forbidden);
   });
 
   it('carries no markup, links, control characters, or bidirectional overrides', () => {
@@ -434,18 +476,66 @@ describe('the item vocabulary the generator composes', () => {
     }
   });
 
-  it('names no real vendor, product, model, or person', () => {
-    const serialized = JSON.stringify([
+  it('actually has the tables it claims to guard in front of it', () => {
+    // The guard only fails when there is something to catch, so a mutation removing a table from the
+    // corpus passes on a clean catalogue — which is exactly how `MONSTERS` and `SPELLS` went
+    // uncovered in the first place. This pins the coverage rather than the outcome.
+    const corpus = JSON.stringify(GUARDED_TRAITS).toLowerCase();
+
+    expect(corpus, 'races must be in the corpus').toContain(RACES[0]!.name.toLowerCase());
+    expect(corpus, 'classes must be in the corpus').toContain(KLASSES[0]!.name.toLowerCase());
+    expect(corpus, 'monsters must be in the corpus').toContain(MONSTERS[0]!.name.toLowerCase());
+    expect(corpus, 'spells must be in the corpus').toContain(SPELLS[0]!.toLowerCase());
+  });
+
+  it('keeps the reviewed-collision list honest', () => {
+    // An allowlist is the failure mode of a substring guard: it can grow until it swallows the rule,
+    // and an entry naming nothing shipped is a loophole waiting for someone to walk through. Every
+    // entry must earn its place by actually colliding with something in the catalogue.
+    const everything = JSON.stringify([
+      ...GUARDED_TRAITS,
       ...Object.values(ITEM_TABLES).flat(), ...ITEM_ATTRIB, ...ITEM_OFS, ...SPECIALS, ...BORING_ITEMS,
     ]).toLowerCase();
-    for (const forbidden of [
-      'aws', 'amazon', 'azure', 'google', 'microsoft', 'oracle', 'ibm', 'nvidia', 'intel',
-      'salesforce', 'vmware', 'cloudflare', 'datadog', 'atlassian', 'kubernetes', 'docker',
-      'terraform', 'jira', 'slack', 'github', 'gitlab', 'jenkins', 'splunk', 'grafana', 'kafka',
-      'hadoop', 'postgres', 'mysql', 'redis', 'nginx', 'systemd', 'ansible', 'databricks',
-      'snowflake', 'servicenow', 'workday', 'kevlar', 'openai', 'anthropic', 'deepmind',
-      'chatgpt', 'claude', 'gemini', 'copilot', 'llama', 'turing', 'lovelace', 'torvalds',
-    ]) expect(serialized, `item vocabulary must not name ${forbidden}`).not.toContain(forbidden);
+
+    expect(REVIEWED_COLLISIONS.length, 'a long allowlist is a guard that has given up').toBeLessThanOrEqual(3);
+    for (const [phrase, forbidden] of REVIEWED_COLLISIONS) {
+      expect(everything, `${phrase} is allowlisted but nothing ships it`).toContain(phrase);
+      expect(phrase, `${phrase} must actually collide with ${forbidden}`).toContain(forbidden);
+    }
+  });
+
+  it('covers the monster prefixes the engine composes, which live outside the data tables', () => {
+    // Twenty-two prefixes in `sim.ts` compose with a creature by level difference — `dead`,
+    // `comatose`, `foetal`, `Were-`, `messianic` and the rest. They are shipped strings a player
+    // reads on every kill, they sit in `src/engine/` rather than `src/data/`, and no content test
+    // looked at them at all.
+    //
+    // Asserted against the same list as everything else, and against the same register rules. They
+    // are also the last vocabulary in the game inherited rather than rewritten, which is worth
+    // knowing about separately from whether they name anything real.
+    // Read from the engine rather than copied. A first version listed them here and compared the
+    // list against `sim.ts` as text, which is a guard checking its own copy — the exact shape this
+    // file exists to catch. `MONSTER_PREFIXES` is now the one source and the engine composes from it.
+    const serialized = withoutReviewedCollisions(JSON.stringify(Object.values(MONSTER_PREFIXES).flat()).toLowerCase());
+
+    for (const forbidden of FORBIDDEN_NAMES) {
+      expect(serialized, `monster prefixes must not name ${forbidden}`).not.toContain(forbidden);
+    }
+    expect(serialized).not.toContain('http');
+    expect(serialized).not.toMatch(/[<>\u202a-\u202e\u2066-\u2069]/u);
+    // The premise, per group rather than in total: an empty export passes every assertion above, and
+    // a total threshold is too loose to notice one group going empty — emptying `remote` left
+    // twenty-five prefixes and a passing test.
+    for (const [group, words] of Object.entries(MONSTER_PREFIXES)) {
+      expect(words.length, `${group} must still have prefixes in it`).toBeGreaterThan(0);
+    }
+  });
+
+  it('names no real vendor, product, model, or person', () => {
+    const serialized = withoutReviewedCollisions(JSON.stringify([
+      ...Object.values(ITEM_TABLES).flat(), ...ITEM_ATTRIB, ...ITEM_OFS, ...SPECIALS, ...BORING_ITEMS,
+    ]).toLowerCase());
+    for (const forbidden of FORBIDDEN_NAMES) expect(serialized, `item vocabulary must not name ${forbidden}`).not.toContain(forbidden);
     expect(serialized).not.toContain('http');
     expect(serialized).not.toMatch(/[<>\u202a-\u202e\u2066-\u2069]/u);
   });
