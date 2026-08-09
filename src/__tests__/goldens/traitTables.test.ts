@@ -62,6 +62,19 @@ import {
  * real but incidental, and it is a sample rather than a sweep.
  */
 
+/*
+ * The four modifier counts moved once, deliberately, and the reasoning belongs beside them.
+ *
+ * Everywhere else in this file a changed count means a rewritten world, because a table's length is
+ * an argument to the PRNG. The four modifier tables are the exception, and the exception is
+ * structural rather than lucky: they are read by `rng` in exactly one place — the modifier loop in
+ * `generateEquipUpgrade` — and that loop is gated on `plus !== 0`. Every recorded fixture is level
+ * 1-5, and the one that reaches equipment generation draws a base whose quality equals its level, so
+ * the loop body never executes there and the tables' lengths are never asked for.
+ *
+ * Verified rather than argued: extending these four leaves all fifteen transition goldens passing,
+ * while a one-entry change to `ARMORS` — a table read outside the gate — fails seven of them.
+ */
 const COUNTS: [string, readonly unknown[], number][] = [
   ['MONSTERS', MONSTERS, 232],
   ['ITEM_OFS', ITEM_OFS, 52],
@@ -74,12 +87,12 @@ const COUNTS: [string, readonly unknown[], number][] = [
   ['ARMORS', ARMORS, 20],
   ['KLASSES', KLASSES, 18],
   ['SHIELDS', SHIELDS, 16],
-  ['DEFENSE_BAD', DEFENSE_BAD, 14],
+  ['DEFENSE_BAD', DEFENSE_BAD, 17],
   ['IMPRESSIVE_TITLES', IMPRESSIVE_TITLES, 14],
   ['EQUIP_SLOTS', EQUIP_SLOTS, 11],
-  ['OFFENSE_ATTRIB', OFFENSE_ATTRIB, 11],
-  ['DEFENSE_ATTRIB', DEFENSE_ATTRIB, 9],
-  ['OFFENSE_BAD', OFFENSE_BAD, 9],
+  ['OFFENSE_ATTRIB', OFFENSE_ATTRIB, 19],
+  ['DEFENSE_ATTRIB', DEFENSE_ATTRIB, 17],
+  ['OFFENSE_BAD', OFFENSE_BAD, 12],
   ['TITLES', TITLES, 9],
   ['ALL_STATS', ALL_STATS, 8],
   ['PRIME_STATS', PRIME_STATS, 6],

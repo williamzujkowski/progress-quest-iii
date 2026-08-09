@@ -36,7 +36,12 @@ describe('legacy quest reward dispatcher', () => {
       kind: 'equipment',
       state: [0.6359334820881486, 0.37374331383034587, 0.28759220940992236, 1],
       reset: 85,
-      expected: { equipment: ['Vambraces', 'Hotfixed Contested Gloved Procedure'], effect: { type: 'equipment', slot: 'Vambraces', name: 'Hotfixed Contested Gloved Procedure' } },
+      // Moved with the modifier draw, and the `rng` cursor below did not — which is the whole
+      // check. `drawModifier` selects among the entries that fit rather than uniformly over the
+      // table, so this seed reaches two different words at the same two positions. Both pairs are
+      // DEFENSE_BAD and both total -4 (Hotfixed -1 + Contested -3, Lapsed -1 + Misfiled -3), so the
+      // item's quality is byte-identical to what it was; only the wording is new.
+      expected: { equipment: ['Vambraces', 'Lapsed Misfiled Gloved Procedure'], effect: { type: 'equipment', slot: 'Vambraces', name: 'Lapsed Misfiled Gloved Procedure' } },
       rng: [0.062331163324415684, 0.7646989999338984, 0.471838767407462, 276700],
     },
     {
