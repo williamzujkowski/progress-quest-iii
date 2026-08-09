@@ -11,6 +11,7 @@ import { finestExhibit, type Commendations } from './commendations';
 import { namedEras } from './namedEras';
 import { venueBulletin } from './venueBulletin';
 import { projectWorld, type IdentifiedGameTransitionRecord, type WorldContext } from './worldContext';
+import { attendanceLabel, raidMuster } from './raidMuster';
 
 export type SocialChannel = 'guild' | 'world' | 'party' | 'raid' | 'whisper' | 'system' | 'hero';
 export type SocialSceneKind = 'level' | 'quest' | 'equipment' | 'loot' | 'market' | 'zone' | 'milestone' | 'catch_up' | 'ambient';
@@ -585,6 +586,56 @@ function linesFor(candidate: SceneCandidate): readonly SceneLine[] {
   const milestone = event.type === 'act_completed'
     ? `Act ${formatGameNumber(event.act)} has closed`
     : `${raid ? 'A raid-class' : 'A dungeon'} boss milestone has opened`;
+  // The sheet, at the one moment a raid would read one out.
+  //
+  // `raidMuster` has produced this since it was written and it reaches a list in the world console.
+  // Meanwhile the raid milestone — the loudest scene the game has — opened on a remark about quorum
+  // and never said who was or was not there. The muster is the funnier artifact and it was sitting
+  // one function away.
+  //
+  // Gated on the muster rather than on the `raid` flag above, which is the honest condition: the
+  // flag is a fact about the framing, the muster is a fact about the venue, and only the second
+  // guarantees there is a sheet. An act closing is not a raid and takes no attendance.
+  //
+  // ## Why the exceptions and not the roll
+  //
+  // The first draft read all four names with their labels and ran to twenty words against the field
+  // seat's cap of nineteen. That cap is the voice rather than an obstacle — the raid coordinator's
+  // register is a "compressed readiness order" and their declared preoccupation is quorum — so the
+  // line compresses instead of the cap moving.
+  //
+  // Compressing to the exceptions is also the better joke. Who turned up is a list; who did not is a
+  // sheet that never closed a record, which is the thing worth reading. Names and labels stay
+  // verbatim, so the muster's inability to tell somebody missing from somebody long departed
+  // survives — tidying that into a count is exactly what would kill it.
+  //
+  // Two at most, and the wording never claims to be the whole roll. "The sheet notes" is true of a
+  // partial reading; "roll call" would not be.
+  const muster = raidMuster(world.context);
+  if (muster !== null && muster.length > 0) {
+    const exceptions = muster.filter(({ attendance }) => attendance !== 'present').slice(0, 2);
+    const sheet = exceptions.length === 0
+      ? 'Every name on the sheet is attending'
+      : `The sheet notes ${exceptions.map(({ name, attendance }) => `${name} ${attendanceLabel(attendance)}`).join('; ')}`;
+    return variant([
+      [
+        { speaker: 'field', channel: 'raid', text: `${milestone}. ${sheet}.` },
+        dkpFor(candidate, event.type === 'act_completed'),
+        { speaker: 'hero', channel: 'hero', text: 'Mark me present, and the rest as read.' },
+      ],
+      [
+        { speaker: 'field', channel: 'raid', text: `${milestone}. ${sheet}, unamended.` },
+        dkpFor(candidate, event.type === 'act_completed'),
+        { speaker: 'hero', channel: 'hero', text: 'A full complement, by the standards of the sheet.' },
+      ],
+      [
+        { speaker: 'field', channel: 'raid', text: `${milestone}. ${sheet}, as at the last revision.` },
+        dkpFor(candidate, event.type === 'act_completed'),
+        { speaker: 'hero', channel: 'hero', text: 'I will hold the line and the clipboard.' },
+      ],
+    ] as const, candidate);
+  }
+
   return variant([
     [
       { speaker: 'field', channel: raid ? 'raid' : 'party', text: `${milestone}. Quorum is zero external attendees.` },
