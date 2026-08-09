@@ -1,4 +1,5 @@
 import { SOCIAL_PERSONAS, type SocialPersona, type SocialSeat } from '../data/socialCatalog';
+import { GRATS } from '../data/socialGrats';
 import { boundCodePoints, boundedLabel, MAX_TEXT_CODE_POINTS, formatGameNumber, stableIndex, stableChoice } from '../engine/text';
 import { AMBIENT_LINES, BLAME_BEATS, EXCHANGES, FEUD_BEATS, ITEM_OF_RECORD_LINES, ONBOARDING_LINES, QUESTION_BEATS, REACTION_LINES, TRADE_LINES, type AmbientLine } from '../data/socialAmbient';
 import type { LoadoutFiling } from '../engine/loadoutFiling';
@@ -163,6 +164,26 @@ function variant(values: readonly [readonly SceneLine[], ...Array<readonly Scene
   return selected;
 }
 
+/**
+ * Who answers a promotion, and with what.
+ *
+ * The middle line of a level scene was a fixed remark from `support`, one per variant, so three
+ * sentences covered every promotion a save would ever see — and two of the four seats never spoke at
+ * a level at all. This draws the seat and the line together, which is what lets `logistics` and
+ * `field` into the room.
+ *
+ * Drawn from the same key the variant chooser uses, so a promotion reads identically on every replay
+ * of the same save. The projection is asserted byte-stable under spies that throw on `Math.random`
+ * and `Date.now`, so nothing here may reach for either.
+ */
+function gratsFor(candidate: SceneCandidate, channel: SocialChannel): SceneLine {
+  const { hero, completedTasks } = candidate.source.record.post;
+  const key = `grats:${hero.name}:${candidate.source.activityId}:${completedTasks}`;
+  const seats: readonly Exclude<SocialSeat, 'official'>[] = ['logistics', 'field', 'support'];
+  const seat = seats[stableChoice(key, seats.length)]!;
+  return { speaker: seat, channel, text: GRATS[seat][stableChoice(`line:${key}`, GRATS[seat].length)]! };
+}
+
 function linesFor(candidate: SceneCandidate): readonly SceneLine[] {
   const { event, post } = candidate.source.record;
   const world = projectWorld({ kind: 'transition', source: candidate.source });
@@ -170,17 +191,17 @@ function linesFor(candidate: SceneCandidate): readonly SceneLine[] {
     return variant([
       [
         { speaker: 'official', channel: 'guild', text: `Promotion to level ${formatGameNumber(event.level)} has entered the ledger. Congratulations are now procedurally valid.` },
-        { speaker: 'support', channel: 'guild', text: 'Morale has been adjusted upward by the minimum reportable amount.' },
+        gratsFor(candidate, 'guild'),
         { speaker: 'hero', channel: 'hero', text: 'I accept the increased responsibility in its most decorative sense.' },
       ],
       [
         { speaker: 'official', channel: 'guild', text: `Level ${formatGameNumber(event.level)} is official, subject to the usual absence of witnesses.` },
-        { speaker: 'support', channel: 'guild', text: 'The promotion survived review because nobody opened the attachment.' },
+        gratsFor(candidate, 'guild'),
         { speaker: 'hero', channel: 'hero', text: 'Please forward my authority to someone less available.' },
       ],
       [
         { speaker: 'official', channel: 'world', text: `The hero is now level ${formatGameNumber(event.level)}. Seniority has outpaced supervision again.` },
-        { speaker: 'support', channel: 'world', text: 'I have certified the emotional consequences as somebody else’s department.' },
+        gratsFor(candidate, 'world'),
         { speaker: 'hero', channel: 'hero', text: 'At last, a larger number with the same management structure.' },
       ],
     ] as const, candidate);
@@ -433,6 +454,19 @@ const SCENE_LENGTHS = [1, 1, 1, 1, 1, 2, 2, 2, 3] as const;
  * two personas talking to each other — not mangling the scenes that already work.
  */
 function spokenLines(candidate: SceneCandidate, lines: readonly SceneLine[]): readonly SceneLine[] {
+  // A promotion is heard whole, and it is the only scene that is.
+  //
+  // Truncation exists because every scene used to be the same three beats in the same order, and a
+  // fixed shape reads as generated however good the lines are. That argument is about the *ordinary*
+  // scene — a kill, a sale, a zone, of which there are thousands. A level is not ordinary: it is
+  // rare, it is the one moment a room reacts to rather than narrates, and drawing its length like
+  // any other left most promotions rendering as a single announcement with nobody answering.
+  //
+  // The rule this follows is one the cadence layer already applies: `ALWAYS_HEARD` refuses to
+  // suppress a level for the same reason. A scene the channel may never silence is a scene worth
+  // hearing out. Still three lines, so the bound every other scene is held to is not widened.
+  if (candidate.kind === 'level') return lines;
+
   const { hero, completedTasks } = candidate.source.record.post;
   const key = `len:${hero.name}:${candidate.kind}:${candidate.source.activityId}:${completedTasks}`;
   return lines.slice(0, SCENE_LENGTHS[stableChoice(key, SCENE_LENGTHS.length)]!);
