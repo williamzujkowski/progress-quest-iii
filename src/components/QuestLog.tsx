@@ -4,6 +4,7 @@ import { ActLabel, GameNumber } from './GameNumber';
 import { ClosedCasework } from './ClosedCasework';
 import { adversaryDossier } from '../state/adversaryDossier';
 import { displayTarget } from '../state/caseload';
+import { QUEST_TARGET_PROGRESS } from '../engine/transition';
 
 export const QuestLog: React.FC = () => {
   const { character } = useGameStore();
@@ -48,8 +49,14 @@ export const QuestLog: React.FC = () => {
       <div className="progress-container progress-quest" style={{ marginTop: '0.75rem' }}>
         <div className="progress-label">
           <span>Quest: {character.Quest.description}</span>
+          {/* The unit, on both of the bars that have one.
+              This read `37 / 112` beside a description saying *Exterminate the Gnolls*, which is a
+              count a watcher will make and the game will then contradict: killing a rat advances the
+              same bar, and killing a Gnoll advances it by three. The pair are seconds of task time,
+              and the world console one card away already prints seconds this way. */}
           <span>
-            <GameNumber value={character.Quest.currentProgress} /> / <GameNumber value={character.Quest.maxProgress} />
+            <GameNumber value={character.Quest.currentProgress} /> / <GameNumber value={character.Quest.maxProgress} />{' '}
+            <span className="stat-unit">s</span>
           </span>
         </div>
         <div
@@ -59,10 +66,25 @@ export const QuestLog: React.FC = () => {
           aria-valuenow={questPct}
           aria-valuemin={0}
           aria-valuemax={100}
+          aria-valuetext={`${character.Quest.currentProgress} of ${character.Quest.maxProgress} seconds`}
         >
           <div className="progress-bar-fill" style={{ width: `${questPct}%` }} />
         </div>
       </div>
+
+      {/* The multiplier, finally said where the bar is.
+          `transition.ts` sets out the design goal in as many words — the effect "has to be
+          attributable by a player who never acts" — and then no surface named it. One kill in four
+          is biased toward the monster the quest named, and that kill moves this track by three; a
+          watcher saw a bar lurch and had nothing to distinguish it from noise.
+          The rate is read from the engine constant rather than written out here, so the panel cannot
+          go on asserting a figure the transition has stopped using. */}
+      {character.Task.questTarget && (
+        <p className="progress-note">
+          Named party engaged. This assignment is credited at {QUEST_TARGET_PROGRESS}× the ordinary
+          rate, which nobody has been asked to justify.
+        </p>
+      )}
 
       {/* What the archive has on whoever the hero is currently bothering. Bureaucracy rather than
           threat: a target filed against forty times is exactly as dangerous as a fresh one. */}
@@ -72,7 +94,8 @@ export const QuestLog: React.FC = () => {
         <div className="progress-label">
           <span>Plot Progress</span>
           <span>
-            <GameNumber value={character.Plot.currentProgress} /> / <GameNumber value={character.Plot.maxProgress} />
+            <GameNumber value={character.Plot.currentProgress} /> / <GameNumber value={character.Plot.maxProgress} />{' '}
+            <span className="stat-unit">s</span>
           </span>
         </div>
         <div
@@ -82,10 +105,18 @@ export const QuestLog: React.FC = () => {
           aria-valuenow={plotPct}
           aria-valuemin={0}
           aria-valuemax={100}
+          aria-valuetext={`${character.Plot.currentProgress} of ${character.Plot.maxProgress} seconds`}
         >
           <div className="progress-bar-fill" style={{ width: `${plotPct}%` }} />
         </div>
       </div>
+      {/* Why the hero banner's projection disagrees with subtracting one number from the other.
+          The act track advances on kills, and in the prologue on the prologue's own tasks — nothing
+          else moves it. A watcher who divides the remaining seconds by the wall clock gets an
+          answer the banner contradicts, and until now the reason lived only in a source comment. */}
+      <p className="progress-note">
+        Credited in seconds. Travel, market attendance and ceremony are not credited.
+      </p>
 
       {/* The archive is looked at occasionally; the bars above it are looked at constantly.
           Gated on having something to show, like the records disclosure opposite: a summary that
