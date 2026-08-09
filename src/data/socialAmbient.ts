@@ -140,6 +140,33 @@ export const FEUD_BEATS: readonly AmbientLine[] = [
 ];
 
 /**
+ * The seat everybody needs and nobody thanks, in order, for ever.
+ *
+ * The oldest joke in raiding, and it is already this game's joke about the hero told about somebody
+ * else. A utility class is brought because the run does not work without it, then blamed for the
+ * wipe, then left off the credit — and the person doing it keeps turning up. Anyone who played a
+ * bard, an enchanter, or a shaman recognises the shape immediately; anyone who did not still reads
+ * it as an office.
+ *
+ * Requests escalate, acknowledgement never arrives, and the bit wraps rather than resolving — the
+ * same form the intake-sheet feud uses, and for the same reason. A thank-you at the end would be a
+ * payoff, and the absence of one is the content.
+ *
+ * No class names and no character names. The joke is structural, so it survives being about a seat
+ * rather than about a bard, and the tables are asserted to name no real person.
+ */
+export const UTILITY_BEATS: readonly AmbientLine[] = [
+  { seat: 'field', channel: 'guild', text: 'Can support bring the thing again.' },
+  { seat: 'support', channel: 'guild', text: 'Support has brought the thing.' },
+  { seat: 'field', channel: 'guild', text: 'Can support bring the thing to the other one as well.' },
+  { seat: 'support', channel: 'guild', text: 'Support is bringing the thing to both.' },
+  { seat: 'official', channel: 'guild', text: 'Noting that the run went well. No contributors identified.' },
+  { seat: 'field', channel: 'guild', text: 'Support was slightly late with the thing.' },
+  { seat: 'support', channel: 'guild', text: 'Support was where the thing was needed.' },
+  { seat: 'official', channel: 'guild', text: 'The matter is closed. Support has been thanked in the minutes of a meeting nobody attended.' },
+];
+
+/**
  * A question asked into silence, re-asked shorter each time, then filed.
  *
  * Silence becomes content. Nothing ever answers, which is the form working rather than the form

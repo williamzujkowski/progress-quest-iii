@@ -536,7 +536,12 @@ export const KLASSES: KlassDef[] = [
   { name: 'Runbook Loremaster', stats: ['WIS'] },
   { name: 'Retention Strangler', stats: ['DEX', 'INT'] },
   { name: 'Battle-Felon', stats: ['STR'] },
-  { name: 'Empathy Mimic', stats: ['WIS', 'INT'] },
+  // The bard seat. `Cadence` is a musical term and an agile one, which is the whole joke: the
+  // class that keeps everybody else in time and is never once credited for it. Renamed rather than
+  // added, because `KLASSES` is drawn with `rng.pick` for passing NPCs and two recordings pin one —
+  // the length may not move. The stat spread is left exactly as it was for the same reason the test
+  // beside it gives: names are free, balance is not.
+  { name: 'Cadence Owner', stats: ['WIS', 'INT'] },
   { name: 'Slow Deprecator', stats: ['CON'] },
   { name: 'Interim Lunatic', stats: ['CON'] },
   { name: 'Direct Report', stats: ['WIS'] },

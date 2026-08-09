@@ -2,7 +2,7 @@ import { SOCIAL_PERSONAS, type SocialPersona, type SocialSeat } from '../data/so
 import { GRATS } from '../data/socialGrats';
 import { DKP_ALLOCATION, DKP_STANDINGS } from '../data/socialDkp';
 import { boundCodePoints, boundedLabel, MAX_TEXT_CODE_POINTS, formatGameNumber, stableIndex, stableChoice } from '../engine/text';
-import { AMBIENT_LINES, BLAME_BEATS, EXCHANGES, FEUD_BEATS, ITEM_OF_RECORD_LINES, ONBOARDING_LINES, QUESTION_BEATS, REACTION_LINES, TRADE_LINES, type AmbientLine } from '../data/socialAmbient';
+import { UTILITY_BEATS, AMBIENT_LINES, BLAME_BEATS, EXCHANGES, FEUD_BEATS, ITEM_OF_RECORD_LINES, ONBOARDING_LINES, QUESTION_BEATS, REACTION_LINES, TRADE_LINES, type AmbientLine } from '../data/socialAmbient';
 import type { LoadoutFiling } from '../engine/loadoutFiling';
 import { projectWorld, type IdentifiedGameTransitionRecord } from './worldContext';
 
@@ -540,6 +540,9 @@ const AMBIENT_LANES = [
   'trade',
   'feud',
   'question',
+  // The seat everybody needs and nobody thanks. One lane's worth, like the other running bits: it
+  // rewards watching across an hour and would stop being a slow burn if it came round often.
+  'utility',
   // Two lanes about what the hero is wearing. Kept scarce on purpose: the loadout changes rarely, so
   // a lane that fired often would say the same thing about the same item all afternoon.
   'item',
@@ -618,6 +621,8 @@ export function projectAmbient(
       ? beat(BLAME_BEATS)
       : lane === 'feud'
     ? beat(FEUD_BEATS)
+    : lane === 'utility'
+      ? beat(UTILITY_BEATS)
     : lane === 'question'
       ? beat(QUESTION_BEATS)
       : lane === 'trade'
