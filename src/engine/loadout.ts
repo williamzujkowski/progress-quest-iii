@@ -29,7 +29,33 @@ import type { CharacterSheet } from './types';
  * Adversaries are where negative effects belong, if they ever arrive — something done *to* the
  * hero rather than a property of their own gear.
  */
+/*
+ * Cached on the equipment object's identity, for the reason `fileLoadout` is.
+ *
+ * This reads nothing but `character.Equip` and costs eleven `analyzeItemMechanics` calls. It sits
+ * behind `encounterSpeedMultiplier`, so it runs inside `projectCounterfactual` on a render path that
+ * fires every tick, while `Equip` itself changed 14 times in 2 000 measured ticks.
+ *
+ * Identity rather than contents: the engine replaces `Equip` with a new object whenever it changes a
+ * slot and never mutates one in place, so a stale hit would need a change that skipped that
+ * replacement. One entry, because the question is only ever "the same as last time?".
+ *
+ * It is also on the engine's own path — `sim.ts` calls it once per kill — where the character is
+ * rebuilt each transition and the cache simply misses. That costs one comparison and changes no
+ * arithmetic, which is what keeps the recorded goldens out of this.
+ */
+let lastEquip: CharacterSheet['Equip'] | null = null;
+let lastQuality = 0;
+
 export function loadoutQuality(character: CharacterSheet): number {
+  if (character.Equip === lastEquip) return lastQuality;
+  const quality = computeLoadoutQuality(character);
+  lastEquip = character.Equip;
+  lastQuality = quality;
+  return quality;
+}
+
+function computeLoadoutQuality(character: CharacterSheet): number {
   const total = EQUIP_SLOTS.reduce((sum, slot) => {
     const analysis = analyzeItemMechanics({ kind: 'equipment', name: character.Equip[slot], slot });
     return sum + (analysis.quality?.total ?? 0);
