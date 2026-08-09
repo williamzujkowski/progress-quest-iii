@@ -317,7 +317,10 @@ export const useGameStore = create<GameStore>((set, get) => {
       }
       const chatterTasks = sources.at(-1)?.record.post.completedTasks ?? progression.completedTasks;
       const scheduled = scheduleChatter(
-        projectSocialBatch(sources),
+        // The assignment ring off the post-batch sheet, for the same reason the loadout below comes
+        // from the sheet rather than the snapshot: the engine needs no new field and the recorded
+        // sessions stay untouched.
+        projectSocialBatch(sources, result.state.character.Quest.history),
         chatterCadence,
         chatterTasks,
         // Offered on every batch; the schedule decides whether the silence is worth filling.
