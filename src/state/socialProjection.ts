@@ -1,6 +1,7 @@
 import { SOCIAL_PERSONAS, type SocialPersona, type SocialSeat } from '../data/socialCatalog';
 import { GRATS } from '../data/socialGrats';
 import { DKP_ALLOCATION, DKP_STANDINGS } from '../data/socialDkp';
+import { recurringAssignments } from './questRecurrence';
 import { boundCodePoints, boundedLabel, MAX_TEXT_CODE_POINTS, formatGameNumber, stableIndex, stableChoice } from '../engine/text';
 import { SYSTEM_NOTICES, AUCTION_LINES, MISTELLS, UTILITY_BEATS, AMBIENT_LINES, BLAME_BEATS, EXCHANGES, FEUD_BEATS, ITEM_OF_RECORD_LINES, ONBOARDING_LINES, QUESTION_BEATS, REACTION_LINES, TRADE_LINES, type AmbientLine } from '../data/socialAmbient';
 import type { LoadoutFiling } from '../engine/loadoutFiling';
@@ -32,6 +33,12 @@ interface SceneCandidate {
   readonly kind: Exclude<SocialSceneKind, 'catch_up'>;
   readonly priority: number;
   readonly source: IdentifiedGameTransitionRecord;
+  /**
+   * Set only on a started assignment the institution has issued before, from `Quest.history` on the
+   * sheet the store already holds. Absent everywhere else, so every other scene projects the bytes
+   * it always did.
+   */
+  readonly recurring?: boolean;
 }
 
 interface SceneLine {
@@ -106,8 +113,18 @@ function speakerFor(line: SceneLine, cast: Readonly<Record<SocialSeat, SocialPer
   };
 }
 
-function candidateFor(source: IdentifiedGameTransitionRecord): SceneCandidate | undefined {
+function candidateFor(source: IdentifiedGameTransitionRecord, recurring: ReadonlySet<number>): SceneCandidate | undefined {
   const { event, post } = source.record;
+  // Above a completion, and only when the assignment is a reissue.
+  //
+  // A completion and the next start are pushed by the same task, so they share an envelope and the
+  // completion's 85 has always taken it — which would have made this feature project nothing at all
+  // while every test on the bank passed. The ladder is a statement about what is worth reading, and
+  // by that standard the reissue outranks: every assignment completes, roughly one in five comes
+  // back, and the reissue is about the stretch of play beginning rather than the one just finished.
+  if (event.type === 'quest_started' && recurring.has(source.activityId)) {
+    return { kind: 'quest', priority: 86, source, recurring: true };
+  }
   if (event.type === 'task_started' && event.task.type === 'cinematic' && post.interplotRole === 'nemesis') return { kind: 'milestone', priority: 100, source };
   if (event.type === 'act_completed') return { kind: 'milestone', priority: 95, source };
   if (event.type === 'level_gained') return { kind: 'level', priority: 90, source };
@@ -159,9 +176,9 @@ function splitTaskEnvelopes(sources: readonly IdentifiedGameTransitionRecord[]):
   return envelopes;
 }
 
-function chooseCandidate(envelope: readonly IdentifiedGameTransitionRecord[]): SceneCandidate | undefined {
+function chooseCandidate(envelope: readonly IdentifiedGameTransitionRecord[], recurring: ReadonlySet<number>): SceneCandidate | undefined {
   return envelope.reduce<SceneCandidate | undefined>((selected, source) => {
-    const candidate = candidateFor(source);
+    const candidate = candidateFor(source, recurring);
     if (!candidate) return selected;
     if (!selected || candidate.priority > selected.priority) return candidate;
     if (candidate.priority === selected.priority && candidate.source.activityId > selected.source.activityId) return candidate;
@@ -233,6 +250,34 @@ function linesFor(candidate: SceneCandidate): readonly SceneLine[] {
         { speaker: 'official', channel: 'world', text: `The hero is now level ${formatGameNumber(event.level)}. Seniority has outpaced supervision again.` },
         gratsFor(candidate, 'world'),
         { speaker: 'hero', channel: 'hero', text: 'At last, a larger number with the same management structure.' },
+      ],
+    ] as const, candidate);
+  }
+  if (candidate.kind === 'quest' && event.type === 'quest_started' && candidate.recurring === true) {
+    // The one thing the game could always have said and never did.
+    //
+    // A quest bank of finite size reissues; the sheet has recorded every reissue for as long as
+    // there has been a sheet, and nothing read it. The joke is not that the work repeats — it is
+    // that the institution has the paperwork proving it repeats and files the assignment anyway.
+    //
+    // Nothing here says *when*. The ring remembers a hundred assignments and no more, so a line
+    // claiming an interval would be claiming a memory the game does not have.
+    const scope = world.context.assignmentScope ?? 'local';
+    return variant([
+      [
+        { speaker: 'official', channel: 'guild', text: `This ${scope} assignment has been issued before. The file was never closed, so it has been opened again beside itself.` },
+        { speaker: 'logistics', channel: 'guild', text: 'Archive confirms a prior copy. Archive declines to say what became of it.' },
+        { speaker: 'hero', channel: 'hero', text: 'Then I have already done this, and it did not take.' },
+      ],
+      [
+        { speaker: 'official', channel: 'whisper', text: `The ${scope} brief is a reissue. Precedent exists and has been ruled inadmissible by the department that set it.` },
+        { speaker: 'field', channel: 'party', text: 'I recognise the route. The route has aged better than the reason for it.' },
+        { speaker: 'hero', channel: 'hero', text: 'Familiar work. Nobody has explained why it came back.' },
+      ],
+      [
+        { speaker: 'logistics', channel: 'guild', text: `A duplicate ${scope} assignment has cleared review, review being the step that produced the duplicate.` },
+        { speaker: 'support', channel: 'guild', text: 'Filed under outstanding, which is where the first one is.' },
+        { speaker: 'hero', channel: 'hero', text: 'Understood. I will complete it to the same effect as last time.' },
       ],
     ] as const, candidate);
   }
@@ -549,8 +594,17 @@ function projectScene(candidate: SceneCandidate): readonly SocialEntry[] {
   }));
 }
 
-export function projectSocialBatch(sources: readonly IdentifiedGameTransitionRecord[]): readonly SocialEntry[] {
-  const scenes = splitTaskEnvelopes(sources).map(chooseCandidate).filter((candidate): candidate is SceneCandidate => candidate !== undefined);
+export function projectSocialBatch(
+  sources: readonly IdentifiedGameTransitionRecord[],
+  // The assignment ring off the sheet the store already holds. Optional because every other caller
+  // of this function — tests, the activity log's own projection — has no sheet to offer, and a
+  // batch without one simply says nothing about recurrence rather than guessing.
+  questHistory?: readonly string[] | undefined,
+): readonly SocialEntry[] {
+  const recurring = recurringAssignments(sources, questHistory);
+  const scenes = splitTaskEnvelopes(sources)
+    .map((envelope) => chooseCandidate(envelope, recurring))
+    .filter((candidate): candidate is SceneCandidate => candidate !== undefined);
   // The most interesting scenes, not the last ones.
   //
   // This used to take `slice(-MAX_DETAILED_SCENES)`, which during ordinary play is the same thing —
