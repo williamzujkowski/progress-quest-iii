@@ -181,6 +181,12 @@ test.describe('theme contrast', () => {
 const SEEDED_PAIRS = [
   { name: 'activity feed entry', selector: '.log-entry' },
   { name: 'closed casework entry', selector: '.casework-entry' },
+  // The records surfaces. The disclosure was already being opened below and nothing in it was ever
+  // sampled — and these are the riskiest text in the application for this check: prose at 0.8125rem
+  // in `--text-muted`, which is small text under AA and therefore wants 4.5:1 rather than 3:1.
+  { name: 'citation note', selector: '.citation-note' },
+  { name: 'service record line', selector: '.service-record-lines li' },
+  { name: 'service record closing', selector: '.service-record-closing' },
 ] as const;
 
 test.describe('theme contrast on surfaces that need a session', () => {
@@ -194,6 +200,25 @@ test.describe('theme contrast on surfaces that need a session', () => {
   for (const theme of THEMES) {
     test(`${theme.label} meets AA for seeded text against its real backdrop`, async ({ page }) => {
       await page.goto('/');
+
+      // The archived fixture carries a quest history and a log, which is enough for the casework
+      // archive and not for the records: citations and the service record are projections over the
+      // three ledgers, and an empty ledger renders nothing at all by design. Seeded here so the
+      // surfaces the disclosure opens onto actually exist to be measured.
+      await page.evaluate(async () => {
+        const { useGameStore } = await import('/src/state/gameStore.ts');
+        const state = useGameStore.getState();
+        useGameStore.setState({
+          commendations: { highestLevel: 45, largestSale: 102_815, questsCompleted: 2291, actsCompleted: 6, exhibit: {} },
+          caseload: {
+            kinds: { exterminate: 426, seek: 474, deliver: 460, fetch: 455, placate: 446 },
+            targets: { 'Purple Squirrel': 12 },
+            targetActs: { 'Purple Squirrel': { first: 2, last: 9 } },
+          },
+          specimens: { specimens: Array.from({ length: 300 }, (_unused, index) => `item:Specimen ${index}`) },
+          character: { ...state.character, Plot: { ...state.character.Plot, act: 14 } },
+        } as never);
+      });
 
       // The feed opens on the chatter tab, so the activity entries exist but are inside a hidden
       // panel. Measuring them there would sample an element the user cannot see.
