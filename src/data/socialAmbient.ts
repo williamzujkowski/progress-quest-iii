@@ -294,6 +294,32 @@ export const DOCKET_LINES: readonly AmbientLine[] = [
 ];
 
 /**
+ * An office in the place the hero is currently standing, quoted by somebody reading the directory.
+ *
+ * `venueBulletin` gives every settlement, field and dungeon a handful of departments — *Committee
+ * for the Naming of Streets, deadlocked* — and it reaches one panel in the world console. Meanwhile
+ * the channel sounds exactly the same whether the hero is in a town, a swamp or a vault, which is
+ * the one part of this world that reads as scenery rather than as bureaucracy.
+ *
+ * The lane changes with the room and never mentions the hero being in it. That is the whole effect:
+ * a guild channel that quietly acquires local business while the hero shops, and loses it again on
+ * the road, without once addressing the person it is following.
+ *
+ * The entry is quoted **whole**, status and all, because the status is the joke and splitting it
+ * would leave the lane inventing a sentence around a bare name. "I have written to the Committee
+ * for the Naming of Streets, deadlocked" is a clerk reading an address off a form, which is what it
+ * is.
+ */
+export const VENUE_LINES: readonly AmbientLine[] = [
+  { seat: 'official', channel: 'guild', text: 'The directory for {venue} lists {office}. That is the entire entry.' },
+  { seat: 'official', channel: 'guild', text: 'The posting for {office} has been renewed without amendment.' },
+  { seat: 'logistics', channel: 'guild', text: 'I have written to {office}. The status was in the address.' },
+  { seat: 'logistics', channel: 'world', text: 'Anyone with business at {office} should allow extra time.' },
+  { seat: 'support', channel: 'guild', text: 'A form arrived from {office}. It acknowledges receipt of itself.' },
+  { seat: 'field', channel: 'party', text: 'We passed {office}. Nobody was going in and nobody was coming out.' },
+];
+
+/**
  * A period the file named after the fact, brought up by somebody who will not stop bringing it up.
  *
  * `namedEras` already turns the dated register into "the Gnoll years, Acts 3 through 7" — two
