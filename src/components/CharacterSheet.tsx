@@ -132,13 +132,21 @@ export const CharacterSheetView: React.FC = () => {
       {hasRecords && (
         <details className="records-details">
           <summary>Records</summary>
-          <Commendations />
-          <Caseload />
-          <Route />
-          {/* Last, because it is the composition of everything above it: a reader who has just been
-              through the panels arrives at the same figures assembled into a document that declines
-              to conclude anything from them. */}
-          <ServiceRecord />
+          {/*
+            Grouped so the stylesheet has one thing to name, and so the records read as a
+            continuous document rather than as four independently scrolling windows. What actually
+            makes them reachable is the card scrolling while this disclosure is open — see the
+            one-screen media query, which records the two narrower fixes that failed first.
+          */}
+          <div className="records-scroll">
+            <Commendations />
+            <Caseload />
+            <Route />
+            {/* Last, because it is the composition of everything above it: a reader who has just
+                been through the panels arrives at the same figures assembled into a document that
+                declines to conclude anything from them. */}
+            <ServiceRecord />
+          </div>
         </details>
       )}
     </section>
