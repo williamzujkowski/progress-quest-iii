@@ -140,9 +140,15 @@ export function scheduleChatter(
   completedTasks: number,
   /*
    * A thunk, because building it costs more than the rest of the tick and is discarded almost
-   * always. `fileLoadout` behind it runs twenty-two `analyzeItemMechanics` calls; this branch was
-   * reached on 27 of 20 000 measured ticks. The caller cannot know whether it is needed — that is
-   * this function's decision — so the decision is where the work now happens.
+   * always. `fileLoadout` behind it runs twenty-two `analyzeItemMechanics` calls, and this branch is
+   * reached on roughly 610 of 20 000 ticks — 3.1%, or about one tick in eight of those that produce
+   * any record at all. The caller cannot know whether it is needed — that is this function's
+   * decision — so the decision is where the work now happens.
+   *
+   * That figure read "27 of 20 000" until it was measured again and came back twenty-three times
+   * larger. The conclusion did not move — 3.1% against 100% is still a thirty-two-fold saving — but
+   * a perf comment nobody can run is how a number drifts this far without anybody noticing, so the
+   * rate is now asserted in `chatterThunkRate.test.ts` rather than only claimed here.
    */
   ambientFor: () => readonly SocialEntry[] = () => [],
 ): { readonly entries: readonly SocialEntry[]; readonly cadence: ChatterCadence } {
