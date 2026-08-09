@@ -2,7 +2,7 @@ import { SOCIAL_PERSONAS, type SocialPersona, type SocialSeat } from '../data/so
 import { GRATS } from '../data/socialGrats';
 import { DKP_ALLOCATION, DKP_STANDINGS } from '../data/socialDkp';
 import { boundCodePoints, boundedLabel, MAX_TEXT_CODE_POINTS, formatGameNumber, stableIndex, stableChoice } from '../engine/text';
-import { AUCTION_LINES, MISTELLS, UTILITY_BEATS, AMBIENT_LINES, BLAME_BEATS, EXCHANGES, FEUD_BEATS, ITEM_OF_RECORD_LINES, ONBOARDING_LINES, QUESTION_BEATS, REACTION_LINES, TRADE_LINES, type AmbientLine } from '../data/socialAmbient';
+import { SYSTEM_NOTICES, AUCTION_LINES, MISTELLS, UTILITY_BEATS, AMBIENT_LINES, BLAME_BEATS, EXCHANGES, FEUD_BEATS, ITEM_OF_RECORD_LINES, ONBOARDING_LINES, QUESTION_BEATS, REACTION_LINES, TRADE_LINES, type AmbientLine } from '../data/socialAmbient';
 import type { LoadoutFiling } from '../engine/loadoutFiling';
 import { projectWorld, type IdentifiedGameTransitionRecord } from './worldContext';
 
@@ -573,6 +573,9 @@ const AMBIENT_LANES = [
   // The auction. One lane's worth: the register is loud and the forms are short, so it reads as a
   // channel doing its job rather than as the feed shouting.
   'auction',
+  // The building talking to nobody. One lane's worth and no more: a notice is only funny when it is
+  // rare enough to read as scheduled rather than as chatter.
+  'notice',
   // Two lanes about what the hero is wearing. Kept scarce on purpose: the loadout changes rarely, so
   // a lane that fired often would say the same thing about the same item all afternoon.
   'item',
@@ -659,6 +662,8 @@ export function projectAmbient(
       ? beat(UTILITY_BEATS)
     : lane === 'auction'
       ? AUCTION_LINES[stableChoice(`bid:${key}`, AUCTION_LINES.length)]!
+    : lane === 'notice'
+      ? SYSTEM_NOTICES[stableChoice(`notice:${key}`, SYSTEM_NOTICES.length)]!
     : lane === 'question'
       ? beat(QUESTION_BEATS)
       : lane === 'trade'
