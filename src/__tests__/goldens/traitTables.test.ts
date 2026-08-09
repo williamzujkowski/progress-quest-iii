@@ -370,6 +370,13 @@ const FORBIDDEN_NAMES: readonly string[] = [
   // Labs and models, on the separate ground that they date the writing.
   'openai', 'anthropic', 'deepmind', 'chatgpt', 'claude', 'gemini', 'copilot', 'llama',
   // People.
+  //
+  // No exemptions, including the willing kind. The owner's own EverQuest handle came up as the one
+  // name that could defensibly ship — consent is not in question for a name that is yours — and the
+  // owner was asked directly and declined. Recorded here so it is not raised a third time, and
+  // because "the rule holds even where it did not have to" is worth more than the nod would have
+  // been: guildmates' twenty-year-old character names and named public figures stay out because
+  // they were never asked, and a list with one exception invites a second.
   'turing', 'lovelace', 'mccarthy', 'minsky', 'hopper', 'torvalds', 'stallman', 'ritchie',
 ];
 

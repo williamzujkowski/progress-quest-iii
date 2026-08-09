@@ -1,6 +1,7 @@
 import { boundCodePoints, MAX_TEXT_CODE_POINTS } from '../engine/text';
 import { KIND_LABELS, QUEST_KINDS, describeSpan, displayTarget, mostLitigated, type Caseload } from './caseload';
 import type { Commendations } from './commendations';
+import { namedEras } from './namedEras';
 import { predecessorFor } from './predecessor';
 import type { CharacterSheet } from '../engine/types';
 import { hasRoute, projectRoute, type RouteStop } from './worldContext';
@@ -41,7 +42,7 @@ const MAX_POSTINGS = 8;
 
 /**
  * How many lines the document can run to: eight postings, five kinds of casework, two lines of
- * register, five of standing, one of precedent.
+ * register, three of periods, five of standing, one of precedent.
  *
  * A bound rather than a cap, and the distinction was arrived at the hard way. The first draft
  * truncated to a comfortable twenty-four, which is above anything this code can produce — a
@@ -56,7 +57,7 @@ const MAX_POSTINGS = 8;
  * equals it, so widening a section or adding a fifth fails loudly rather than quietly raising a
  * ceiling nobody was watching.
  */
-export const MAX_RECORD_LINES = 21;
+export const MAX_RECORD_LINES = 24;
 
 export interface ServiceRecordSection {
   readonly heading: string;
@@ -133,6 +134,13 @@ function theRegister(caseload: Caseload): ServiceRecordSection | null {
   return { heading: 'The Register', lines };
 }
 
+function periods(caseload: Caseload): ServiceRecordSection | null {
+  // Capitalised where the phrase opens a line and nowhere else: "the Gnoll years" is a name
+  // mid-sentence and a typo at the start of one.
+  const lines = namedEras(caseload).map(({ phrase }) => bound(`${phrase.charAt(0).toUpperCase()}${phrase.slice(1)}.`));
+  return lines.length === 0 ? null : { heading: 'Periods', lines };
+}
+
 function standing(commendations: Commendations, specimenCount: number): ServiceRecordSection | null {
   const lines: string[] = [];
   if (commendations.highestLevel > 0) lines.push(bound(`Highest level attained: ${commendations.highestLevel}.`));
@@ -168,6 +176,10 @@ export function projectServiceRecord(input: ServiceRecordInput): ServiceRecord |
     postings(hero, act),
     casework(caseload),
     theRegister(caseload),
+    // Under the register, because that is where both figures came from. The world console names the
+    // one period the current act falls inside; a document has room for all of them, and a run whose
+    // periods overlap is the ordinary case rather than something to resolve.
+    periods(caseload),
     standing(commendations, specimenCount),
     // Last, under everything it explains. The ledgers above deliberately span characters, so a new
     // hero's document opens onto somebody else's arithmetic; this is the only line that says whose.
