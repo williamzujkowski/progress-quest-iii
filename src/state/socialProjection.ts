@@ -3,7 +3,7 @@ import { GRATS } from '../data/socialGrats';
 import { DKP_ALLOCATION, DKP_STANDINGS } from '../data/socialDkp';
 import { recurringAssignments } from './questRecurrence';
 import { boundCodePoints, boundedLabel, MAX_TEXT_CODE_POINTS, formatGameNumber, stableIndex, stableChoice } from '../engine/text';
-import { SYSTEM_NOTICES, AUCTION_LINES, MISTELLS, UTILITY_BEATS, AMBIENT_LINES, BLAME_BEATS, EXCHANGES, FEUD_BEATS, ITEM_OF_RECORD_LINES, ONBOARDING_LINES, QUESTION_BEATS, REACTION_LINES, TRADE_LINES, type AmbientLine } from '../data/socialAmbient';
+import { SYSTEM_NOTICES, AUCTION_LINES, MISTELLS, UTILITY_BEATS, AMBIENT_LINES, BLAME_BEATS, EXCHANGES, FEUD_BEATS, ITEM_OF_RECORD_LINES, ONBOARDING_LINES, QUESTION_BEATS, REACTION_LINES, REPEATED_MODIFIER_LINES, TRADE_LINES, type AmbientLine } from '../data/socialAmbient';
 import type { LoadoutFiling } from '../engine/loadoutFiling';
 import { projectWorld, type IdentifiedGameTransitionRecord } from './worldContext';
 
@@ -235,6 +235,37 @@ function linesFor(candidate: SceneCandidate): readonly SceneLine[] {
   const { event, post } = candidate.source.record;
   const world = projectWorld({ kind: 'transition', source: candidate.source });
   if (candidate.kind === 'level' && event.type === 'level_gained') {
+    // A promotion that came with a qualification, said where qualifications are said.
+    //
+    // `post.spellRewards` is read in `worldContext` and nowhere else, so `Cone of Boilerplate` and
+    // `Summon a Stakeholder` — some of the best strings in the project — surfaced only inside a dry
+    // world notice and never in the channel that reacts to things. The level scene fires at exactly
+    // the moment the certificate is issued, and it was ignoring the certificate.
+    //
+    // A separate branch rather than a fourth variant, following the recurring-quest precedent
+    // below: a variant list whose members are not all reachable is a list that lies about its own
+    // odds. A spell is not awarded at every level — `generateSpellReward` can decline — so the
+    // ordinary three stay the ordinary three.
+    const certified = post.spellRewards?.find(({ source: rewardSource }) => rewardSource === 'level');
+    if (certified) {
+      return variant([
+        [
+          { speaker: 'official', channel: 'guild', text: `Promotion to level ${formatGameNumber(event.level)} carried a certification in ${certified.name}. The certification was automatic and so was the ceremony.` },
+          gratsFor(candidate, 'guild'),
+          { speaker: 'hero', channel: 'hero', text: 'Another qualification nobody will ask me to produce.' },
+        ],
+        [
+          { speaker: 'official', channel: 'guild', text: `Level ${formatGameNumber(event.level)} is official. ${certified.name} has been added to the list of things the hero is now permitted to attempt.` },
+          gratsFor(candidate, 'guild'),
+          { speaker: 'hero', channel: 'hero', text: 'Permitted, unsupervised, and unexamined. The usual arrangement.' },
+        ],
+        [
+          { speaker: 'official', channel: 'world', text: `The hero is now level ${formatGameNumber(event.level)} and holds ${certified.name} at the accredited grade. Nobody has been told what the grade means.` },
+          gratsFor(candidate, 'world'),
+          { speaker: 'hero', channel: 'hero', text: 'I will keep the certificate somewhere the audit can find it.' },
+        ],
+      ] as const, candidate);
+    }
     return variant([
       [
         { speaker: 'official', channel: 'guild', text: `Promotion to level ${formatGameNumber(event.level)} has entered the ledger. Congratulations are now procedurally valid.` },
@@ -709,6 +740,12 @@ const AMBIENT_LANES = [
   // a lane that fired often would say the same thing about the same item all afternoon.
   'item',
   'blame',
+  // The same adjective in three slots at once, which the filing has always found and nobody has
+  // ever said. One lane's worth and gated: measured over three 4 000-tick runs it is available for
+  // 0%, 15% and 15% of a session, and when it is available it is the same modifier the whole time,
+  // because equipment changes fourteen times in two thousand ticks. Any louder and the channel
+  // would spend an afternoon on one adjective.
+  'modifier',
   // Two lanes' worth, because an exchange is the form that most changes how the channel reads and
   // it is the only one that speaks more than once.
   'exchange', 'exchange',
@@ -758,6 +795,9 @@ export function projectAmbient(
   // Nothing worth citing means nothing to say about it. Falls back rather than falling silent,
   // because a lane that produced no line would quietly lower the rate the cadence was tuned to.
   if ((lane === 'item' || lane === 'blame') && !loadout?.itemOfRecord) lane = 'ambient';
+  // Same reasoning, different fact: three slots sharing a modifier is a coincidence rather than a
+  // guarantee, and most loadouts do not have one.
+  if (lane === 'modifier' && !loadout?.repeatedModifier) lane = 'ambient';
   // The best thing the hero owns is still entry-tier, so the hall explains itself to them. Anything
   // better equipped ends it, which is why it needs no timer and cannot outstay its welcome.
   if (lane === 'onboarding' && (loadout?.itemOfRecord?.standing ?? 0) > ONBOARDING_STANDING) lane = 'ambient';
@@ -783,6 +823,8 @@ export function projectAmbient(
     ? ONBOARDING_LINES[stableChoice(`onboard:${key}`, ONBOARDING_LINES.length)]!
     : lane === 'item'
     ? ITEM_OF_RECORD_LINES[stableChoice(`item:${key}`, ITEM_OF_RECORD_LINES.length)]!
+    : lane === 'modifier'
+      ? REPEATED_MODIFIER_LINES[stableChoice(`modifier:${key}`, REPEATED_MODIFIER_LINES.length)]!
     : lane === 'blame'
       ? beat(BLAME_BEATS)
       : lane === 'feud'
@@ -832,7 +874,11 @@ export function projectAmbient(
     // state nothing computed.
     text: bound(spoken.text
       .replaceAll('{item}', loadout?.itemOfRecord?.base ?? 'equipment')
-      .replaceAll('{slot}', loadout?.itemOfRecord?.slot ?? 'loadout')),
+      .replaceAll('{slot}', loadout?.itemOfRecord?.slot ?? 'loadout')
+      // Lower-cased, because these are adjectives mid-sentence and the filing holds them
+      // capitalised the way the item names carry them — "Everything the hero owns is Bonded" is a
+      // proper noun the world does not have.
+      .replaceAll('{modifier}', loadout?.repeatedModifier?.name.toLowerCase() ?? 'unmarked')),
   }));
 }
 
