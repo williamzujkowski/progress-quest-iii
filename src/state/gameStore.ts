@@ -31,6 +31,23 @@ const initialCaseload = readCaseload(
   typeof window === 'undefined' ? undefined : (() => { try { return window.localStorage; } catch { return undefined; } })(),
 );
 
+/**
+ * Every character on file, for the surfaces that describe the institution rather than the hero.
+ *
+ * Read the same way the ledgers above are, and held here for the same reason: `loadRoster` is not an
+ * accessor. It reads up to 500 KB, parses it, and runs the character schema over every entry, so a
+ * component calling it in a render body puts a full roster validation behind whatever happened to
+ * re-render it. Refreshed when a session starts or is restored, which is when the set of characters
+ * on file can have changed under this tab.
+ *
+ * A failed read is an empty roster, never a reason for anything not to render — the same contract
+ * the ledgers have.
+ */
+const readRosterForSession = (): Record<string, CharacterSheet> => {
+  const loaded = loadRoster();
+  return loaded.ok ? loaded.value : {};
+};
+
 // What is believed to be on disk. Seeded with the ledgers just read, so an untouched session
 // never rewrites an identical copy.
 let lastPersistedCommendations = initialCommendations;
@@ -59,6 +76,8 @@ export interface GameStore {
   commendations: Commendations;
   caseload: Caseload;
   specimens: SpecimenLog;
+  /** Everyone on file, refreshed at a session boundary rather than at a render. */
+  roster: Record<string, CharacterSheet>;
   nextActivityId: number;
   sessionGeneration: number;
   isPaused: boolean;
@@ -163,6 +182,7 @@ export const useGameStore = create<GameStore>((set, get) => {
     commendations: initialCommendations,
     caseload: initialCaseload,
     specimens: initialSpecimens,
+    roster: readRosterForSession(),
     nextActivityId: 1,
     sessionGeneration: 0,
     isPaused: false,
@@ -197,6 +217,10 @@ export const useGameStore = create<GameStore>((set, get) => {
       }
 
       set({
+        // Refreshed here rather than at a render: `preserveOutgoingCharacter` above may just have
+        // banked the outgoing hero, so the set of characters on file is different from the one this
+        // tab started with.
+        roster: readRosterForSession(),
         character,
         rng,
         log: createActivityEntries([message], nextActivityId),
@@ -225,6 +249,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       const rng = new RandomGenerator('restored-session');
       rng.setState([...session.rngState]);
       set({
+        roster: readRosterForSession(),
         character: structuredClone(session.character),
         rng,
         progression: structuredClone(session.progression),
