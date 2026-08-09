@@ -1602,6 +1602,59 @@ test.describe('Progress Quest III terminal dashboard', () => {
     await expect(card).not.toHaveAttribute('tabindex', '0');
   });
 
+  test('audits the records disclosure with everything in it', async ({ page }) => {
+    // The axe passes elsewhere run with this disclosure closed, so nothing in it had ever been
+    // audited: the commendation ledger, the citations, the exhibit, the docket, the postings and the
+    // service record are all `details` content, and a closed `details` is not in the accessibility
+    // tree at all. Four surfaces shipped behind it this session without a single audit seeing them.
+    await page.setViewportSize({ width: 1372, height: 943 });
+    await page.goto('/');
+    await loadDenseDashboard(page);
+    await page.evaluate(async (slots: readonly string[]) => {
+      const { useGameStore } = await import('/src/state/gameStore.ts');
+      const state = useGameStore.getState();
+      useGameStore.setState({
+        commendations: {
+          highestLevel: 45,
+          largestSale: 102_815,
+          questsCompleted: 2291,
+          actsCompleted: 3,
+          exhibit: Object.fromEntries(slots.map((slot, index) => [
+            slot,
+            { name: `+${index + 7} Certified Insured Lender of Last Resort`, label: 'notable', quality: 10 + index },
+          ])),
+        },
+        caseload: {
+          kinds: { exterminate: 426, seek: 474, deliver: 460, fetch: 455, placate: 446 },
+          targets: { 'Purple Squirrel': 12 },
+          targetActs: { 'Purple Squirrel': { first: 2, last: 9 } },
+        },
+        specimens: { specimens: Array.from({ length: 300 }, (_unused, index) => `item:Specimen ${index}`) },
+        character: { ...state.character, Plot: { ...state.character.Plot, act: 14 } },
+      });
+    }, EQUIP_SLOTS as readonly string[]);
+
+    await page.locator('.records-details > summary').filter({ hasText: /^Records/ }).click();
+    // The premise: an audit of an empty disclosure would pass and prove nothing.
+    await expect(page.locator('.citation-list .citation-item').first()).toBeVisible();
+    await expect(page.locator('.service-record')).toBeVisible();
+
+    await expectNoViolations(page, 'records disclosure, fully populated');
+
+    // Heading order, which the audit above does not reach: `heading-order` is one of axe's
+    // best-practice rules and this suite filters to the WCAG tags. The card is an `h2` and the
+    // service record's section headings sit under it, so anything below `h3` skips a level and
+    // leaves a screen-reader user navigating by heading with a hole in the outline.
+    const levels = await page.locator('.character-card :is(h1,h2,h3,h4,h5,h6)').evaluateAll(
+      (nodes) => nodes.map((node) => Number(node.tagName.slice(1))),
+    );
+    expect(levels.length, 'the card must actually have headings to order').toBeGreaterThan(1);
+    for (let index = 1; index < levels.length; index += 1) {
+      expect(levels[index] as number, `heading ${index} jumps from h${levels[index - 1]}`)
+        .toBeLessThanOrEqual((levels[index - 1] as number) + 1);
+    }
+  });
+
   test('spends a wide viewport on the loadout rather than on the prose column', async ({ page }) => {
     // The loadout measured 329px at 1280, 1806 and 2560 alike, because `.app-container` caps the
     // whole dashboard at 1280 and centres it — the column ratios were never what held it there.

@@ -53,7 +53,11 @@ export const ServiceRecord: React.FC = () => {
         <p className="service-record-subject">{record.subject}</p>
         {record.sections.map((section) => (
           <section className="service-record-section" key={section.heading}>
-            <h4 className="service-record-heading">{section.heading}</h4>
+            {/* `h3`, not `h4`. The card's own title is an `h2` and nothing sits between, so an
+                `h4` skips a level and leaves a screen-reader user navigating by heading with a hole
+                in the outline. Caught by an explicit check rather than by the audit: `heading-order`
+                is one of axe's best-practice rules and this suite filters to the WCAG tags. */}
+            <h3 className="service-record-heading">{section.heading}</h3>
             <ul className="service-record-lines">
               {section.lines.map((line) => <li key={line}>{line}</li>)}
             </ul>
