@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { isUnrenderable } from '../../engine/text';
+import * as banks from '../../data/socialAmbient';
 import { AMBIENT_LINES, BLAME_BEATS, EXCHANGES, FEUD_BEATS, ITEM_OF_RECORD_LINES, QUESTION_BEATS, REACTION_LINES, TRADE_LINES } from '../../data/socialAmbient';
 import { projectAmbient } from '../../state/socialProjection';
 import { SOCIAL_PERSONAS } from '../../data/socialCatalog';
@@ -8,6 +9,28 @@ const HERO = { name: 'Krg', race: 'Sub-Subprocessor', className: 'Robot Monk' } 
 const ALL = [...AMBIENT_LINES, ...TRADE_LINES, ...REACTION_LINES, ...FEUD_BEATS, ...QUESTION_BEATS];
 /** The two lanes that quote the loadout, kept apart because their text carries placeholders. */
 const INTERPOLATED = [...ITEM_OF_RECORD_LINES, ...BLAME_BEATS];
+
+/**
+ * Every line in the module, found rather than listed.
+ *
+ * `ALL` and `INTERPOLATED` above are hand-maintained, and the epic adding lanes to this module said
+ * so in as many words: *"the states-no-figure assertion runs over a hand-maintained array… or they
+ * are silently unchecked, which is worse than failing."* It was right, and by the time it was
+ * noticed four banks had been added past it — each covered by its own file, none covered here.
+ *
+ * So this walks the module's exports instead. A bank added tomorrow is swept the day it is exported,
+ * without anybody remembering to come back. Two levels deep because the mistell and exchange banks
+ * are arrays of units rather than arrays of lines.
+ */
+const isLine = (value: unknown): value is { seat: string; channel: string; text: string } =>
+  typeof value === 'object' && value !== null && 'seat' in value && 'channel' in value && 'text' in value;
+
+const DISCOVERED = Object.entries(banks)
+  .filter(([, value]) => Array.isArray(value))
+  .map(([name, value]) => [name, (value as unknown[]).flat().filter(isLine)] as const)
+  .filter(([, lines]) => lines.length > 0);
+
+const EVERY_LINE = DISCOVERED.flatMap(([, lines]) => lines);
 const FILING = {
   itemOfRecord: { slot: 'Gauntlets' as const, name: '-4 Lapsed Skeleton Key', quality: 3, base: 'Skeleton Key', standing: 10 },
   reductionPercent: 3,
@@ -265,6 +288,38 @@ describe('the guild notices what is being worn', () => {
       .filter((entry) => entry?.sceneId.endsWith(':blame'))
       .map((entry) => entry?.text);
     expect(new Set(beats).size).toBe(BLAME_BEATS.length);
+  });
+});
+
+describe('every bank in the module, whether or not anybody listed it', () => {
+  it('finds more banks than the two hand-maintained lists cover', () => {
+    // The premise, and the thing that went wrong before: a sweep that discovered nothing would pass
+    // every assertion below. Fourteen banks were exported when this was written and the two lists
+    // above name seven of them.
+    expect(DISCOVERED.length).toBeGreaterThanOrEqual(12);
+    expect(EVERY_LINE.length).toBeGreaterThan(ALL.length + INTERPOLATED.length);
+  });
+
+  it('states no figure anywhere, which is the assertion that was silently partial', () => {
+    // An ambient line citing a figure would be asserting state nothing computed. Every bank is held
+    // to it now, including the four that quote an interpolated fact.
+    for (const [name, lines] of DISCOVERED) {
+      for (const { text } of lines) expect(text, `${name}: ${text}`).not.toMatch(/\d/);
+    }
+  });
+
+  it('leaves no placeholder unresolvable, so no bank can ship a substitution nothing fills', () => {
+    // A `{whatever}` that `projectAmbient` does not replace renders as braces in the feed. Checked
+    // against the substitutions the projection actually performs rather than a list kept here.
+    const KNOWN = new Set(['item', 'slot', 'modifier', 'docket', 'predecessor', 'exhibit', 'exhibitSlot', 'era']);
+    for (const [name, lines] of DISCOVERED) {
+      for (const { text } of lines) {
+        for (const match of text.matchAll(/\{(\w+)\}/g)) {
+          const placeholder = match[1]!;
+          expect(KNOWN.has(placeholder), `${name} uses {${placeholder}}, which nothing substitutes`).toBe(true);
+        }
+      }
+    }
   });
 });
 

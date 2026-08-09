@@ -3,11 +3,12 @@ import { GRATS } from '../data/socialGrats';
 import { DKP_ALLOCATION, DKP_STANDINGS } from '../data/socialDkp';
 import { recurringAssignments } from './questRecurrence';
 import { boundCodePoints, boundedLabel, MAX_TEXT_CODE_POINTS, formatGameNumber, stableIndex, stableChoice } from '../engine/text';
-import { DOCKET_LINES, EXHIBIT_LINES, PREDECESSOR_MISTELLS, SYSTEM_NOTICES, AUCTION_LINES, MISTELLS, UTILITY_BEATS, AMBIENT_LINES, BLAME_BEATS, EXCHANGES, FEUD_BEATS, ITEM_OF_RECORD_LINES, ONBOARDING_LINES, QUESTION_BEATS, REACTION_LINES, REPEATED_MODIFIER_LINES, TRADE_LINES, type AmbientLine } from '../data/socialAmbient';
+import { DOCKET_LINES, ERA_LINES, EXHIBIT_LINES, PREDECESSOR_MISTELLS, SYSTEM_NOTICES, AUCTION_LINES, MISTELLS, UTILITY_BEATS, AMBIENT_LINES, BLAME_BEATS, EXCHANGES, FEUD_BEATS, ITEM_OF_RECORD_LINES, ONBOARDING_LINES, QUESTION_BEATS, REACTION_LINES, REPEATED_MODIFIER_LINES, TRADE_LINES, type AmbientLine } from '../data/socialAmbient';
 import type { LoadoutFiling } from '../engine/loadoutFiling';
 import { displayTarget, mostLitigated, type Caseload } from './caseload';
 import type { Predecessor } from './predecessor';
 import { finestExhibit, type Commendations } from './commendations';
+import { namedEras } from './namedEras';
 import { projectWorld, type IdentifiedGameTransitionRecord } from './worldContext';
 
 export type SocialChannel = 'guild' | 'world' | 'party' | 'raid' | 'whisper' | 'system' | 'hero';
@@ -743,6 +744,10 @@ const AMBIENT_LANES = [
   // a lane that fired often would say the same thing about the same item all afternoon.
   'item',
   'blame',
+  // A period the file named after the fact. One lane's worth: the bore is funny at the rate a bore
+  // is actually encountered, and a clerk who raises the same decade every minute is a different and
+  // worse joke.
+  'era',
   // A benchmark from a ledger that outlives everyone citing it. One lane's worth, and separate from
   // the item lane on purpose: that one is about what is worn, this one is about what the file
   // remembers.
@@ -864,6 +869,10 @@ export function projectAmbient(
   // analyser cannot resolve a bare noun from.
   const exhibit = commendations ? finestExhibit(commendations) : null;
   if (lane === 'exhibit' && exhibit === null) lane = 'ambient';
+  // The longest period the file can name, which needs a matter recurring across more than one act.
+  // Empty for every caseload until then, and for every caller that passes no memory.
+  const era = caseload ? namedEras(caseload)[0] ?? null : null;
+  if (lane === 'era' && era === null) lane = 'ambient';
   // The best thing the hero owns is still entry-tier, so the hall explains itself to them. Anything
   // better equipped ends it, which is why it needs no timer and cannot outstay its welcome.
   if (lane === 'onboarding' && (loadout?.itemOfRecord?.standing ?? 0) > ONBOARDING_STANDING) lane = 'ambient';
@@ -895,6 +904,8 @@ export function projectAmbient(
       ? DOCKET_LINES[stableChoice(`docket:${key}`, DOCKET_LINES.length)]!
     : lane === 'exhibit'
       ? EXHIBIT_LINES[stableChoice(`exhibit:${key}`, EXHIBIT_LINES.length)]!
+    : lane === 'era'
+      ? ERA_LINES[stableChoice(`era:${key}`, ERA_LINES.length)]!
     : lane === 'blame'
       ? beat(BLAME_BEATS)
       : lane === 'feud'
@@ -964,7 +975,11 @@ export function projectAmbient(
       // The bare noun again, for the reason the item lane gives: a generated name carries an
       // assessor's mark, and no line in this bank may quote a figure.
       .replaceAll('{exhibit}', exhibit?.base ?? 'record')
-      .replaceAll('{exhibitSlot}', exhibit?.slot ?? 'slot')),
+      .replaceAll('{exhibitSlot}', exhibit?.slot ?? 'slot')
+      // The name alone. `namedEras` also returns the dated phrase and the service record prints it
+      // properly; assembling those ordinals a second time here is how two surfaces start disagreeing
+      // about the same period, and this bank states no figures.
+      .replaceAll('{era}', era?.name ?? 'intervening')),
   }));
 }
 

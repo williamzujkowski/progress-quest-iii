@@ -294,6 +294,32 @@ export const DOCKET_LINES: readonly AmbientLine[] = [
 ];
 
 /**
+ * A period the file named after the fact, brought up by somebody who will not stop bringing it up.
+ *
+ * `namedEras` already turns the dated register into "the Gnoll years, Acts 3 through 7" — two
+ * figures the register holds with a name attached — and it reaches a document and a console line.
+ * Read as a document it is grand. Said aloud at a kettle it is a bore, and the bore is the joke.
+ *
+ * No ordinals here, deliberately. The service record prints the dated phrase and prints it properly;
+ * a chatter line quoting Acts 3 through 7 would be a second place those figures are assembled, and
+ * this bank is asserted to state none. The name alone is also the funnier half — a period invoked
+ * without a date is a period nobody can check.
+ *
+ * Nobody is addressed, which is ADR 0011 rather than a preference: an act ordinal in these ledgers
+ * may belong to a character retired several heroes ago, so the file may describe its own periods but
+ * may not tell anybody they lived through them. Third person throughout, and the cast reminisce about
+ * each other rather than at the room.
+ */
+export const ERA_LINES: readonly AmbientLine[] = [
+  { seat: 'field', channel: 'guild', text: 'Nobody here remembers the {era} years. I have stopped bringing them up.' },
+  { seat: 'field', channel: 'party', text: 'It was different during the {era} years. It was the same, but during them.' },
+  { seat: 'official', channel: 'guild', text: 'The file refers to that period as the {era} years. The file named it afterwards.' },
+  { seat: 'logistics', channel: 'guild', text: 'Stock has not recovered since the {era} years. Stock was not measured then.' },
+  { seat: 'support', channel: 'guild', text: 'I joined after the {era} years and they are still brought up.' },
+  { seat: 'field', channel: 'guild', text: 'The {era} years come up at every review. Nothing is decided about them.' },
+];
+
+/**
  * The finest thing the ledger has ever recorded, cited by people who have never seen it.
  *
  * Distinct from the item lane next door, and the distinction is the point: that one cites what the
