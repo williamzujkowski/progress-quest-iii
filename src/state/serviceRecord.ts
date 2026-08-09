@@ -127,9 +127,21 @@ function theRegister(caseload: Caseload): ServiceRecordSection | null {
   if (!frequent) return null;
 
   const lines = [bound(`One name recurs above the others: ${displayTarget(frequent.target)}, filed against ${frequent.count} times.`)];
+  // `hasOwn` rather than a bare read, which is the guard the caseload tally already carries two
+  // files away and this one was written without.
+  //
+  // A target name is engine-generated in ordinary play, but an imported ledger chooses these keys
+  // and the schema admits any string. For one inherited from `Object.prototype` — `constructor`,
+  // `toString`, `valueOf` — a bare read returns a *function* rather than undefined, so the null
+  // check below passes, `span.first` and `span.last` are undefined, and the document states "The
+  // file opens in Act undefined and last records this in Act undefined". Verified, not theorised.
+  //
+  // The two maps can disagree legitimately, too: every ledger written before the dated register has
+  // counts and no spans at all, so a missing entry is the ordinary case rather than the corrupt one.
+  const span = Object.hasOwn(caseload.targetActs, frequent.target) ? caseload.targetActs[frequent.target] : undefined;
   // Absent on every ledger written before the register existed, and a document that invented a date
   // would be worse than one that has none.
-  const dated = describeSpan(caseload.targetActs[frequent.target]);
+  const dated = describeSpan(span);
   if (dated) lines.push(bound(dated));
   return { heading: 'The Register', lines };
 }
