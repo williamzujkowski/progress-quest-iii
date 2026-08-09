@@ -355,8 +355,9 @@ export const useGameStore = create<GameStore>((set, get) => {
         // The filing comes from the sheet the store already holds rather than from the snapshot, so
         // the engine needs no new field and the recorded sessions stay untouched. What changed is
         // when it runs: `fileLoadout` costs 22 µs of a 26 µs tick — eleven `analyzeItemMechanics`
-        // calls plus `loadoutQuality`'s eleven more — and `scheduleChatter` reached its ambient
-        // branch on 27 of 20 000 ticks. Better than half the tick handler was being discarded.
+        // calls plus `loadoutQuality`'s eleven more — and `scheduleChatter` reaches its ambient
+        // branch on roughly 610 of 20 000 ticks. Better than half the tick handler was being
+        // discarded.
         () => projectAmbient(
           sources.at(-1)?.record.post.hero ?? { name: character.Traits.Name, race: character.Traits.Race, className: character.Traits.Class },
           chatterTasks,
@@ -364,8 +365,8 @@ export const useGameStore = create<GameStore>((set, get) => {
             loadout: fileLoadout(result.state.character),
             caseload: nextCaseload,
             // Computed inside the thunk like everything else here: `predecessorFor` walks the whole
-            // roster, and `scheduleChatter` reaches its ambient branch on a few ticks in twenty
-            // thousand.
+            // roster, and `scheduleChatter` reaches its ambient branch on about three ticks in every
+            // hundred.
             predecessor: predecessorFor(get().roster, result.state.character.Traits.Name),
             commendations: nextCommendations,
             // Where the hero ends the batch standing, taken from the projections already computed
