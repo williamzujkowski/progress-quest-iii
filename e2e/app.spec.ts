@@ -929,6 +929,29 @@ test.describe('Progress Quest III terminal dashboard', () => {
       });
     });
 
+    // With the records open, because a closed `details` is not rendered and this sweep is the one
+    // check in the suite whose whole point is that the defect class "can recur anywhere". The
+    // citations and the service record are the newest prose in the application and were outside it.
+    // The ledgers are seeded first: those surfaces are projections, and an empty ledger renders
+    // nothing at all by design, so opening the disclosure without them sweeps an empty box.
+    await page.evaluate(async () => {
+      const { useGameStore } = await import('/src/state/gameStore.ts');
+      const state = useGameStore.getState();
+      useGameStore.setState({
+        commendations: { highestLevel: 45, largestSale: 102_815, questsCompleted: 2291, actsCompleted: 6, exhibit: {} },
+        caseload: {
+          kinds: { exterminate: 426, seek: 474 },
+          targets: { 'Purple Squirrel': 12 },
+          targetActs: { 'Purple Squirrel': { first: 2, last: 9 } },
+        },
+        specimens: { specimens: Array.from({ length: 300 }, (_unused, index) => `item:Specimen ${index}`) },
+        character: { ...state.character, Plot: { ...state.character.Plot, act: 14 } },
+      } as never);
+    });
+    for (const summary of await page.locator('.records-details > summary').all()) await summary.click();
+    await expect(page.locator('.service-record')).toBeVisible();
+    await expect(page.locator('.citation-note').first()).toBeVisible();
+
     const starved = await page.evaluate(() => {
       const hidden = (el: Element): boolean => {
         for (let node: Element | null = el; node; node = node.parentElement) {
