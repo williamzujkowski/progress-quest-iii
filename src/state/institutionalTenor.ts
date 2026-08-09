@@ -83,7 +83,7 @@ const TENOR_LINES: Record<InstitutionalTenor, readonly string[]> = {
   noted: [
     'Sustained output has been noted by a department that does not usually notice.',
     'This file has been moved to a slightly larger cabinet.',
-    'Performance is now described internally as "consistent", which is not nothing.',
+    'Performance is now described internally as consistent.',
   ],
   ceremonial: [
     'The process is now conducted with ceremony nobody remembers instituting.',

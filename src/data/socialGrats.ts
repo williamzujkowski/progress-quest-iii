@@ -19,7 +19,7 @@ export const GRATS: Readonly<Record<Exclude<SocialSeat, 'official'>, readonly st
     'Congratulations. The new level has been added to the routing table.',
     'Acknowledged, with the standard enthusiasm.',
     'Grats. Your record now sorts differently.',
-    'Congratulations. No re-routing is required, which is the compliment.',
+    'Congratulations. No re-routing is required.',
   ],
   field: [
     'Grats. Nothing out here has been informed.',
