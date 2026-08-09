@@ -99,8 +99,17 @@ export interface ChatterCadence {
    * Two ambient lanes deliberately hold one string for a long stretch — a running bit keeps its beat
    * for forty completed tasks, and the trade advertisement is fixed for the life of a character.
    * Both are right in themselves, and both made the same sentence arrive twice inside one unscrolled
-   * panel: measured at 15% of ambient lines repeating within five, which is what a re-asked question
-   * looks like when it is re-asked four lines later instead of four minutes later.
+   * panel, which is what a re-asked question looks like when it is re-asked four lines later instead
+   * of four minutes later.
+   *
+   * That was measured at 15% of ambient lines repeating within five when this was written, against
+   * a rotation of eleven lanes. It is 6.0% now, on eighteen — the seven lanes added since draw the
+   * running bits less often, so they collide with themselves less often. The guard is still earning
+   * its place: six lines in a hundred repeating inside one unscrolled panel is still a panel that
+   * looks broken, and they are still the same two lanes doing it.
+   *
+   * The rate is measured in `chatterRepetition.test.ts` rather than only stated here, for the reason
+   * the thunk's own rate needed a test: a figure nobody can run is one that drifts silently.
    *
    * Rendering memory, not conversation memory. It exists to refuse a line, never to compose one, so
    * it stays short — long enough to cover a visible panel and no longer.
