@@ -69,7 +69,13 @@ describe('the postings record', () => {
     atAct(3);
     render(<CharacterSheetView />);
 
-    expect(screen.getByText('Records')).not.toBeNull();
+    expect(screen.getByText('Departmental records')).not.toBeNull();
+    // And it says whose, without needing a roster entry to do it. The ledgers are global by design
+    // — `startSession` carries them through a new character — so a fresh level-one hero reads
+    // figures earned by somebody else. Every module keeps the prose honest by never addressing the
+    // reader, which left the *placement* to imply what the sentences refused to say.
+    expect(screen.getByText(/Retained by the department across every appointment/)).not.toBeNull();
+    expect(screen.getByText(/Nothing here is a statement about the current holder/)).not.toBeNull();
     expect(screen.getByRole('list', { name: 'Places this hero has been posted' })).not.toBeNull();
   });
 
@@ -77,6 +83,6 @@ describe('the postings record', () => {
     atAct(0);
     render(<CharacterSheetView />);
 
-    expect(screen.queryByText('Records')).toBeNull();
+    expect(screen.queryByText('Departmental records')).toBeNull();
   });
 });
