@@ -178,6 +178,27 @@ describe('item tooltip details', () => {
     );
   });
 
+  it('closes every spell in the register this world actually has', () => {
+    // These carry the voice further than any single chatter bank: every spell in the game ends on
+    // one of them. Three of the four used to reach outside it — a wizard approving the spell, a
+    // three-item side-effects list, and a joke about furniture — in a world whose spell names are
+    // `Wet Signature` and `Summon a Stakeholder`.
+    //
+    // Swept across a spread of spells rather than read off the constant, so the assertion covers
+    // what a player is actually shown.
+    const closers = new Set<string>();
+    for (const name of ['Wet Signature', 'Quick Win', 'Expedite', 'Red Tape', 'Onboard', 'Low Morale', 'Change Fatigue', 'Best Practice']) {
+      for (let level = 1; level <= 6; level += 1) closers.add(describeSpell(name, level).description);
+    }
+    const said = [...closers].join(' | ');
+
+    expect(closers.size, 'the sweep has to actually reach several spells').toBeGreaterThan(4);
+    expect(said).not.toMatch(/\bwizard|\bsorcer|\bmage\b|\benchanter\b/i);
+    expect(said).not.toMatch(/\bfurniture\b|\bsober\b|\bphilosophical\b/i);
+    // And the one that was always right is still there.
+    expect(said).toContain('licensing board');
+  });
+
   it('gives every spell its own flavour rather than the unknown-spell fallback', () => {
     // SPELL_FLAVOR is keyed by name, so renaming the table orphans all of it at once and every
     // tooltip quietly degrades to "arrived without syllabus" — visible only to someone who opened

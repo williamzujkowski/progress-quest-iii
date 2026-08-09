@@ -397,11 +397,27 @@ const SPELL_FLAVOR: Record<string, string> = {
   'Infinite Deferral': 'The decision is scheduled. The schedule is deferred.',
 };
 
+/*
+ * Every spell in the game ends on one of these, so they carry the register further than any other
+ * bank here.
+ *
+ * Three of the four used to reach outside it. "Approved by three wizards and one extremely nervous
+ * accountant" imports a fantasy register the tables replaced on purpose - every spell name in
+ * `traits.ts` is corporate, from `Wet Signature` to `Summon a Stakeholder` - and there are no
+ * wizards in this world to approve anything. "Side effects include confidence, paperwork, and
+ * avoidable eye contact" is the three-item list the voice reaches for when it is trying, which the
+ * ambient banks forbid themselves twenty files away. "Results may vary, especially near furniture"
+ * is whimsy.
+ *
+ * The licensing board survived because it is the shape the rest should have been: an institution
+ * that has been asked a question and has a process for not answering it.
+ */
 const SPELL_CLOSERS = [
   'The licensing board has declined to comment.',
-  'Results may vary, especially near furniture.',
-  'Approved by three wizards and one extremely nervous accountant.',
-  'Side effects include confidence, paperwork, and avoidable eye contact.',
+  'Certified for use by anyone who has completed the certification.',
+  'Cleared by a committee that has since been dissolved into two committees.',
+  'The training material was withdrawn before anybody finished it.',
+  'Not covered by the indemnity, which predates it.',
 ];
 
 /**
