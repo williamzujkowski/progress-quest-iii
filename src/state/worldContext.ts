@@ -1,6 +1,6 @@
 import { dungeonNamesAt, fieldNamesAt, RAID_ACT_THRESHOLD, raidNamesAt, townNamesAt } from '../data/worldContext';
 import { analyzeItemMechanics } from '../engine/itemMechanics';
-import { fileLoadout, type LoadoutFiling } from '../engine/loadoutFiling';
+import { fileLoadout, projectCounterfactual, type EncounterCounterfactual, type LoadoutFiling } from '../engine/loadoutFiling';
 import { boundCodePoints, MAX_TEXT_CODE_POINTS, describeGameNumber, formatGameNumber, stableIndex } from '../engine/text';
 import type { GamePresentationSnapshot, GameTransitionEvent, GameTransitionRecord, GameTransitionState } from '../engine/transition';
 import type { ProgressTask, QuestKind } from '../engine/types';
@@ -51,6 +51,13 @@ export interface WorldProjection {
    * transition path for the same reason.
    */
   readonly loadout?: LoadoutFiling;
+  /**
+   * What the current encounter would have cost without the loadout.
+   *
+   * Only carried on the live projection, because it describes the task the player is watching right
+   * now rather than a transition that has already happened.
+   */
+  readonly counterfactual?: EncounterCounterfactual;
 }
 
 export type WorldProjectionInput =
@@ -382,10 +389,14 @@ export function projectRoute(hero: GamePresentationSnapshot['hero'], act: number
 
 export function projectWorld(input: WorldProjectionInput): WorldProjection {
   if (input.kind === 'current') {
+    const counterfactual = projectCounterfactual(input.state.character);
     return {
       context: contextFor(postFromState(input.state)),
       notices: [],
       loadout: fileLoadout(input.state.character),
+      // Computed once and spread only when present, so the optional field stays genuinely absent
+      // rather than present-and-undefined.
+      ...(counterfactual === null ? {} : { counterfactual }),
     };
   }
   const { event, post } = input.source.record;

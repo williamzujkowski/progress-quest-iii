@@ -122,3 +122,43 @@ export function fileLoadout(character: CharacterSheet): LoadoutFiling {
     repeatedModifier: repeated ? { name: repeated[0], slots: repeated[1] } : null,
   };
 }
+
+/** The encounter as it is, beside the encounter as the original formula would have had it. */
+export interface EncounterCounterfactual {
+  readonly actualMs: number;
+  readonly canonicalMs: number;
+}
+
+/**
+ * What the current encounter would have cost without the loadout.
+ *
+ * The engine computes both figures and reports one. `generateMonsterTask` derives the canonical
+ * duration — opponent puissance over character level, exactly as the original did — and then
+ * multiplies it by `encounterSpeedMultiplier` before returning. The unmultiplied number is thrown
+ * away at the moment it is used, and nothing has ever named it.
+ *
+ * This is the only genuinely new information an idle game can put on screen. Not a bigger number: a
+ * comparison. `loadoutFiling` already argues the principle — an effect that can be attributed is
+ * worth more at zero magnitude than an untraceable one at half — and the world console already
+ * reports the reduction as a percentage. A percentage is a claim about a ratio; two durations are a
+ * claim about this encounter, which is the one the player is watching a bar fill for.
+ *
+ * Recovered by division rather than recomputed. The multiplier is `SCALE / (SCALE + quality)` with
+ * quality floored at zero, so it is never zero and never negative and the inverse is exact to within
+ * the flooring the engine already applied. Recomputing the canonical formula here instead would be
+ * two derivations of one number, which is how they drift apart.
+ *
+ * Null for anything that is not a kill. A market walk has no counterfactual — the loadout does not
+ * touch it — and inventing one would be the tooltip failure this codebase keeps correcting.
+ */
+export function projectCounterfactual(character: CharacterSheet): EncounterCounterfactual | null {
+  const { Task } = character;
+  if (Task.type !== 'kill' || !Number.isFinite(Task.durationMs) || Task.durationMs <= 0) return null;
+
+  const multiplier = encounterSpeedMultiplier(loadoutQuality(character));
+  // Nothing worth saying when the loadout changes nothing, which is every new character. A line
+  // reading "would have taken the same" is noise dressed as information.
+  if (multiplier >= 1) return null;
+
+  return { actualMs: Task.durationMs, canonicalMs: Math.round(Task.durationMs / multiplier) };
+}
