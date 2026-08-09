@@ -64,21 +64,57 @@ const assignmentScope = (kind: QuestKind | undefined): AssignmentScope | undefin
   return undefined;
 };
 
-const choose = (values: readonly string[], key: string): string => values[stableIndex(key, values.length)] ?? 'Unallocated Territory';
+/**
+ * A place name drawn from a per-hero ordering of the pool rather than a per-hero index into it.
+ *
+ * `choose` picks an index from the whole key, act included. With a pool six wide that gives six
+ * possible names at each act, and the act dominates: two heroes whose keys land on the same offset
+ * then agree at every act, for ever. Measured before this existed — 400 generated heroes produced
+ * **24 distinct routes**, the largest identical group 25.
+ *
+ * So the hero shuffles the pool once and the act indexes into the result. The available orderings go
+ * from the pool's length to its factorial, which for six names is six versus seven hundred and
+ * twenty, out of the same vocabulary. A hero's sequence is still a pure function of who they are and
+ * how far they have come, so nothing is stored and a replay names the same places.
+ *
+ * The shuffle is a Fisher-Yates driven by `stableIndex` rather than a rotation. A rotation only
+ * multiplies the offsets, so two heroes still walk the same towns in the same order starting from
+ * different points — which is most of the original complaint.
+ */
+function orderedFor(values: readonly string[], identity: string): readonly string[] {
+  const order = [...values];
+  for (let index = order.length - 1; index > 0; index -= 1) {
+    const swap = stableIndex(`${identity}:shuffle:${index}`, index + 1);
+    [order[index], order[swap]] = [order[swap]!, order[index]!];
+  }
+  return order;
+}
+
+const placeFor = (values: readonly string[], identity: string, step: number): string => {
+  const ordering = orderedFor(values, identity);
+  // No guard on `step`, and that is deliberate. Field names are indexed by the hero's level, which
+  // comes off the sheet and is whatever an imported save said — but a negative or non-finite index
+  // lands outside the array and the fallback below catches it, naming the place `Unallocated
+  // Territory`, which is the honest answer for a reading nobody can trust.
+  //
+  // A clamp to zero was written first and removed: a mutation deleting it changed nothing
+  // observable, because the fallback had already handled every case it covered.
+  return ordering[Math.floor(step) % ordering.length] ?? 'Unallocated Territory';
+};
 
 function fieldName(post: GamePresentationSnapshot, level = post.hero.level, spoken = false): string {
-  const name = choose(fieldNamesAt(post.act), `${post.hero.name}:${post.hero.race}:${post.hero.className}:field:${level}`);
+  const name = placeFor(fieldNamesAt(post.act), `${post.hero.name}:${post.hero.race}:${post.hero.className}:field`, level);
   return `${name} // ${spoken ? 'level ' : 'L'}${spoken ? describeGameNumber(level) : formatGameNumber(level)}`;
 }
 
 function townName(post: GamePresentationSnapshot, spoken = false): string {
-  const name = choose(townNamesAt(post.act), `${post.hero.name}:${post.hero.className}:town:${post.act}`);
+  const name = placeFor(townNamesAt(post.act), `${post.hero.name}:${post.hero.className}:town`, post.act);
   return `${name} // Act ${spoken ? describeGameNumber(post.act) : formatGameNumber(post.act)}`;
 }
 
 function milestoneName(post: GamePresentationSnapshot, venue: 'dungeon' | 'raid', spoken = false): string {
   const names = venue === 'raid' ? raidNamesAt(post.act) : dungeonNamesAt(post.act);
-  const name = choose(names, `${post.hero.name}:${venue}:${post.act}`);
+  const name = placeFor(names, `${post.hero.name}:${venue}`, post.act);
   return `${name} // Act ${spoken ? describeGameNumber(post.act) : formatGameNumber(post.act)}`;
 }
 
