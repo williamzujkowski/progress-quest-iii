@@ -4,6 +4,7 @@ import { describeGameNumber, formatGameNumber } from '../engine/text';
 import { useGameStore } from '../state/gameStore';
 import { projectWorld } from '../state/worldContext';
 import { TENOR_LABELS, tenorFor, tenorLine } from '../state/institutionalTenor';
+import { eraAt } from '../state/namedEras';
 import { venueBulletin } from '../state/venueBulletin';
 import { attendanceLabel, raidMuster } from '../state/raidMuster';
 import { ActLabel } from './GameNumber';
@@ -36,8 +37,11 @@ export const LogFeed: React.FC = () => {
   const progression = useGameStore((state) => state.progression);
   const sessionGeneration = useGameStore((state) => state.sessionGeneration);
   const pendingElapsedMs = useGameStore((state) => state.pendingElapsedMs);
+  const caseload = useGameStore((state) => state.caseload);
   const currentProjection = projectWorld({ kind: 'current', state: { character, progression } });
   const world = currentProjection.context;
+  // Null until a matter has recurred across more than one act, which is most of a run.
+  const era = eraAt(caseload, world.act);
   const loadout = currentProjection.loadout;
   const counterfactual = currentProjection.counterfactual;
   const services = venueBulletin(world);
@@ -168,6 +172,12 @@ export const LogFeed: React.FC = () => {
           <span>{world.venue} // {world.activity}</span>
           {world.assignmentScope ? <span>assignment // {world.assignmentScope}</span> : null}
           <span>tenor // {TENOR_LABELS[tenorFor(world)].toLowerCase()}</span>
+          {/* The one thing on this line that is not the same for every hero.
+              `tenorFor` is a function of the act and nothing else, so the tier, its label and its
+              line arrive at identical moments in every save that has ever been played. The register
+              is where a run differs from another run, and an era named out of it is the file
+              describing its own shape rather than the calendar's. */}
+          {era && <span>period // {era.phrase}</span>}
         </div>
         {/* The institution's opinion of itself, which is the only thing here that changes by
             degree rather than by counting up. Every line is literally true of a hero filing
