@@ -39,6 +39,7 @@ export const LogFeed: React.FC = () => {
   const currentProjection = projectWorld({ kind: 'current', state: { character, progression } });
   const world = currentProjection.context;
   const loadout = currentProjection.loadout;
+  const counterfactual = currentProjection.counterfactual;
   const services = venueBulletin(world);
   const muster = raidMuster(world);
   const feedRef = useRef<HTMLDivElement>(null);
@@ -209,6 +210,19 @@ export const LogFeed: React.FC = () => {
                     this at all means there is at least one to cite. */}
                 Processing time reduced by {loadout.reductionPercent}%
                 {`, cited: ${loadout.contributors.slice(0, 3).map(({ name }) => name).join(', ')}`}
+              </li>
+            )}
+            {/* The road not taken, in seconds.
+                The engine derives the canonical duration and then multiplies it away, and the
+                unmultiplied figure has never been named anywhere. A percentage is a claim about a
+                ratio; two durations are a claim about the encounter the player is currently watching
+                a bar fill for, which is the only genuinely new thing an idle game can put on screen.
+                Both figures come from the same multiplication the engine performed — recovered by
+                division rather than recomputed, because two derivations of one number drift. */}
+            {counterfactual && (
+              <li>
+                This encounter is scheduled at {(counterfactual.actualMs / 1000).toFixed(1)}s.
+                Under the original schedule it would have taken {(counterfactual.canonicalMs / 1000).toFixed(1)}s.
               </li>
             )}
             {loadout.repeatedModifier && (
