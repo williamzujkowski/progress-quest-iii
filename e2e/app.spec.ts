@@ -1597,6 +1597,11 @@ test.describe('Progress Quest III terminal dashboard', () => {
     await page.keyboard.press('End');
     await expect.poll(async () => card.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
 
+    // The stop has to be visible when it lands on the card, or it is a focus target a keyboard user
+    // cannot locate. WCAG 2.4.7, and the reason this suite has a shared ring helper at all: an
+    // earlier generation of these checks read `outline-style` and passed against a transparent ring.
+    await expectVisibleFocusRing(card, 'records card');
+
     // Closing it takes the stop away again.
     await page.locator('.records-details > summary').filter({ hasText: /^Records/ }).click();
     await expect(card).not.toHaveAttribute('tabindex', '0');
