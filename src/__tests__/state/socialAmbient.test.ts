@@ -361,7 +361,7 @@ describe('every bank in the module, whether or not anybody listed it', () => {
   it('leaves no placeholder unresolvable, so no bank can ship a substitution nothing fills', () => {
     // A `{whatever}` that `projectAmbient` does not replace renders as braces in the feed. Checked
     // against the substitutions the projection actually performs rather than a list kept here.
-    const KNOWN = new Set(['item', 'slot', 'modifier', 'docket', 'predecessor', 'exhibit', 'exhibitSlot', 'era', 'office', 'venue']);
+    const KNOWN = new Set(['item', 'slot', 'modifier', 'docket', 'predecessor', 'exhibit', 'exhibitSlot', 'era', 'office', 'venue', 'specimen']);
     for (const [name, lines] of DISCOVERED) {
       for (const { text } of lines) {
         for (const match of text.matchAll(/\{(\w+)\}/g)) {

@@ -51,6 +51,27 @@ export function specimenIdentity(event: GameTransitionEvent): string | null {
   return null;
 }
 
+/**
+ * The inventory specimens, named the way somebody would ask after one.
+ *
+ * Two filters, and both are load-bearing.
+ *
+ * **Items only.** An equipment specimen is keyed on its full generated name — `equipment:Weapon:+3
+ * Sharp Rock` — and the chatter is asserted to quote no figures. Resolving those back to a bare noun
+ * is what `finestExhibit` does for the exhibit case, and it is the wrong tool here: the joke wants a
+ * paperclip, not a hauberk. An inventory name carries no assessor's mark, so it needs no resolving.
+ *
+ * **The prefix removed, not the name rewritten.** `item:rubber duck` becomes `rubber duck`, which is
+ * what the thing is called everywhere else. Boring items are lower-case and generated ones are title
+ * case, and both read correctly after a definite article — which is why the lines quoting these use
+ * one rather than guessing between "a" and "an" over a bank of names they have never seen.
+ *
+ * Order is the log's own, which is sorted on write, so the answer holds still across reloads.
+ */
+export function itemSpecimens(log: SpecimenLog): readonly string[] {
+  return log.specimens.flatMap((specimen) => specimen.startsWith('item:') ? [specimen.slice('item:'.length)] : []);
+}
+
 /** True when nothing has been filed, so the panel can stay away rather than report a zero. */
 export function isEmpty(log: SpecimenLog): boolean {
   return log.specimens.length === 0;
