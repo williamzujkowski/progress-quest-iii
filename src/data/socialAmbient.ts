@@ -27,8 +27,23 @@ import type { SocialSeat } from './socialCatalog';
  * - No figures. An ambient line citing a number would be asserting state nothing computed.
  */
 
-/** The channels ambient chatter uses. Structurally the subset of `SocialChannel` that fits. */
-export type AmbientChannel = 'guild' | 'world' | 'party';
+/**
+ * The channels ambient chatter uses. Structurally the subset of `SocialChannel` that fits.
+ *
+ * Narrow on purpose, and the test of what belongs is not "would it be funny" but "is it true". A
+ * raid line outside a raid claims a raid is happening; an ambient whisper claims the reader is
+ * seeing somebody's private message. Both are assertions about the world that are false, and both
+ * stay out however good the joke would be — a mistell that wanted `whisper` was rewritten to fit
+ * rather than the type widened to admit it.
+ *
+ * `system` passes that test where those two fail. A system notice asserts no second person, no
+ * private conversation, and no audience at all: it is the institution talking to nobody, which is
+ * this game's premise rather than a claim about it. It already exists in `SocialChannel` with a
+ * label and a muted colour, and it reaches a register — the message of the day, the scheduled
+ * unavailability, the maintenance that found nothing to maintain — that the feed could not otherwise
+ * produce at any price.
+ */
+export type AmbientChannel = 'guild' | 'world' | 'party' | 'system';
 
 export interface AmbientLine {
   readonly seat: SocialSeat;
@@ -97,6 +112,26 @@ export const TRADE_LINES: readonly AmbientLine[] = [
   { seat: 'official', channel: 'world', text: 'Recruiting. We have a hall, a ledger, and one member.' },
   { seat: 'field', channel: 'world', text: 'LF one to carry things. No experience required or, historically, present.' },
   { seat: 'logistics', channel: 'world', text: 'Still selling. The surplus has not improved with age. Neither has the offer.' },
+];
+
+/**
+ * The institution addressing nobody in particular, on a schedule, whether or not anything happened.
+ *
+ * The register the feed could not reach. Every other lane is somebody speaking; this is the building
+ * speaking, and it is the only channel in the game with no author. Flat, impersonal, and repeated
+ * regardless of events, which is exactly what a server notice is.
+ *
+ * Spoken by `system` rather than by a seat. The cast is people, and attributing a scheduled
+ * downtime notice to a named clerk would make it a remark rather than a notice — which is the whole
+ * distinction the channel exists for.
+ */
+export const SYSTEM_NOTICES: readonly AmbientLine[] = [
+  { seat: 'official', channel: 'system', text: 'Message of the day: unchanged.' },
+  { seat: 'official', channel: 'system', text: 'The ledger will be unavailable during the window in which it is consulted.' },
+  { seat: 'official', channel: 'system', text: 'Maintenance completed. Nothing was found to maintain.' },
+  { seat: 'official', channel: 'system', text: 'This notice is being read aloud in every hall simultaneously, including the empty ones.' },
+  { seat: 'official', channel: 'system', text: 'Scheduled downtime has been rescheduled. The new time is also the old time.' },
+  { seat: 'official', channel: 'system', text: 'All systems nominal. The systems have not been asked.' },
 ];
 
 /**
