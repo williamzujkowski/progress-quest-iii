@@ -361,6 +361,39 @@ export const MISTELLS: readonly (readonly AmbientLine[])[] = [
 ];
 
 export const EXCHANGES: readonly (readonly AmbientLine[])[] = [
+  /*
+   * Loot drama, which is the oldest argument in raiding and belongs here rather than in a lane of
+   * its own.
+   *
+   * The obvious build was a `loot` lane. The rotation is already fourteen distinct kinds across
+   * nineteen slots, and another running bit would have taken weight from the ones already there
+   * rather than adding to them — while the measurement that actually mattered said something else:
+   * ambient is 43.8% of what is on screen at any moment and reuses each line 2.5 times, which is now
+   * the highest reuse in the feed. Deepening a bank costs no lane weight and lowers that directly.
+   *
+   * All four are exchanges because loot drama is not an announcement — it is two people disagreeing
+   * about a rule nobody wrote down. Nothing here names an item or a figure: an ambient line citing
+   * either would assert state nothing computed, and the whole bit works better when the object is
+   * never identified.
+   */
+  [
+    { seat: 'official', channel: 'guild', text: 'Who is holding the loot?' },
+    { seat: 'logistics', channel: 'guild', text: 'The person who went offline.' },
+  ],
+  [
+    { seat: 'support', channel: 'guild', text: 'That was an off-spec need.' },
+    { seat: 'field', channel: 'guild', text: 'It is my spec on the days I need it.' },
+  ],
+  [
+    { seat: 'logistics', channel: 'guild', text: 'It dropped again.' },
+    { seat: 'support', channel: 'guild', text: 'Nobody has ever taken it.' },
+    { seat: 'logistics', channel: 'guild', text: 'It will drop again.' },
+  ],
+  [
+    { seat: 'field', channel: 'party', text: 'Has the thing we came for ever dropped?' },
+    { seat: 'official', channel: 'party', text: 'The register says it is obtainable.' },
+    { seat: 'field', channel: 'party', text: 'That is not the same answer.' },
+  ],
   [
     { seat: 'logistics', channel: 'world', text: 'Sold.' },
     { seat: 'official', channel: 'world', text: 'To whom?' },
