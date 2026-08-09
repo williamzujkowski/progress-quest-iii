@@ -324,7 +324,42 @@ function linesFor(candidate: SceneCandidate): readonly SceneLine[] {
     ] as const, candidate);
   }
   if (candidate.kind === 'loot' && event.type === 'item_gained') {
+    /*
+     * Some of these name the thing and some deliberately refuse to.
+     *
+     * Loot is the most repetitive scene in the game by a wide margin — measured over 636 lines, it
+     * reused 26 distinct sentences 113 times, a 4.3× reuse against the market scene's 1.4×. The
+     * difference is not bank size: the market has a comparable number of variants and stays fresh
+     * because it interpolates the item's name and the gold, so its variety comes from the data.
+     * Loot said "1 inventory unit" 113 times and had nothing to vary on.
+     *
+     * But the fix is not to name the thing everywhere. Half of these lines are jokes *about* not
+     * naming it — "Source remains professionally unspecified", "Provenance has taken personal
+     * leave" — and quoting the item into those would explain away the gag. So the naming variants
+     * are additions rather than replacements: the bureaucratic refusals stay exactly as they were,
+     * and the drops that do name it get their variety from the item tables, which are the funniest
+     * strings in the project.
+     *
+     * Bounded for the same reason the sale is: an imported save can carry a name of any length, and
+     * this text is spoken by the screen-reader path.
+     */
+    const found = boundedLabel(event.name, 'an unlabelled find', 48);
+    const some = event.quantity === 1 ? found : `${formatGameNumber(event.quantity)} × ${found}`;
     return variant([
+      [
+        { speaker: 'logistics', channel: 'guild', text: `${some} recovered. The name was on it; nobody has verified that it is the name of this.` },
+        { speaker: 'support', channel: 'guild', text: 'Filed as described by itself.' },
+        { speaker: 'hero', channel: 'hero', text: 'Every object here is on its own word.' },
+      ],
+      [
+        { speaker: 'logistics', channel: 'party', text: `${some} entered the manifest. The manifest has spelled it differently.` },
+        { speaker: 'support', channel: 'party', text: 'Both spellings have been retained.' },
+      ],
+      [
+        { speaker: 'logistics', channel: 'guild', text: `${some} acquired, which the catalogue lists under a heading that predates it.` },
+        { speaker: 'official', channel: 'guild', text: 'The heading will not be revised. The heading has seniority.' },
+        { speaker: 'hero', channel: 'hero', text: 'Then it is older than the thing it describes, like most of this.' },
+      ],
       [
         { speaker: 'logistics', channel: 'guild', text: `${formatGameNumber(event.quantity)} inventory unit${event.quantity === 1 ? '' : 's'} received. Source remains professionally unspecified.` },
         { speaker: 'support', channel: 'guild', text: 'No rarity, competition, or combat value has been inferred from the receipt.' },
