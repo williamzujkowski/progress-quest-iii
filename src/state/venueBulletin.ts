@@ -49,13 +49,16 @@ const OFFICES_LISTED = 3;
  * have never been inside it.
  */
 const FIELD_NOTICES: readonly string[] = [
-  'Foraging permits, provisional',
-  'Territorial notice, unresolved',
+  // Four of these were noun-plus-neutral-adjective with no joke in them - "provisional",
+  // "unresolved", "dormant", "forwarded" - sitting beside a town list where every entry has a
+  // comic status. Under-administered is the joke; unfinished is not the same thing.
+  'Foraging permits, issued to nobody in particular',
+  'Territorial notice, addressed to the occupants',
   'Weather advisory, ignored',
   'Boundary survey, disputed by both sides',
-  'Grazing rights, dormant',
+  'Grazing rights, held by an estate nobody has located',
   'Wildlife census, abandoned midway',
-  'Drainage petition, forwarded',
+  'Drainage petition, forwarded to the water',
   'Right of way, asserted by custom only',
 ];
 
@@ -74,6 +77,8 @@ const CATALOGUES: Partial<Record<WorldContext['venue'], readonly string[]>> = {
   town: OFFICES,
   field: FIELD_NOTICES,
   dungeon: DUNGEON_NOTICES,
+  // No raid. Deliberate, and asserted next door: a raid takes attendance instead, so its bulletin
+  // is the muster sheet. A second list beside it would compete with the better artifact.
 };
 
 /**
