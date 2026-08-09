@@ -41,6 +41,16 @@ describe('project-owned simulated cast', () => {
       expect(SOCIAL_PERSONAS.filter((persona) => persona.seat === seat)).toHaveLength(2);
     }
     expect(SOCIAL_PERSONAS.every(({ voice }) => voice.register.length > 0 && voice.maxWords >= 12 && voice.maxWords <= 30)).toBe(true);
+    // And the ceiling has to differentiate, or it is a field that describes nothing. All eight sat
+    // at 30 against an observed maximum of 18 — a limit twelve words above anything that can reach
+    // it cannot constrain a register.
+    expect(new Set(SOCIAL_PERSONAS.map(({ voice }) => voice.maxWords)).size).toBeGreaterThan(2);
+    // Shared within a seat, because a scene line names a seat and either of its personas may speak
+    // it. A ceiling tighter on one than the other would fire only for the heroes who drew them.
+    for (const seat of new Set(SOCIAL_PERSONAS.map(({ seat: value }) => value))) {
+      const caps = new Set(SOCIAL_PERSONAS.filter((persona) => persona.seat === seat).map(({ voice }) => voice.maxWords));
+      expect(caps.size, `${seat} personas must share one ceiling`).toBe(1);
+    }
     expect(SOCIAL_PERSONAS.every(({ displayName }) => Array.from(displayName).length <= 48)).toBe(true);
 
     const serialized = JSON.stringify(SOCIAL_PERSONAS).toLowerCase();
