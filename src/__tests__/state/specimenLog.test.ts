@@ -1,4 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
+import type { GameTransitionEvent } from '../../engine/transition';
+import { MAX_PERSISTED_DESCRIPTION_LENGTH } from '../../data/limits';
 import { RandomGenerator } from '../../engine/prng';
 import { createNewCharacter } from '../../engine/sim';
 import { levelUpTime } from '../../engine/math';
@@ -42,6 +44,24 @@ describe('specimen log', () => {
     const log = mergeSpecimens(EMPTY_SPECIMEN_LOG, [gained('nit tail')]);
     expect(mergeSpecimens(log, [gained('nit tail')])).toBe(log);
     expect(mergeSpecimens(log, [])).toBe(log);
+    // And for a batch that carries no acquisition at all, which is most of them. This is the case
+    // the early return exists for: the ledger used to build a three-hundred-entry index before
+    // discovering there was nothing to look up, which measured 6.5 us of a 6.9 us tick.
+    expect(mergeSpecimens(log, [{ type: 'level_gained', level: 4 } as GameTransitionEvent])).toBe(log);
+    expect(mergeSpecimens(log, [{ type: 'gold_received', amount: 7 } as GameTransitionEvent])).toBe(log);
+  });
+
+  it('refuses an identity longer than the schema will store', () => {
+    // Untested until now, and found by mutation while moving the line: removing the length bound
+    // changed nothing that any assertion could see. It matters because the schema caps a stored
+    // specimen at `MAX_PERSISTED_DESCRIPTION_LENGTH`, so an over-long one is not merely ugly — it
+    // makes the whole ledger fail validation on write, quietly, for the rest of the session.
+    const log = { specimens: ['item:nit tail'] };
+    const overlong = 'x'.repeat(MAX_PERSISTED_DESCRIPTION_LENGTH + 1);
+
+    expect(mergeSpecimens(log, [gained(overlong)])).toBe(log);
+    // And one that fits is still taken, so the bound is a bound rather than a refusal.
+    expect(mergeSpecimens(log, [gained('bent fork')]).specimens).toContain('item:bent fork');
   });
 
   it('refuses to forget once it is full', () => {
