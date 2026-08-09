@@ -139,14 +139,26 @@ describe('the document is bounded', () => {
     const maximal = projectServiceRecord({
       ...FULL,
       act: 400,
-      caseload: { ...FULL.caseload, kinds: Object.fromEntries(QUEST_KINDS.map((kind) => [kind, 9])) },
+      caseload: {
+        kinds: Object.fromEntries(QUEST_KINDS.map((kind) => [kind, 9])),
+        targets: { 'Gnoll|2|collar': 14, Imp: 9, Kobold: 4, Wyrm: 2 },
+        // Four dated matters, of which the file names three. A maximal document has as many periods
+        // as it is willing to name, and this is what makes the bound below the real ceiling rather
+        // than whatever one fixture happened to produce.
+        targetActs: {
+          'Gnoll|2|collar': { first: 2, last: 7 },
+          Imp: { first: 1, last: 9 },
+          Kobold: { first: 3, last: 8 },
+          Wyrm: { first: 4, last: 6 },
+        },
+      },
       // A maximal file has somebody before it. Without a roster the document is one line short, and
       // this assertion is what says so rather than quietly accepting the lower total.
       roster: { Bendrel: predecessorSheet },
     })!;
 
     expect(allLines(maximal).length).toBe(MAX_RECORD_LINES);
-    expect(maximal.sections.map(({ heading }) => heading)).toEqual(['Postings', 'Casework', 'The Register', 'Standing', 'Precedent']);
+    expect(maximal.sections.map(({ heading }) => heading)).toEqual(['Postings', 'Casework', 'The Register', 'Periods', 'Standing', 'Precedent']);
   });
 
   it('keeps the recent postings rather than the first ones', () => {
@@ -164,6 +176,8 @@ describe('the document is bounded', () => {
     // `MAX_POSTINGS` that keeps the rest of the document on the page.
     const long = projectServiceRecord({ ...FULL, act: 400 })!;
 
-    expect(long.sections.map(({ heading }) => heading)).toEqual(['Postings', 'Casework', 'The Register', 'Standing']);
+    // No roster in this fixture, so no precedent — the sections that survive are the ones the
+    // ledgers support, which is the point.
+    expect(long.sections.map(({ heading }) => heading)).toEqual(['Postings', 'Casework', 'The Register', 'Periods', 'Standing']);
   });
 });
