@@ -324,13 +324,20 @@ input[type='radio']:checked::before { transform: scale(1); }
   font-weight: 650;
 }
 
-/* The note wraps; a citation that had to fit on one line would have to stop being a sentence. */
-.citation-note {
+/*
+ * Both wrap, and both are prose set under a table of figures — a citation's note, and the register
+ * dating the docket. One rule rather than two identical ones, because the reason they look alike is
+ * that they are the same kind of thing: a sentence the institution added under its own arithmetic.
+ */
+.citation-note,
+.docket-register {
   color: var(--text-muted);
   font-size: 0.8125rem;
   line-height: 1.45;
   text-wrap: pretty;
 }
+
+.docket-register { margin-top: 0.4rem; }
 
 /* Quieter than gold: a rate is context for the totals beside it, not a headline of its own. */
 .velocity-pill {

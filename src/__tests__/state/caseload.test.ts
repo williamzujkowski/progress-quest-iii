@@ -129,7 +129,9 @@ describe('caseload persistence', () => {
     // zod treats an enum-keyed record as exhaustive; partialRecord is what makes a young tally
     // loadable at all.
     expect(readCaseload(fakeStorage({ [CASELOAD_STORAGE_KEY]: '{"kinds":{"fetch":3},"targets":{}}' })))
-      .toEqual({ kinds: { fetch: 3 }, targets: {} });
+      // `targetActs` defaults in rather than being absent, which is what lets every ledger
+      // written before the dated register keep loading without a migration.
+      .toEqual({ kinds: { fetch: 3 }, targets: {}, targetActs: {} });
   });
 
   it('bounds a hostile target map on the way in', () => {

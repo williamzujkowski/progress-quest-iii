@@ -16,7 +16,7 @@ describe('docket summary panel', () => {
   });
 
   it('reports only the kinds actually assigned, in the engine order', () => {
-    useGameStore.setState({ caseload: { kinds: { placate: 3, exterminate: 41 }, targets: {} } });
+    useGameStore.setState({ caseload: { kinds: { placate: 3, exterminate: 41 }, targets: {}, targetActs: {} } });
     render(<Caseload />);
 
     const rows = screen.getByRole('list', { name: 'Docket summary' });
@@ -29,7 +29,7 @@ describe('docket summary panel', () => {
   });
 
   it('names the most frequently filed against', () => {
-    useGameStore.setState({ caseload: { kinds: { fetch: 5 }, targets: { Kobold: 14, Imp: 2 } } });
+    useGameStore.setState({ caseload: { kinds: { fetch: 5 }, targets: { Kobold: 14, Imp: 2 }, targetActs: { Kobold: { first: 2, last: 6 } } } });
     render(<Caseload />);
 
     expect(screen.getByText('Most frequently filed against')).toBeTruthy();
