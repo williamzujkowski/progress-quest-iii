@@ -268,6 +268,34 @@ export const ITEM_OF_RECORD_LINES: readonly AmbientLine[] = [
 ];
 
 /**
+ * The same adjective, in three places at once.
+ *
+ * `loadoutFiling` has found this since it was written — bases cannot collide any more, but modifiers
+ * are drawn from one shared list, so a hero in three `Bonded` things is ordinary rather than exotic
+ * — and it reached exactly one surface, a line in the world console nobody watches. The channel is
+ * the thing people actually watch, and it had nothing to say about it.
+ *
+ * Never as an achievement, which is the filing's own rule and matters more here than there: the
+ * moment a repeated modifier reads as a set to pursue, the joke becomes a spreadsheet the player is
+ * forbidden to fill in. So these are all the institution noticing a coincidence and declining to do
+ * anything about it.
+ *
+ * No count. The filing knows how many slots, and the bank is asserted to state no figures — and the
+ * number is not the funny part anyway. "More places than the form has boxes for" is.
+ */
+export const REPEATED_MODIFIER_LINES: readonly AmbientLine[] = [
+  { seat: 'official', channel: 'guild', text: 'The hero is {modifier} in more places than the form has boxes for.' },
+  { seat: 'official', channel: 'guild', text: 'Several entries read {modifier}. The register has recorded this without comment.' },
+  { seat: 'logistics', channel: 'guild', text: 'Stock came back {modifier} again. The supplier was not asked and has not offered.' },
+  { seat: 'logistics', channel: 'world', text: 'Anyone else holding {modifier} goods. Asking for the inventory.' },
+  // Never sentence-initial. The substitution is lower-cased on the way in, because these are
+  // adjectives mid-sentence and the filing holds them capitalised the way an item name carries
+  // them — a line that opened on one would open on a lower-case word.
+  { seat: 'support', channel: 'guild', text: 'I have stopped writing {modifier} out in full.' },
+  { seat: 'field', channel: 'party', text: 'Everything the hero owns is {modifier}. It has not come up.' },
+];
+
+/**
  * A slot held responsible, in order, for ever.
  *
  * The support seat's declared preoccupation is blame allocation, and this is that preoccupation
