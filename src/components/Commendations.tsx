@@ -3,6 +3,7 @@ import React from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '../state/gameStore';
 import { isEmpty } from '../state/commendations';
+import { citationsFor } from '../state/citations';
 import { GameNumber } from './GameNumber';
 import { ItemTooltip } from './ItemTooltip';
 
@@ -19,7 +20,13 @@ export const Commendations: React.FC = () => {
   // Variety rather than quality: the exhibit case opposite keeps the best of each slot, and this
   // counts how many different things have ever passed through at all.
   const specimens = useGameStore((state) => state.specimens.specimens.length);
+  // Selected whole rather than through `useShallow`, because these are the objects the citations
+  // read and the store already keeps them referentially stable across ticks that change nothing.
+  const specimenLog = useGameStore((state) => state.specimens);
+  const caseload = useGameStore((state) => state.caseload);
   if (isEmpty(records) && specimens === 0) return null;
+
+  const citations = citationsFor({ commendations: records, caseload, specimens: specimenLog });
 
   const rows: ReadonlyArray<readonly [string, number]> = [
     ...(specimens > 0 ? [['Distinct specimens filed', specimens] as const] : []),
@@ -45,6 +52,25 @@ export const Commendations: React.FC = () => {
           </li>
         ))}
       </ul>
+
+      {citations.length > 0 && (
+        <>
+          <div className="section-label">
+            <Award size={14} aria-hidden="true" /> Citations
+          </div>
+          {/* Only what holds. There is no unearned row, no denominator and no ordering that hints at
+              a next one — a citation the player can see but not have is a target, and a target in a
+              game with no lever on it is a spreadsheet they are forbidden to fill in. */}
+          <ul className="citation-list" aria-label="Citations">
+            {citations.map(({ id, title, note }) => (
+              <li className="citation-item" key={id}>
+                <span className="citation-title">{title}</span>
+                <span className="citation-note">{note}</span>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
 
       {exhibit.length > 0 && (
         <>

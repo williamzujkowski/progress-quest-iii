@@ -298,6 +298,40 @@ input[type='radio']:checked::before { transform: scale(1); }
   font-weight: 650;
 }
 
+/*
+ * A citation is prose, not a row. The ledger above it is a table because those are figures that line
+ * up; these are sentences, and setting them in the same two-column grid would make the note read as
+ * a value the title is worth — which is the spreadsheet reading the whole feature avoids.
+ */
+.citation-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.citation-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.citation-title {
+  font-variant-caps: all-small-caps;
+  letter-spacing: var(--tracking-caps);
+  font-weight: 650;
+}
+
+/* The note wraps; a citation that had to fit on one line would have to stop being a sentence. */
+.citation-note {
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  text-wrap: pretty;
+}
+
 /* Quieter than gold: a rate is context for the totals beside it, not a headline of its own. */
 .velocity-pill {
   color: var(--text-muted);
