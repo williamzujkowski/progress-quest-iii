@@ -23,8 +23,18 @@ export const Caseload: React.FC = () => {
     return count ? [[KIND_LABELS[kind], count] as const] : [];
   });
   const frequent = mostLitigated(caseload);
-  // Absent on any ledger written before the register existed, which is every ledger already on disk.
-  const span = frequent ? describeSpan(caseload.targetActs[frequent.target]) : null;
+  // `hasOwn` rather than a bare read — the third place this map is indexed and the second to be
+  // written without the guard. A target name is engine-generated in ordinary play, but the schema
+  // admits any string and an imported ledger chooses these keys; for one inherited from
+  // `Object.prototype` a bare read returns a *function*, so `describeSpan`'s null check passes and
+  // this panel renders "The file opens in Act undefined and last records this in Act undefined."
+  // Reproduced, not theorised.
+  //
+  // The two maps also disagree legitimately: every ledger written before the register has counts and
+  // no spans, so a missing entry is the ordinary case rather than the corrupt one.
+  const span = frequent && Object.hasOwn(caseload.targetActs, frequent.target)
+    ? describeSpan(caseload.targetActs[frequent.target])
+    : null;
 
   return (
     <>
