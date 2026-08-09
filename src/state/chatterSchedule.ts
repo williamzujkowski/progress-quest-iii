@@ -142,9 +142,29 @@ export function scheduleChatter(
 ): { readonly entries: readonly SocialEntry[]; readonly cadence: ChatterCadence } {
   const scenes = [...new Set(entries.map(({ sceneId }) => sceneId))];
   const kindOf = (sceneId: string) => entries.find((entry) => entry.sceneId === sceneId)?.sceneKind;
+
+  /**
+   * A batch carrying a `catch_up` row is a return from being away, not a tick.
+   *
+   * A hidden tab does not advance the clock at all — `gameClock` returns early on `document.hidden`
+   * — so time is banked and every return is a drain of up to a hundred tasks per tick. The
+   * projection has already looked at those hundreds and kept the few worth reading, ranked by the
+   * priority ladder `chooseCandidate` assigns.
+   *
+   * Running that curated handful through the one-in-five gate below was applying a rule written for
+   * a live tick to a batch that is nothing like one. Measured across a one-hour absence: eight
+   * hundred and forty-five scenes offered, seventy-two kept by the projection, and ten admitted.
+   * Meanwhile the row *announcing* that scenes were discarded is in `ALWAYS_HEARD` and never
+   * dropped, so the notice of the loss was unconditional and the content was a lottery.
+   */
+  const returning = scenes.some((sceneId) => kindOf(sceneId) === 'catch_up');
+
   const heard = new Set(scenes.filter((sceneId) => {
     const kind = kindOf(sceneId);
     if (kind !== undefined && ALWAYS_HEARD.includes(kind)) return true;
+    // Curated once is enough. The gate exists to keep a live channel from narrating every kill, and
+    // there is no live channel during a drain — there is a person who has just come back.
+    if (returning) return true;
     return admitsEvent(`${sceneId}:${completedTasks}`);
   }));
 
