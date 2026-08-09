@@ -72,7 +72,7 @@ describe('the guild talks about itself', () => {
     // owning nothing worth citing is exactly the one the hall is still explaining itself to, so
     // onboarding does fire.
     const lanes = new Set(Array.from({ length: 2000 }, (_, task) => projectAmbient(HERO, task)[0]?.sceneId.split(':')[2]));
-    expect(lanes).toEqual(new Set(['ambient', 'reaction', 'trade', 'feud', 'question', 'onboarding', 'exchange']));
+    expect(lanes).toEqual(new Set(['ambient', 'reaction', 'trade', 'feud', 'question', 'utility', 'onboarding', 'exchange']));
   });
 
   it('stops explaining the hall once the hero owns something better than a lanyard', () => {
@@ -200,7 +200,7 @@ describe('the guild notices what is being worn', () => {
       .map((entry) => entry?.sceneId.split(':')[2]);
 
   it('reaches the two loadout lanes when there is something to cite', () => {
-    expect(new Set(lanesOf(FILING))).toEqual(new Set(['ambient', 'reaction', 'trade', 'feud', 'question', 'item', 'blame', 'exchange']));
+    expect(new Set(lanesOf(FILING))).toEqual(new Set(['ambient', 'reaction', 'trade', 'feud', 'question', 'utility', 'item', 'blame', 'exchange']));
   });
 
   it('says nothing about a loadout that earns nothing, rather than falling silent', () => {
