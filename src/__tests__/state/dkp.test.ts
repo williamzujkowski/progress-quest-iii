@@ -81,6 +81,22 @@ describe('what the guild says about the ledger', () => {
     }
   });
 
+  it('sets the thesis up as often as it pays it off', () => {
+    // The bit this module's docstring calls "this project's thesis in one bit" — the hero attends
+    // everything, is awarded nothing, and the ledger is scrupulously fair about it. Twelve lines
+    // shipped and exactly one said it, all of it in the allocation bank, so a watcher met the
+    // punchline before the premise and then never met it again.
+    //
+    // Counted in both banks rather than overall, because the setup has to reach the *standings* —
+    // the beat spoken when the boss opens — for the allocation to land as a payoff rather than as
+    // the first mention.
+    const mentions = (bank: readonly string[]) =>
+      bank.filter((text) => /\bcutoff\b|\bsecond\b/i.test(text)).length;
+
+    expect(mentions(DKP_STANDINGS), 'the standings must set the cutoff up').toBeGreaterThan(1);
+    expect(mentions(DKP_ALLOCATION), 'and the allocation must pay it off').toBeGreaterThan(1);
+  });
+
   it('keeps the hero below the cutoff, never above it', () => {
     const hopeful = [...DKP_ALLOCATION, ...DKP_STANDINGS]
       .filter((text) => /hero/i.test(text))
