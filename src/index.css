@@ -209,8 +209,21 @@ input[type='radio']:checked::before { transform: scale(1); }
    exists — the assertion that suggests itself here cannot distinguish the case it would be written
    for.
 
-   Separately, and unresolved: `input` elements come out with a user-agent outline rather than
-   either token, so on those controls neither rule is winning. Only measured on Chromium so far. */
+   Separately, and now measured rather than suspected: on `input` elements the user agent overrides
+   the author's `outline-color` outright. Chromium was given
+   `.form-control:focus-visible { outline: 2px solid transparent !important }` and the computed
+   colour came back `rgba(20, 17, 13, 0.408)` — a painted, translucent ring the stylesheet did not
+   ask for and cannot refuse. The style and the width are this rule's; the colour is never ours.
+
+   So the original note was right that neither token wins here, and the consequence is benign: the
+   browser insists on drawing a focus indicator on form controls, so the ring is visible whatever the
+   theme does. What is lost is consistency, not visibility — these controls will not follow
+   `--accent-primary` when a theme moves it.
+
+   It also means a guard cannot be written the obvious way. An assertion that the ring is visible
+   cannot fail by mutating the outline colour, because the mutation does not reach the paint; one was
+   written, measured against exactly that mutation, and dropped rather than shipped. Pinning this
+   would need the rendered pixels rather than the computed style. */
 :focus-visible {
   outline: 2px solid var(--accent-primary);
   outline-offset: 2px;
