@@ -1,6 +1,8 @@
 import { boundCodePoints, MAX_TEXT_CODE_POINTS } from '../engine/text';
 import { KIND_LABELS, QUEST_KINDS, describeSpan, displayTarget, mostLitigated, type Caseload } from './caseload';
 import type { Commendations } from './commendations';
+import { predecessorFor } from './predecessor';
+import type { CharacterSheet } from '../engine/types';
 import { hasRoute, projectRoute, type RouteStop } from './worldContext';
 import type { GamePresentationSnapshot } from '../engine/transition';
 
@@ -39,7 +41,7 @@ const MAX_POSTINGS = 8;
 
 /**
  * How many lines the document can run to: eight postings, five kinds of casework, two lines of
- * register, five of standing.
+ * register, five of standing, one of precedent.
  *
  * A bound rather than a cap, and the distinction was arrived at the hard way. The first draft
  * truncated to a comfortable twenty-four, which is above anything this code can produce — a
@@ -54,7 +56,7 @@ const MAX_POSTINGS = 8;
  * equals it, so widening a section or adding a fifth fails loudly rather than quietly raising a
  * ceiling nobody was watching.
  */
-export const MAX_RECORD_LINES = 20;
+export const MAX_RECORD_LINES = 21;
 
 export interface ServiceRecordSection {
   readonly heading: string;
@@ -75,6 +77,12 @@ export interface ServiceRecordInput {
   readonly caseload: Caseload;
   readonly commendations: Commendations;
   readonly specimenCount: number;
+  /**
+   * Every character on file, so the document can name whoever held it before. Optional because the
+   * roster is read from storage and a storage failure must never cost anybody their service record
+   * — it costs them one line.
+   */
+  readonly roster?: Record<string, CharacterSheet> | undefined;
 }
 
 const bound = (text: string): string => boundCodePoints(text, MAX_TEXT_CODE_POINTS);
@@ -143,6 +151,12 @@ function standing(commendations: Commendations, specimenCount: number): ServiceR
   return lines.length === 0 ? null : { heading: 'Standing', lines };
 }
 
+function precedent(roster: Record<string, CharacterSheet> | undefined, currentName: string): ServiceRecordSection | null {
+  if (!roster) return null;
+  const held = predecessorFor(roster, currentName);
+  return held ? { heading: 'Precedent', lines: [bound(held.phrase)] } : null;
+}
+
 /**
  * Assembles the document. Pure, and returns null when the file has nothing in it at all — an empty
  * service record is a form, and a form is not a document.
@@ -155,6 +169,9 @@ export function projectServiceRecord(input: ServiceRecordInput): ServiceRecord |
     casework(caseload),
     theRegister(caseload),
     standing(commendations, specimenCount),
+    // Last, under everything it explains. The ledgers above deliberately span characters, so a new
+    // hero's document opens onto somebody else's arithmetic; this is the only line that says whose.
+    precedent(input.roster, hero.name),
   ].filter((section): section is ServiceRecordSection => section !== null);
 
   if (sections.length === 0) return null;

@@ -3,6 +3,7 @@ import React from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '../state/gameStore';
 import { projectServiceRecord } from '../state/serviceRecord';
+import { loadRoster } from '../state/saveManager';
 
 /**
  * The file, as a file.
@@ -28,12 +29,17 @@ export const ServiceRecord: React.FC = () => {
   const commendations = useGameStore((state) => state.commendations);
   const specimenCount = useGameStore((state) => state.specimens.specimens.length);
 
+  // Read at render rather than held in the store: the roster changes only when the player saves or
+  // switches characters, and a failed read is one missing line rather than a reason to show nothing.
+  const roster = loadRoster();
+
   const record = projectServiceRecord({
     hero: { name, race, className, level },
     act,
     caseload,
     commendations,
     specimenCount,
+    ...(roster.ok ? { roster: roster.value } : {}),
   });
   if (!record) return null;
 

@@ -3,6 +3,9 @@ import { MAX_RECORD_LINES, projectServiceRecord, type ServiceRecordInput } from 
 import { EMPTY_CASELOAD, QUEST_KINDS } from '../../state/caseload';
 import { EMPTY_COMMENDATIONS } from '../../state/commendations';
 import { EQUIP_SLOTS } from '../../data/traits';
+import { createNewCharacter } from '../../engine/sim';
+
+const predecessorSheet = createNewCharacter('Bendrel', 'Double Tenant', 'Incident Paladin', 'bendrel-seed');
 
 /**
  * The service record — the history epic's headline, and the only one of its nine ideas that was
@@ -137,10 +140,13 @@ describe('the document is bounded', () => {
       ...FULL,
       act: 400,
       caseload: { ...FULL.caseload, kinds: Object.fromEntries(QUEST_KINDS.map((kind) => [kind, 9])) },
+      // A maximal file has somebody before it. Without a roster the document is one line short, and
+      // this assertion is what says so rather than quietly accepting the lower total.
+      roster: { Bendrel: predecessorSheet },
     })!;
 
     expect(allLines(maximal).length).toBe(MAX_RECORD_LINES);
-    expect(maximal.sections.map(({ heading }) => heading)).toEqual(['Postings', 'Casework', 'The Register', 'Standing']);
+    expect(maximal.sections.map(({ heading }) => heading)).toEqual(['Postings', 'Casework', 'The Register', 'Standing', 'Precedent']);
   });
 
   it('keeps the recent postings rather than the first ones', () => {
