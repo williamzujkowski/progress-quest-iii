@@ -387,6 +387,37 @@ function linesFor(candidate: SceneCandidate): readonly SceneLine[] {
     ] as const, candidate);
   }
   if (candidate.kind === 'zone' && event.type === 'task_started') {
+    // The shelving sent the hero to market, and until now nothing in the channel said so.
+    //
+    // `task_started` carries `reason.{carriedCubits, capacityCubits}` — the two figures the engine
+    // actually compared when it decided to break off and sell. The activity log captions them; no
+    // chat line has ever read them, on what is the most frequent boundary in the game.
+    //
+    // The joke is the attribution rather than the arithmetic: the hero is not going to town because
+    // anybody decided to, they are going because a shelf filled up. Both figures are the engine's
+    // own, interpolated rather than recomputed.
+    if (event.reason !== undefined && event.task.type === 'heading_to_market') {
+      const { carriedCubits, capacityCubits } = event.reason;
+      const carried = formatGameNumber(carriedCubits);
+      const capacity = formatGameNumber(capacityCubits);
+      return variant([
+        [
+          { speaker: 'logistics', channel: 'guild', text: `Capacity reached at ${carried} of ${capacity} cubits. The hero is being routed to market by the shelving rather than by a decision.` },
+          { speaker: 'official', channel: 'guild', text: 'A request to raise the limit has been received and filed adjacent to the limit.' },
+          { speaker: 'hero', channel: 'hero', text: 'I go where the arithmetic points.' },
+        ],
+        [
+          { speaker: 'logistics', channel: 'guild', text: `The load stands at ${carried} against ${capacity}. Procurement has declared the difference to be zero and the matter closed.` },
+          { speaker: 'support', channel: 'guild', text: 'The load was within tolerance for the whole of the memo describing it.' },
+          { speaker: 'hero', channel: 'hero', text: 'Nothing is heavy. There is simply a great deal of it.' },
+        ],
+        [
+          { speaker: 'logistics', channel: 'party', text: `Carrying ${carried} of ${capacity}. Further acquisition has been deferred to the return leg.` },
+          { speaker: 'official', channel: 'party', text: 'The shelf has been thanked for its service and asked to continue.' },
+          { speaker: 'hero', channel: 'hero', text: 'Market, then. On the recommendation of a shelf.' },
+        ],
+      ] as const, candidate);
+    }
     if (world.context.venue === 'road') {
       return variant([
         [
