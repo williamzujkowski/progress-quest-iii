@@ -222,7 +222,16 @@ test.describe('theme contrast on surfaces that need a session', () => {
 
       // The feed opens on the chatter tab, so the activity entries exist but are inside a hidden
       // panel. Measuring them there would sample an element the user cannot see.
-      await page.getByRole('tab', { name: /Activity/i }).click();
+      //
+      // The tab's own state is awaited before anything inside the panel is, because the panel
+      // assertion cannot tell "the click has not applied yet" from "the entries are missing": both
+      // present as `.log-entry` hidden, and the failure names the entry rather than the tab. This
+      // went red once on WebKit for exactly that reason, after ledger seeding was added above and
+      // moved the timing on the slowest engine in the matrix — measured at roughly four times
+      // Chromium, which is where a margin this size stops being comfortable.
+      const activity = page.getByRole('tab', { name: /Activity/i });
+      await activity.click();
+      await expect(activity).toHaveAttribute('aria-selected', 'true');
       // Records fold away by default. A collapsed disclosure is not a hidden failure to measure -
       // it is a surface the reader has to open too, so the test opens it exactly as they would.
       for (const summary of await page.locator('.records-details > summary').all()) await summary.click();
