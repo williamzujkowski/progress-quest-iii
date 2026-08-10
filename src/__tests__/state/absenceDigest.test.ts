@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { RandomGenerator } from '../../engine/prng';
 import { createNewCharacter } from '../../engine/sim';
 import { levelUpTime } from '../../engine/math';
-import { advanceGame } from '../../engine/transition';
+import { advanceGame, type GameTransitionState } from '../../engine/transition';
 import { EMPTY_DIGEST, accumulateDigest, describeDigest, isEmptyDigest } from '../../state/absenceDigest';
 import { useGameStore } from '../../state/gameStore';
 
@@ -139,5 +139,53 @@ describe('a digest belongs to one absence', () => {
 
     expect(afterAbandonment).toBe(alone);
     useGameStore.setState(originalState, true);
+  });
+});
+
+describe('the digest counts the gold a player actually earns', () => {
+  /*
+   * It folded only `gold_received`, which needs `generateItemReward` to return 'Gold' — and that
+   * needs more than 250 distinct names in the bag. Every gold a hero earns in ordinary play arrives
+   * as `inventory_sold` instead.
+   *
+   * Measured over twelve simulated hours to level 23: `gold_received` fired zero times while sales
+   * brought in 805,161 gold. So the return-from-away summary said "none of it witnessed" after an
+   * absence that earned six figures, on the one screen whose whole job is saying what was missed.
+   *
+   * Driven through the real engine rather than hand-built events, because a hand-built fixture is
+   * what let this through: the original suite never exercised `inventory_sold` at all.
+   */
+  const playedAway = (seed: string, seconds: number) => {
+    let state: GameTransitionState = {
+      character: createNewCharacter('Away', 'Half Daemon', 'Robot Monk', new RandomGenerator(seed)),
+      progression: { experience: { currentSeconds: 0, maxSeconds: 100 }, completedTasks: 0, elapsedSeconds: 0 },
+    };
+    const rng = new RandomGenerator(`${seed}:away`);
+    let digest = EMPTY_DIGEST;
+    let sold = 0;
+    for (let second = 0; second < seconds; second += 1) {
+      const result = advanceGame(state, 1000, rng);
+      state = result.state;
+      const events = result.records.map(({ event }) => event);
+      digest = accumulateDigest(digest, events);
+      for (const event of events) if (event.type === 'inventory_sold') sold += event.gold;
+    }
+    return { digest, sold };
+  };
+
+  it('reports the gold that sales brought in', () => {
+    const { digest, sold } = playedAway('away-a', 3600);
+    expect(sold, 'the run earned nothing to report').toBeGreaterThan(0);
+    expect(digest.gold).toBe(sold);
+  });
+
+  it('does not call an hour of earnings an empty absence', () => {
+    // `isEmptyDigest` gates whether the summary is shown at all, so a digest that misses the only
+    // income a hero has can suppress the notice entirely on a quiet-but-profitable absence.
+    for (const seed of ['away-a', 'away-b']) {
+      const { digest } = playedAway(seed, 3600);
+      expect(isEmptyDigest(digest), `${seed}: ${JSON.stringify(digest)}`).toBe(false);
+      expect(digest.gold, `${seed}`).toBeGreaterThan(0);
+    }
   });
 });
