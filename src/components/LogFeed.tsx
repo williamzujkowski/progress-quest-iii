@@ -170,10 +170,15 @@ export const LogFeed: React.FC = () => {
             <span className="sr-only">{world.act === 0 ? 'Prologue' : `Act ${describeGameNumber(world.act)}`} · {formatElapsedForSpeech(world.elapsedSeconds)} adventure elapsed</span>
           </span>
         </div>
+        {/* Three union members rendered raw — `road // travel`, `assignment // dungeon`,
+            `tenor // routine` — with no gloss anywhere in the app, because there is no glossary.
+            They read as machine state leaking into the fiction, which is very nearly the joke and
+            not quite: a newcomer cannot tell whether "tenor" is a stat they should be raising.
+            The titles say what each is a property of, which is the part that was missing. */}
         <div className="world-context-line world-context-meta">
-          <span>{world.venue} // {world.activity}</span>
-          {world.assignmentScope ? <span>assignment // {world.assignmentScope}</span> : null}
-          <span>tenor // {TENOR_LABELS[tenorFor(world)].toLowerCase()}</span>
+          <span title="Where the hero is, and what they are doing there.">{world.venue} // {world.activity}</span>
+          {world.assignmentScope ? <span title="What kind of place the current assignment sent them to.">assignment // {world.assignmentScope}</span> : null}
+          <span title="How the institution is describing this stretch of the file. It follows the act and nothing the hero does.">tenor // {TENOR_LABELS[tenorFor(world)].toLowerCase()}</span>
           {/* The one thing on this line that is not the same for every hero.
               `tenorFor` is a function of the act and nothing else, so the tier, its label and its
               line arrive at identical moments in every save that has ever been played. The register
