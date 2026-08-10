@@ -139,15 +139,21 @@ function candidateFor(source: IdentifiedGameTransitionRecord, recurring: Readonl
   if (event.type === 'equipment_purchased' || event.type === 'equipment_gained') return { kind: 'equipment', priority: event.type === 'equipment_purchased' ? 75 : 70, source };
   if (event.type === 'item_gained') return { kind: 'loot', priority: 65, source };
   if (event.type === 'inventory_sold') {
-    // A sale of nothing is not news. Every character starts with a `{ name: 'Gold', qty: 0 }`
-    // placeholder at the head of the inventory, and the selling task takes the head unconditionally
-    // — so the first market trip of every character sold the currency row for nothing and announced
-    // it to the guild as "0 units became 0 gold".
+    // A sale of nothing is not news.
     //
-    // Suppressed here rather than fixed in the engine on purpose. Changing which item the sell path
-    // takes would move the inventory sequence and every figure downstream of it, which is a
-    // recorded-session change for a cosmetic complaint. The engine is doing what it has always
-    // done; the chat simply has nothing worth saying about it.
+    // This was written for a defect that no longer exists: every character used to start with a
+    // `{ name: 'Gold', qty: 0 }` placeholder at the head of the inventory, and the selling task
+    // takes the head unconditionally, so the first market trip of every character announced "0
+    // units became 0 gold". The note here argued the engine should not be changed, on the grounds
+    // that moving the inventory sequence would shift every figure downstream of it.
+    //
+    // That turned out to be avoidable — the fix was at character creation rather than in the market
+    // path, so no recorded session moved and the placeholder is simply gone. Nothing in play reaches
+    // this branch any more.
+    //
+    // Kept anyway, because an imported save may carry a zero-quantity row and the sale path will
+    // take it. Defensive now rather than load-bearing, which is the part worth saying: a reader
+    // finding this guard should not go looking for the bug it was written against.
     const sale = post.marketSale;
     if (sale && sale.quantity <= 0 && sale.gold <= 0) return undefined;
     return { kind: 'market', priority: 60, source };
