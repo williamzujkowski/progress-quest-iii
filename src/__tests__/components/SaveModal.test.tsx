@@ -16,6 +16,19 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+/**
+ * The encoded save string, unwrapped.
+ *
+ * `encodePQWSave` validates against the schema the importer applies, so it can refuse — the export
+ * path must never hand a player a file that cannot be imported. Every sheet here is legal, so a
+ * refusal is a bug in the fixture and is raised as one.
+ */
+const encodedOf = (sheet: Parameters<typeof encodePQWSave>[0]): string => {
+  const result = encodePQWSave(sheet);
+  if (!result.ok) throw new Error(`expected a legal sheet to encode: ${result.error.message}`);
+  return result.value;
+};
+
 describe('Save Manager recovery', () => {
   it('distinguishes portable character saves from automatic session checkpoints', () => {
     render(<SaveModal isOpen onClose={() => undefined} />);
@@ -193,7 +206,7 @@ describe('Save Manager recovery', () => {
       await act(async () => Promise.resolve());
       expect(screen.queryByRole('status')).toBeNull();
       expect((screen.getByRole('textbox', { name: 'Current save text' }) as HTMLTextAreaElement).value)
-        .toBe(encodePQWSave(useGameStore.getState().character));
+        .toBe(encodedOf(useGameStore.getState().character));
     } finally {
       if (descriptor) Object.defineProperty(navigator, 'clipboard', descriptor);
       else Reflect.deleteProperty(navigator, 'clipboard');
@@ -213,7 +226,7 @@ describe('Save Manager recovery', () => {
     render(<SaveModal isOpen onClose={onClose} />);
 
     fireEvent.change(screen.getByRole('textbox', { name: 'Import Save String (.pqw)' }), {
-      target: { value: encodePQWSave(imported) },
+      target: { value: encodedOf(imported) },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Load Character' }));
 

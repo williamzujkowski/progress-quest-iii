@@ -2135,12 +2135,19 @@ test.describe('Progress Quest III terminal dashboard', () => {
     const activeName = await page.locator('.hero-name > span:not(.badge)').innerText();
     const invalidPqw = await page.evaluate(async () => {
       const { useGameStore } = await import('/src/state/gameStore.ts');
-      const { encodePQWSave } = await import('/src/state/saveManager.ts');
       const character = useGameStore.getState().character;
-      return encodePQWSave({
+      // Encoded here rather than through `encodePQWSave`, which now validates and would refuse this
+      // sheet — correctly, since the export path must never produce a file the importer rejects.
+      // What this test needs is a hostile string that arrived from somewhere else, so it builds the
+      // bytes the way any other producer would.
+      const json = JSON.stringify({
         ...character,
         Quest: { ...character.Quest, currentProgress: 1, maxProgress: 0 },
       });
+      const bytes = new TextEncoder().encode(json);
+      let binary = '';
+      for (const byte of bytes) binary += String.fromCharCode(byte);
+      return btoa(binary);
     });
 
     await page.getByRole('button', { name: /Roster & Saves/i }).click();

@@ -24,6 +24,19 @@ const source = (
   post = snapshot(),
 ): IdentifiedGameTransitionRecord => ({ activityId, record: { event, post } });
 
+/**
+ * The encoded save string, unwrapped.
+ *
+ * `encodePQWSave` validates against the schema the importer applies, so it can refuse — the export
+ * path must never hand a player a file that cannot be imported. Every sheet here is legal, so a
+ * refusal is a bug in the fixture and is raised as one.
+ */
+const encodedOf = (sheet: Parameters<typeof encodePQWSave>[0]): string => {
+  const result = encodePQWSave(sheet);
+  if (!result.ok) throw new Error(`expected a legal sheet to encode: ${result.error.message}`);
+  return result.value;
+};
+
 describe('world context projection', () => {
   it('projects a deterministic departure and arrival when the hero gains a level', () => {
     const input = { kind: 'transition', source: source(40, { type: 'level_gained', level: 7 }) } as const;
@@ -252,7 +265,7 @@ describe('world context projection', () => {
         },
       });
       const checkpointBytes = JSON.stringify(checkpoint);
-      const pqwBytes = encodePQWSave(result.state.character);
+      const pqwBytes = encodedOf(result.state.character);
       return {
         state: result.state,
         records: result.records,
