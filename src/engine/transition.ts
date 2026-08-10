@@ -415,7 +415,18 @@ export function advanceGame(state: GameTransitionState, elapsedMs: number, rng: 
         events.push({ type: 'quest_started', description: generatedQuest.description });
         events.push({ type: 'save_requested', characterName: traits.Name });
       }
-      if (plot.currentProgress >= plot.maxProgress) {
+      // The act guard is what keeps the engine inside the phase rule its own sheet is validated
+      // against. `characterSheetSchema` permits a cinematic only above act 0, and permits act 0 only
+      // alongside `loading` or `prologue` — but `plot.act` advances when the act marker fires, not
+      // when the bar fills, so a full bar at act 0 started a cinematic the sheet then refused. Every
+      // write failed from that tick on, which meant no checkpoint was ever written at all.
+      //
+      // Act 0 has exactly one way out, and it is not this one: the prologue ends with its own act
+      // marker. So a bar that fills early there is clamped and waits, which is what the branch below
+      // already does for every other tick. Not reachable in play — the plot only advances through
+      // prologue tasks while the act is 0 — but reachable from any imported sheet pairing act 0 with
+      // a kill, and a save that cannot be written is worth a condition either way.
+      if (plot.act > 0 && plot.currentProgress >= plot.maxProgress) {
         cinematicOpening = beginInterplotCinematic(rng);
         pendingTasks.push(cinematicOpening.first);
       } else {
