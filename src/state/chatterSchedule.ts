@@ -85,7 +85,7 @@ export function admitsEvent(key: string): boolean {
  * as restraint. `catch_up` is here because it is the row that explains a drain — silencing the
  * explanation is worse than the noise it exists to replace.
  */
-const ALWAYS_HEARD: readonly SocialSceneKind[] = ['milestone', 'level', 'catch_up'];
+const ALWAYS_HEARD: readonly SocialSceneKind[] = ['milestone', 'level', 'arrival', 'catch_up'];
 
 /** How often a free slot is actually spent on an ambient line rather than left silent. */
 const AMBIENT_IN = 3;

@@ -15,7 +15,7 @@ import { projectWorld, type IdentifiedGameTransitionRecord, type WorldContext } 
 import { attendanceLabel, raidMuster } from './raidMuster';
 
 export type SocialChannel = 'guild' | 'world' | 'party' | 'raid' | 'whisper' | 'system' | 'hero';
-export type SocialSceneKind = 'level' | 'quest' | 'equipment' | 'loot' | 'market' | 'zone' | 'milestone' | 'catch_up' | 'ambient';
+export type SocialSceneKind = 'level' | 'quest' | 'equipment' | 'loot' | 'market' | 'zone' | 'milestone' | 'arrival' | 'catch_up' | 'ambient';
 
 export interface SocialSpeaker {
   readonly id: string;
@@ -131,6 +131,19 @@ function candidateFor(source: IdentifiedGameTransitionRecord, recurring: Readonl
   // back, and the reissue is about the stretch of play beginning rather than the one just finished.
   if (event.type === 'quest_started' && recurring.has(source.activityId)) {
     return { kind: 'quest', priority: 86, source, recurring: true };
+  }
+  // The file being opened, which is the one moment the channel had nothing at all to say.
+  //
+  // A new character's first twenty-eight seconds are the prologue, whose durations are fixed and
+  // sum to exactly that. No prologue task is a market or kill boundary, so `chooseCandidate`
+  // offered nothing for any of them — the console opens on Chatter and Chatter was empty, not
+  // because the cadence gate declined but because nothing was ever proposed to it.
+  //
+  // Only the first step, and only the one that follows loading. Five prologue tasks would be five
+  // scenes, and a guild that narrates every beat of somebody's backstory is the caption track this
+  // channel was rebuilt to stop being.
+  if (event.type === 'task_started' && event.task.type === 'prologue' && post.completedTask === 'loading') {
+    return { kind: 'arrival', priority: 98, source };
   }
   if (event.type === 'task_started' && event.task.type === 'cinematic' && post.interplotRole === 'nemesis') return { kind: 'milestone', priority: 100, source };
   if (event.type === 'act_completed') return { kind: 'milestone', priority: 95, source };
@@ -593,6 +606,42 @@ function linesFor(candidate: SceneCandidate): readonly SceneLine[] {
       ],
     ] as const, candidate);
   }
+  if (candidate.kind === 'arrival') {
+    /*
+     * What a guild says when a file is opened, which is not "welcome".
+     *
+     * The joke the whole cast runs on is that this is an institution rather than an adventure, so
+     * the arrival of a hero is a paperwork event. It also has to do a second job: a newcomer is
+     * reading this panel for the first time and learning what it is — fictional, automated, nobody
+     * online — so the lines say what the channel is by behaving like it, rather than by explaining.
+     *
+     * No figures and no hero name. The hero has not done anything yet, and a line that cited a stat
+     * at second two would be quoting a number the player has had no chance to see.
+     */
+    return variant([
+      [
+        { speaker: 'official', channel: 'guild', text: 'A file has been opened. The file is the hero; the hero has not been consulted about this.' },
+        { speaker: 'logistics', channel: 'guild', text: 'Starting equipment issued from the bottom of the cupboard, as is traditional.' },
+        { speaker: 'hero', channel: 'hero', text: 'I have read the cupboard. The cupboard is not encouraging.' },
+      ],
+      [
+        { speaker: 'official', channel: 'guild', text: 'New intake logged. Induction consists of this sentence.' },
+        { speaker: 'support', channel: 'guild', text: 'Morale baseline recorded as untested rather than good.' },
+        { speaker: 'hero', channel: 'hero', text: 'Untested is the most flattering thing anyone will say about me today.' },
+      ],
+      [
+        { speaker: 'logistics', channel: 'guild', text: 'Somebody has joined. Nobody is here, so the somebody is provisional.' },
+        { speaker: 'official', channel: 'guild', text: 'Provisional status resolves automatically once the hero survives the introduction.' },
+        { speaker: 'hero', channel: 'hero', text: 'The introduction is four scenes long and I am in the first one.' },
+      ],
+      [
+        { speaker: 'support', channel: 'guild', text: 'A hero has arrived. Standing by to audit the consequences.' },
+        { speaker: 'logistics', channel: 'guild', text: 'There will be consequences. The cupboard has been opened.' },
+        { speaker: 'hero', channel: 'hero', text: 'Everyone here talks about me in the third person and I have only just got in.' },
+      ],
+    ] as const, candidate);
+  }
+
   if (candidate.kind === 'zone' && event.type === 'task_started') {
     // The shelving sent the hero to market, and until now nothing in the channel said so.
     //
