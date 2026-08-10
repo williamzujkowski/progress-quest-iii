@@ -33,6 +33,18 @@ describe('the world line says what its terms are', () => {
     }
   });
 
+  it('explains the MUD verb rather than assuming it', () => {
+    // `LOOK` is the right joke — a hero who can only be observed by typing at them — and it reads
+    // as an instruction to somebody who has never used a text adventure. The `sr-only` twin already
+    // softens it to "Look:"; the visible one did not. The verb stays; the gloss says what it is.
+    const look = [...feed().querySelectorAll('.world-context-line strong')]
+      .find((node) => node.textContent?.includes('LOOK'));
+    expect(look, 'no LOOK line rendered').toBeTruthy();
+    const title = look?.getAttribute('title') ?? '';
+    expect(title, title).toMatch(/where the hero is standing/i);
+    expect(title, title).toMatch(/text adventure/i);
+  });
+
   it('says what the adventure clock is counting', () => {
     /*
      * `0:10:12` with no h/m/s markers, degrading to `1.16e6s` past a million. The shape is

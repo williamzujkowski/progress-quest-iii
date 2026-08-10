@@ -161,7 +161,11 @@ export const LogFeed: React.FC = () => {
       <section className="world-context" role="region" aria-label="Current world context">
         <span className="world-context-truth">Fictional world · activity-derived</span>
         <div className="world-context-line">
-          <strong>
+          {/* `LOOK` is the MUD verb, and it is the right joke — a hero who can only be observed by
+              typing at them. But it reads as an instruction to a newcomer who has never used one,
+              and the `sr-only` twin already softens it to "Look:" while the visible one does not.
+              The gloss says what the line is rather than replacing the verb. */}
+          <strong title="Where the hero is standing. LOOK is what you would type in a text adventure to be told this.">
             <span aria-hidden="true">LOOK // {world.location}</span>
             <span className="sr-only">Look: {world.spokenLocation}</span>
           </strong>
