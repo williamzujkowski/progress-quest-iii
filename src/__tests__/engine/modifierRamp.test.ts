@@ -75,6 +75,42 @@ describe('modifier grandeur tracks the character', () => {
     expect(profile(120).meanMark).toBeLessThan(60);
   });
 
+  it('keeps the mark a residue rather than a fifth of the item, where the game is played', () => {
+    /*
+     * The first ramp shrank the mark in absolute terms and left it growing as a *share*: 21% of the
+     * item at level 50, 24% at 65, 32% at 200. Two draws from a x1.6 ladder leave a residue on the
+     * order of the gap between adjacent rungs, and that gap grows with the rung — so the original
+     * complaint, an item that is a large integer with two decorative words attached, was mitigated
+     * rather than fixed.
+     *
+     * Bounded through the band a save actually reaches. Levelling is exponential — level 80 is about
+     * 333 days of play — so 20 to 80 is where this matters, and above it the ladder stays coarse on
+     * purpose rather than by neglect.
+     */
+    for (const level of [30, 50, 65, 80]) {
+      const share = profile(level).meanMark / level;
+      expect(share, `level ${level}: mark is ${(share * 100).toFixed(0)}% of the item`).toBeLessThan(0.15);
+    }
+  });
+
+  it('did not buy that by narrowing what the items are called', () => {
+    // The lever this replaced — taking the largest rung that fits on the last draw — halved the mark
+    // and shrank the vocabulary by a third, with one word taking 36% of every draw at level 80. That
+    // trades the funny part for the tidy part. Densifying does the opposite, so the floor is asserted
+    // beside the ceiling above rather than left to be assumed.
+    for (const level of [50, 65]) {
+      const rng = new RandomGenerator(`spread-${level}`);
+      const words = new Set<string>();
+      for (let index = 0; index < 3000; index += 1) {
+        const { slot, name } = generateEquipUpgrade(rng, level);
+        for (const { name: modifier } of analyzeItemMechanics({ kind: 'equipment', name, slot }).quality!.modifiers) {
+          words.add(modifier);
+        }
+      }
+      expect(words.size, `level ${level} draws only ${words.size} distinct modifiers`).toBeGreaterThan(28);
+    }
+  });
+
   it('stops losing a slot to an unlucky draw', () => {
     // Two thirds of level-2 items used to carry no modifier, because drawing something too large
     // ended the loop instead of trying something smaller.

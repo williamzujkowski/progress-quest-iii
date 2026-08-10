@@ -90,9 +90,13 @@ export const OFFENSE_ATTRIB: [string, number][] = [
   // register escalates from a thing that was done to a thing that cannot be undone, which is the
   // only direction an institution has.
   ['Codified', 8],
+  ['Gazetted', 10],
   ['Enshrined', 13],
+  ['Upheld', 17],
   ['Entrenched', 21],
+  ['Sustained', 27],
   ['Statutory', 34],
+  ['Settled', 43],
   ['Canonical', 55],
   ['Perpetual', 89],
   ['Inviolable', 144],
@@ -112,9 +116,13 @@ export const DEFENSE_ATTRIB: [string, number][] = [
   // The same ladder as OFFENSE_ATTRIB above and the same reasoning, in this table's own register:
   // the offensive words are things done to a process, these are things done to a document.
   ['Attested', 8],
+  ['Notarised', 10],
   ['Engrossed', 13],
+  ['Enrolled', 17],
   ['Warranted', 21],
+  ['Executed', 27],
   ['Ordained', 34],
+  ['Perfected', 43],
   ['Hallowed', 55],
   ['Sacrosanct', 89],
   ['Unabridged', 144],
