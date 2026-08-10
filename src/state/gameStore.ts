@@ -367,10 +367,18 @@ export const useGameStore = create<GameStore>((set, get) => {
         //
         // The filing comes from the sheet the store already holds rather than from the snapshot, so
         // the engine needs no new field and the recorded sessions stay untouched. What changed is
-        // when it runs: `fileLoadout` costs 22 µs of a 26 µs tick — eleven `analyzeItemMechanics`
-        // calls plus `loadoutQuality`'s eleven more — and `scheduleChatter` reaches its ambient
-        // branch on roughly 610 of 20 000 ticks. Better than half the tick handler was being
-        // discarded.
+        // when it runs, and the deferral is worth far more than the figures here once claimed.
+        //
+        // Those figures named the wrong function. `fileLoadout` was said to cost 22 µs of a 26 µs
+        // tick; re-measured, it is a cache hit at 0.04 µs on the overwhelming majority of calls,
+        // because it is keyed on `Equip` identity and the thunk rarely fires twice across a change.
+        // What actually costs anything is this `projectAmbient` call with a full memory bag —
+        // 24 µs against 6 µs without one. The difference is derivation done eagerly, before the
+        // lane that needs it has been chosen, so most of it is discarded whatever happens.
+        //
+        // The tick itself is 2.3 to 3.7 µs measured through the store, not 26. So the saving is
+        // larger than it was described as, not smaller: this branch is reached on well under one
+        // per cent of ticks, and it is several times the cost of the tick that skips it.
         () => projectAmbient(
           sources.at(-1)?.record.post.hero ?? { name: character.Traits.Name, race: character.Traits.Race, className: character.Traits.Class },
           chatterTasks,
@@ -413,8 +421,13 @@ export const useGameStore = create<GameStore>((set, get) => {
        * Zustand compares by reference, so each of those woke `LogFeed` and `ChatterFeed` twenty
        * times a second to rebuild about 138 keyed rows — including the tab that is currently
        * `hidden` — and `LogFeed` re-derives the whole world projection in its render body, which
-       * costs 33 item analyses. The simulation itself is 0.07 µs of a 26 µs tick; this was most of
-       * the rest.
+       * costs 33 item analyses. The simulation itself is a fraction of a microsecond; this was most
+       * of the rest.
+       *
+       * The tick was 26 µs when that was written and is 2.3 to 3.7 µs now, measured through the
+       * store on saves from fresh to a day old. The ratio is what the argument rests on and it
+       * still holds — but a bare figure in a comment is exactly the thing that goes stale without
+       * anybody able to notice, so this one is stated as a shape rather than a number.
        *
        * Returning the previous array is safe because it is already in its final form: it was
        * capped when it was built, and with nothing to prepend there is nothing to re-cap.

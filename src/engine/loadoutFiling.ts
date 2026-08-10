@@ -77,10 +77,16 @@ const REPEAT_THRESHOLD = 3;
  * 23.6 us against a 6.9 us tick — the render path was more than three times the simulation, and
  * 99.3% of it re-derived a loadout that had not moved.
  *
- * Identity rather than contents, which is what makes this safe rather than a guess: the engine
- * replaces `Equip` with a new object whenever it changes a slot — `equip = { ...equip, [slot]: … }`
- * — and never mutates one in place. A stale hit would need an `Equip` that changed without being
- * replaced, which nothing here does.
+ * Identity rather than contents, which is what makes this safe rather than a guess: the engine never
+ * mutates an `Equip` in place. A stale hit would need one that changed without being replaced, which
+ * nothing here does.
+ *
+ * Safe, but coarser than it reads. The replacement is not tied to a slot changing — the per-task
+ * loop opens with `equip = { ...character.Equip }` unconditionally — so identity moves on every
+ * completed task whether or not a slot did. About 450 identity changes against 16 to 35 real ones
+ * over 40 000 ticks. Erring conservative is the right direction and the cost is a fraction of a
+ * microsecond per tick; the invalidation is simply about thirteen times more eager than the rule
+ * stated here would imply.
  *
  * One entry, not a map. The question is only ever "the same as last time?", and a growing cache on
  * a session that runs for weeks is a leak dressed up as an optimisation.
