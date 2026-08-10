@@ -601,34 +601,34 @@ export const EXCHANGES: readonly (readonly AmbientLine[])[] = [
     { seat: 'logistics', channel: 'guild', text: 'I initialled it, which is legally similar.' },
   ],
   [
-    { seat: 'field', channel: 'party', text: 'Muster at the usual hour.' },
-    { seat: 'support', channel: 'party', text: 'The usual hour has moved and kept its name.' },
+    { seat: 'field', channel: 'party', text: 'The start has been moved forward by an hour.' },
+    { seat: 'support', channel: 'party', text: 'It has been moved forward by an hour every week it has been moved.' },
   ],
   [
-    { seat: 'logistics', channel: 'guild', text: 'Who has the key to the annexe?' },
-    { seat: 'official', channel: 'guild', text: 'The annexe has the key to the annexe.' },
+    { seat: 'logistics', channel: 'guild', text: 'Who has clearance for the annexe?' },
+    { seat: 'official', channel: 'guild', text: 'Clearance is granted to anyone who has been in the annexe.' },
   ],
   [
     { seat: 'support', channel: 'guild', text: 'If it goes wrong, whose is it?' },
-    { seat: 'official', channel: 'guild', text: 'Yours. It was pre-assigned in the spring.' },
+    { seat: 'official', channel: 'guild', text: 'The party that moved first. The minutes do not record who moved first.' },
   ],
   [
-    { seat: 'field', channel: 'party', text: 'Is this the same cart as last time?' },
-    { seat: 'logistics', channel: 'party', text: 'It is the same cart. It has a new number.' },
+    { seat: 'field', channel: 'party', text: 'Is this the same hall as the last one?' },
+    { seat: 'logistics', channel: 'party', text: 'It is the same hall. It has a new name and a longer approach.' },
   ],
   [
-    { seat: 'official', channel: 'guild', text: 'I have drafted the objectives.' },
-    { seat: 'support', channel: 'guild', text: 'Drafted, or written?' },
-    { seat: 'official', channel: 'guild', text: 'Drafted.' },
+    { seat: 'official', channel: 'guild', text: 'The request was filed as need.' },
+    { seat: 'support', channel: 'guild', text: 'Need, or greed?' },
+    { seat: 'official', channel: 'guild', text: 'Need.' },
   ],
   [
-    { seat: 'logistics', channel: 'guild', text: 'The kettle is a shared asset.' },
-    { seat: 'support', channel: 'guild', text: 'Then I share it more than anyone.' },
+    { seat: 'logistics', channel: 'guild', text: 'The stores are open to every rank.' },
+    { seat: 'support', channel: 'guild', text: 'They were. The second cabinet needs a rank nobody holds.' },
   ],
   [
-    { seat: 'field', channel: 'party', text: 'I found a shortcut.' },
-    { seat: 'official', channel: 'party', text: 'Is it shorter?' },
-    { seat: 'field', channel: 'party', text: 'It is a shortcut.' },
+    { seat: 'field', channel: 'party', text: 'We went round the corridor instead of through it.' },
+    { seat: 'official', channel: 'party', text: 'The corridor is listed as part of the visit.' },
+    { seat: 'field', channel: 'party', text: 'It has been visited from outside.' },
   ],
 ];
 

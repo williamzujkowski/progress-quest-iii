@@ -358,6 +358,30 @@ describe('every bank in the module, whether or not anybody listed it', () => {
     }
   });
 
+  it('never says the same sentence in two banks', () => {
+    /*
+     * Three cross-bank duplicates shipped with a repetition test already in the file, because that
+     * test asks a different question: `chatterRepetition.test.ts` measures repeats inside a
+     * five-line window of the *rendered feed*. Two banks holding the same string are drawn by two
+     * different lanes and will rarely land inside one window, so nothing failed while the channel
+     * read as though it had run out of material.
+     *
+     * What shipped: "Muster at the usual hour." byte-identical in `AMBIENT_LINES` and `EXCHANGES`,
+     * and the shortcut joke told once as a tight one-liner and again as a three-beat exchange.
+     *
+     * Identity rather than similarity. Two lines that rhyme are a judgement call; two lines that are
+     * the same string are a mistake, and only the second is worth failing a build over.
+     */
+    const seen = new Map<string, string>();
+    for (const [bank, lines] of DISCOVERED) {
+      for (const { text } of lines) {
+        const first = seen.get(text);
+        expect(first === undefined || first === bank, `"${text}" appears in both ${first} and ${bank}`).toBe(true);
+        seen.set(text, bank);
+      }
+    }
+  });
+
   it('leaves no placeholder unresolvable, so no bank can ship a substitution nothing fills', () => {
     // A `{whatever}` that `projectAmbient` does not replace renders as braces in the feed. Checked
     // against the substitutions the projection actually performs rather than a list kept here.
