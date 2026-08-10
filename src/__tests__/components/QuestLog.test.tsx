@@ -69,23 +69,59 @@ describe('the quest panel says what its bars are counting', () => {
     const quest = screen.getByRole('progressbar', { name: 'Current quest progress' });
     const plot = screen.getByRole('progressbar', { name: 'Plot act progress' });
 
-    expect(quest.parentElement?.textContent).toContain('42 / 76 s');
-    expect(plot.parentElement?.textContent).toContain('492 / 21600 s');
+    // Floored, not rounded. Rounding let the label reach the maximum before the track did.
+    expect(quest.parentElement?.textContent).toContain('41 / 76 s');
+    expect(plot.parentElement?.textContent).toContain('491 / 21600 s');
     // The announcement too, or a screen reader still reads two decimal places aloud every sample.
-    expect(quest.getAttribute('aria-valuetext')).toBe('42 of 76 seconds');
-    expect(plot.getAttribute('aria-valuetext')).toBe('492 of 21600 seconds');
+    expect(quest.getAttribute('aria-valuetext')).toBe('41 of 76 seconds');
+    expect(plot.getAttribute('aria-valuetext')).toBe('491 of 21600 seconds');
   });
 
-  it('keeps the fill exact, so rounding is a label change and not a progress change', () => {
-    // The percentages come off the raw values. A bar rounded before the division would disagree with
-    // itself at the edges — 0.4 of a second showing as a filled pixel, or the reverse.
-    showing((character) => ({ ...character, Quest: { ...character.Quest, currentProgress: 0.6, maxProgress: 100 } }));
+  it('never claims a completion the bar does not show', () => {
+    /*
+     * This assertion previously pinned the opposite, and the reasoning was wrong. It said the label
+     * and the fill "are allowed to disagree because they answer different questions, and the fill is
+     * the one that must not lie" — which protects the fill and says nothing about the label. Rounding
+     * up to the maximum *is* the label lying: at 75.6 of 76 the panel read "76 / 76 s" beside a bar
+     * at 99%, and `aria-valuetext` announced seventy-six of seventy-six while `aria-valuenow` said
+     * ninety-nine. One element, two contradictory facts, on the last tick of every quest.
+     *
+     * Both now floor, so they cannot disagree about the thing that matters.
+     */
+    showing((character) => ({ ...character, Quest: { ...character.Quest, currentProgress: 75.6, maxProgress: 76 } }));
 
     const quest = screen.getByRole('progressbar', { name: 'Current quest progress' });
-    // 0.6 of 100 floors to 0%, while the label rounds to 1 — the two are allowed to disagree because
-    // they answer different questions, and the fill is the one that must not lie.
-    expect(quest.getAttribute('aria-valuenow')).toBe('0');
-    expect(quest.parentElement?.textContent).toContain('1 / 100 s');
+    expect(quest.getAttribute('aria-valuenow')).toBe('99');
+    expect(quest.getAttribute('aria-valuetext')).toBe('75 of 76 seconds');
+    expect(quest.parentElement?.textContent).toContain('75 / 76 s');
+    expect(quest.parentElement?.textContent).not.toContain('76 / 76 s');
+  });
+
+  it('reaches the maximum only when the track has', () => {
+    showing((character) => ({ ...character, Quest: { ...character.Quest, currentProgress: 76, maxProgress: 76 } }));
+
+    const quest = screen.getByRole('progressbar', { name: 'Current quest progress' });
+    expect(quest.getAttribute('aria-valuenow')).toBe('100');
+    expect(quest.parentElement?.textContent).toContain('76 / 76 s');
+  });
+
+  it('does not divide by a denominator it has not checked', () => {
+    // The only panel of the three without a guard. `maxProgress: 0` is schema-legal, and it rendered
+    // `NaN%`, an `aria-valuenow` of `NaN`, and a `width` React drops — so the bar vanished rather
+    // than reading empty.
+    showing((character) => ({
+      ...character,
+      Task: { ...character.Task, durationMs: 0, elapsedMs: 0 },
+      Quest: { ...character.Quest, currentProgress: 0, maxProgress: 0 },
+      Plot: { ...character.Plot, currentProgress: 0, maxProgress: 0 },
+    }));
+
+    for (const name of ['Current task progress', 'Current quest progress', 'Plot act progress']) {
+      const bar = screen.getByRole('progressbar', { name });
+      expect(bar.getAttribute('aria-valuenow'), name).toBe('0');
+      expect((bar.firstElementChild as HTMLElement).style.width, name).toBe('0%');
+    }
+    expect(document.body.textContent).not.toContain('NaN');
   });
 
   it('announces the same seconds to a screen reader, which the percentage alone did not', () => {

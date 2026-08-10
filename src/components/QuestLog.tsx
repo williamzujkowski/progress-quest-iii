@@ -35,12 +35,29 @@ export const QuestLog: React.FC = () => {
    * state and moving them would rewrite every golden to make a bar tidier. The percentages below
    * still come off the raw values, so the fill stays exact and only the label is coarse.
    */
-  const questProgress = Math.round(character.Quest.currentProgress);
-  const plotProgress = Math.round(character.Plot.currentProgress);
+  //
+  // Floored rather than rounded, and the difference is the whole repair. Rounding made the label
+  // reach the maximum before the track did: at 75.6 of 76 the ratio read "76 / 76 s" beside a bar
+  // filled to 99%, and `aria-valuetext` announced seventy-six of seventy-six while `aria-valuenow`
+  // said ninety-nine — one element telling a screen reader two contradictory things, on the last
+  // tick of every quest.
+  //
+  // The percentages below floor. Flooring here too means the two can never disagree about whether
+  // the thing is finished, which is the only disagreement that matters. A label may now understate
+  // by under a second, which is invisible on a track denominated in tens.
+  const questProgress = Math.floor(character.Quest.currentProgress);
+  const plotProgress = Math.floor(character.Plot.currentProgress);
 
-  const taskPct = Math.min(100, Math.floor((character.Task.elapsedMs / character.Task.durationMs) * 100));
-  const questPct = Math.min(100, Math.floor((character.Quest.currentProgress / character.Quest.maxProgress) * 100));
-  const plotPct = Math.min(100, Math.floor((character.Plot.currentProgress / character.Plot.maxProgress) * 100));
+  // Guarded denominators, which this panel was alone in not having — `HeroBanner` checks its
+  // experience maximum and `InventoryView` checks its capacity, while all three bars here divided
+  // unguarded. A schema-legal zero rendered `NaN%`, an `aria-valuenow` of `NaN`, and a `width` React
+  // drops entirely, so the bar disappeared rather than reading empty.
+  const share = (current: number, total: number): number =>
+    total > 0 ? Math.min(100, Math.floor((current / total) * 100)) : 0;
+
+  const taskPct = share(character.Task.elapsedMs, character.Task.durationMs);
+  const questPct = share(character.Quest.currentProgress, character.Quest.maxProgress);
+  const plotPct = share(character.Plot.currentProgress, character.Plot.maxProgress);
 
   return (
     <section className="card quest-card" aria-labelledby="quest-log-heading">
