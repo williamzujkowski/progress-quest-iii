@@ -30,7 +30,8 @@ import type { SocialEntry, SocialSceneKind } from './socialProjection';
  * as people arriving at a topic rather than a timer firing.
  *
  * Two ones and a thirty in the same list is the point. Consecutive short gaps produce the burst,
- * the long tail produces the silence, and the mean lands near six without any gap ever being six.
+ * the long tail produces the silence, and the mean lands on eight without any gap ever being eight.
+ * (It said "near six" from the day it was written; the list sums to 64 across eight entries.)
  */
 const TASK_GAPS = [1, 1, 2, 3, 5, 8, 14, 30] as const;
 
@@ -48,9 +49,12 @@ const ADMITTED_IN = 5;
  * Whether enough has happened since the last line for anyone to speak again.
  *
  * The gap is redrawn for each attempt from the key rather than fixed, so the interval varies without
- * anything having to remember which interval it chose. Keys should be built from values that change
- * per line — the hero's identity and the task count — so consecutive attempts do not all draw the
- * same gap and freeze the channel.
+ * anything having to remember which interval it chose. The key has to be built from something that
+ * changes per attempt, or consecutive attempts all draw the same gap and freeze the channel.
+ *
+ * The task count is what does that, and it is the whole of the only key passed: `gap:${completedTasks}`.
+ * This paragraph used to say "the hero's identity and the task count", which no caller has ever
+ * done — harmless, since the counter alone varies, but it described a scheme rather than the code.
  */
 export function readyToSpeak(completedTasks: number, lastLineTasks: number, key: string): boolean {
   if (!Number.isFinite(completedTasks) || !Number.isFinite(lastLineTasks)) return false;
@@ -103,7 +107,7 @@ export interface ChatterCadence {
    * of four minutes later.
    *
    * That was measured at 15% of ambient lines repeating within five when this was written, against
-   * a rotation of eleven lanes. It is 6.0% now, on eighteen — the seven lanes added since draw the
+   * a rotation of eleven lanes. It is 6.0% now, on twenty-one — the lanes added since draw the
    * running bits less often, so they collide with themselves less often. The guard is still earning
    * its place: six lines in a hundred repeating inside one unscrolled panel is still a panel that
    * looks broken, and they are still the same two lanes doing it.

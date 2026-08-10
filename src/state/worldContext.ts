@@ -294,7 +294,7 @@ function noticesFor(source: IdentifiedGameTransitionRecord, context: WorldContex
   if (event.type === 'equipment_gained' || event.type === 'equipment_purchased') {
     if (!equipment) return [];
     const filed = notice(activityId, 0, 'loot', `${equipment.label} equipment filed at generation quality ${formatGameNumber(equipment.quality)}; damage is not modeled.`);
-    // A legendary piece turns up in roughly one acquisition in fifty and used to read exactly
+    // A legendary piece turns up in roughly one acquisition in twenty to fifty, depending on tier and used to read exactly
     // like the other forty-nine: the same sentence with a different adjective in the middle of
     // it. The institution now says something, which is the whole of what a rare find gets here -
     // the item is no more use in a fight than any other, and the line above still says so.
