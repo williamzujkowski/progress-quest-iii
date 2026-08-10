@@ -116,9 +116,21 @@ const BY_SLOT: Readonly<Record<Exclude<EquipSlot, 'Weapon' | 'Shield'>, readonly
 export function armourNameForSlot(slot: ArmourSlot, index: number): string {
   const shared = ARMORS[index]?.[0];
   if (shared === undefined) return '';
+  // The fallback cannot fire. Every slot table holds exactly as many entries as `ARMORS`, and the
+  // line above has already returned for any index outside it — so by here the index is in range for
+  // both. It stays because `noUncheckedIndexedAccess` types the lookup as possibly undefined, and
+  // the narrowing that would prove otherwise is not one the compiler can do. Unreachable at run
+  // time, required at compile time: worth saying, because it reads like dead code and is not.
   return BY_SLOT[slot][index] ?? shared;
 }
 
+/**
+ * Exported for tests, which assert the per-slot tables against `ARMORS` directly.
+ *
+ * `BY_SLOT` itself stays private — this alias is the whole of the public surface, and it exists so
+ * the shape can be checked rather than so anything can reach it. Named here because a sweep for
+ * exports with one production occurrence finds it every time otherwise.
+ */
 export { BY_SLOT as ARMOUR_BY_SLOT };
 
 /**
