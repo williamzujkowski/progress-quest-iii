@@ -428,7 +428,13 @@ export function applyQuestReward(rng: RandomGenerator, character: CharacterSheet
     return { kind, character: { ...character, Spells: spells } };
   }
   if (kind === 'equipment') {
-    const upgrade = generateEquipUpgrade(rng, character.Traits.Level);
+    // The act travels with the reward, as it does on the other two award paths.
+    //
+    // This call held `character.Plot.act` and dropped it, so a quest prize was the one piece of
+    // equipment that never aged into the industrial register: measured at an industrial share of
+    // 0.000 at every act, against 0.548 for the same level and act on the paths that pass it.
+    // About 7.7% of acquisitions, so the register aged for most gear and never for a prize.
+    const upgrade = generateEquipUpgrade(rng, character.Traits.Level, character.Plot.act);
     return {
       kind,
       character: { ...character, Equip: { ...character.Equip, [upgrade.slot]: upgrade.name } },
