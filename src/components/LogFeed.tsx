@@ -1,4 +1,5 @@
 import { Scroll } from 'lucide-react';
+import { ENCOUNTER_SECONDS_PRECISION } from '../engine/loadoutFiling';
 import React, { useId, useLayoutEffect, useRef, useState } from 'react';
 import { describeGameNumber, formatGameNumber } from '../engine/text';
 import { useGameStore } from '../state/gameStore';
@@ -231,8 +232,8 @@ export const LogFeed: React.FC = () => {
                 division rather than recomputed, because two derivations of one number drift. */}
             {counterfactual && (
               <li>
-                This encounter is scheduled at {(counterfactual.actualMs / 1000).toFixed(1)}s.
-                Under the original schedule it would have taken {(counterfactual.canonicalMs / 1000).toFixed(1)}s.
+                This encounter is scheduled at {(counterfactual.actualMs / 1000).toFixed(ENCOUNTER_SECONDS_PRECISION)}s.
+                Under the original schedule it would have taken {(counterfactual.canonicalMs / 1000).toFixed(ENCOUNTER_SECONDS_PRECISION)}s.
               </li>
             )}
             {loadout.repeatedModifier && (
