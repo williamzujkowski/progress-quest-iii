@@ -19,8 +19,14 @@
  * So the denominator is `progression.elapsedSeconds`, the game's own clock, which accrues on every
  * completed task. Experience-seconds per elapsed-second is a stable property of the engine's task
  * mix, and it does not care whether those seconds arrived live, in a drain, or beside a pause.
- * During ordinary play a game second is a real second, which is what makes the result a duration
- * the player can read.
+ * During ordinary play a game second is very nearly a real second, which is what makes the result a
+ * duration the player can read.
+ *
+ * "Very nearly" rather than "is". The clock accrues a rounded task duration, so it runs within a
+ * fraction of a percent of real task time — measured at 0.997 to 0.999 over twelve hours — rather
+ * than exactly on it. It used to floor instead, which lost about 0.368 s per task in the same
+ * direction every time and put the ratio at 0.916, and this sentence asserted otherwise the whole
+ * while. The bound is pinned in `elapsedDrift.test.ts` rather than restated here.
  */
 
 import { retainWithin } from './rollingWindow';
