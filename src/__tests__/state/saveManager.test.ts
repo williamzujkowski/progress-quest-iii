@@ -98,10 +98,24 @@ describe('importing a character that is already in the roster', () => {
   });
 });
 
+/**
+ * The encoded string, or a loud failure.
+ *
+ * `encodePQWSave` returns a result now: it validates against the same schema the importer applies,
+ * so the export button cannot hand a player a file that `decodePQWSave` will refuse. Tests that
+ * encode a legal sheet unwrap it here; the one that encodes an illegal one asserts the refusal
+ * directly.
+ */
+const encodedOf = (sheet: Parameters<typeof encodePQWSave>[0]): string => {
+  const result = encodePQWSave(sheet);
+  if (!result.ok) throw new Error(`expected a legal sheet to encode: ${result.error.message}`);
+  return result.value;
+};
+
 describe('Save Manager & Serialization', () => {
   it('encodes and decodes a character sheet to base64 .pqw format cleanly', () => {
     const originalChar = createNewCharacter('Base64Hero', 'Provisioned Ghosted Candidate', 'Interim Lunatic', 9999);
-    const encoded = encodePQWSave(originalChar);
+    const encoded = encodedOf(originalChar);
 
     expect(typeof encoded).toBe('string');
     expect(encoded.length).toBeGreaterThan(0);
@@ -124,7 +138,7 @@ describe('Save Manager & Serialization', () => {
     const midpoint = advanceGame({ character, progression }, 7000, new RandomGenerator('unused-prologue-rng')).state;
     expect(midpoint.character.Task).toMatchObject({ type: 'prologue', elapsedMs: 5000 });
 
-    const decoded = decodePQWSave(encodePQWSave(midpoint.character));
+    const decoded = decodePQWSave(encodedOf(midpoint.character));
     expect(decoded.ok).toBe(true);
     if (!decoded.ok) return;
     saveToRoster(midpoint.character);
@@ -145,7 +159,7 @@ describe('Save Manager & Serialization', () => {
   it('preserves Unicode character names with the standards-based UTF-8 codec', () => {
     const originalChar = createNewCharacter('Éowyn 🛡️', 'Provisioned Ghosted Candidate', 'Interim Lunatic', 9998);
 
-    const decoded = decodePQWSave(encodePQWSave(originalChar));
+    const decoded = decodePQWSave(encodedOf(originalChar));
 
     expect(decoded).toMatchObject({ ok: true, value: { Traits: { Name: 'Éowyn 🛡️' } } });
   });
@@ -193,10 +207,9 @@ describe('Save Manager & Serialization', () => {
     const character = createNewCharacter('Crowded', 'Off-Prem Elf', 'Vermineer', 303);
     character.Inventory = Array.from({ length: 5_001 }, (_, index) => ({ name: `Item ${index}`, qty: 1 }));
 
-    expect(decodePQWSave(encodePQWSave(character))).toMatchObject({
-      ok: false,
-      error: { code: 'invalid_schema' },
-    });
+    // Refused on the way out as well as on the way in. This used to encode happily and be caught by
+    // the importer, which is the whole defect: the file existed, looked like a save, and was dead.
+    expect(encodePQWSave(character)).toMatchObject({ ok: false, error: { code: 'invalid_schema' } });
   });
 
   it('rejects unknown keys at every object boundary in the modern PQW v0 profile', () => {
@@ -322,7 +335,7 @@ describe('Save Manager & Serialization', () => {
     const character = createNewCharacter('Overflow', 'Off-Prem Elf', 'Vermineer', 304);
     character.Traits.Level = MAX_FINITE_CHARACTER_LEVEL + 1;
 
-    const decoded = decodePQWSave(encodePQWSave(character));
+    const decoded = decodePQWSave(encodedOf(character));
     expect(decoded.ok).toBe(true);
     if (!decoded.ok) return;
     useGameStore.getState().startSession({ source: 'import', character: decoded.value });

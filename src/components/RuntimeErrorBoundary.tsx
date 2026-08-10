@@ -56,7 +56,17 @@ export class RuntimeErrorBoundary extends React.Component<RuntimeErrorBoundaryPr
 
   private downloadSave = () => {
     try {
-      downloadText('progquest-current.pqw', encodePQWSave(useGameStore.getState().character), 'text/plain');
+      // Said here rather than discovered later. This screen is reached because something already
+      // went wrong, so it is exactly where a character is most likely to be in a state the importer
+      // will refuse — and handing over a file that cannot be imported would be the worse failure of
+      // the two, because nothing would announce it until the session was gone.
+      const encoded = encodePQWSave(useGameStore.getState().character);
+      if (!encoded.ok) {
+        diagnostics.record({ code: 'save_export_failed', severity: 'warning', subsystem: 'save', operation: 'export', outcome: 'failed', source: 'recovery-ui' });
+        this.setState({ status: encoded.error.message });
+        return;
+      }
+      downloadText('progquest-current.pqw', encoded.value, 'text/plain');
       this.setState({ status: 'Current save downloaded.' });
     } catch (error) {
       diagnostics.record({ code: 'save_export_failed', severity: 'warning', subsystem: 'save', operation: 'export', outcome: 'failed', source: 'recovery-ui', error });

@@ -32,6 +32,19 @@ const task = (type: 'heading' | 'selling' | 'kill' | 'cinematic') => ({
   task: { description: 'Opaque canonical activity', durationMs: 1, elapsedMs: 0, type },
 });
 
+/**
+ * The encoded save string, unwrapped.
+ *
+ * `encodePQWSave` validates against the schema the importer applies, so it can refuse — the export
+ * path must never hand a player a file that cannot be imported. Every sheet here is legal, so a
+ * refusal is a bug in the fixture and is raised as one.
+ */
+const encodedOf = (sheet: Parameters<typeof encodePQWSave>[0]): string => {
+  const result = encodePQWSave(sheet);
+  if (!result.ok) throw new Error(`expected a legal sheet to encode: ${result.error.message}`);
+  return result.value;
+};
+
 describe('project-owned simulated cast', () => {
   it('defines eight safe original personas in four interchangeable seats', () => {
     expect(SOCIAL_PERSONAS).toHaveLength(8);
@@ -296,7 +309,7 @@ describe('deterministic social batch projection', () => {
         remainingElapsedMs: result.remainingElapsedMs,
         rng: rng.getState(),
         checkpoint: JSON.stringify(checkpoint),
-        pqw: encodePQWSave(result.state.character),
+        pqw: encodedOf(result.state.character),
       };
     };
 

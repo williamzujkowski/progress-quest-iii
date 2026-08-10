@@ -46,8 +46,11 @@ export const SaveModal: React.FC<SaveModalProps> = ({ isOpen, onClose }) => {
     if (isOpen) {
       const character = useGameStore.getState().character;
       setCurrentName(character.Traits.Name);
-      setCurrentPQW(encodePQWSave(character));
-      setFeedback(null);
+      // A sheet the importer would refuse yields no save text and says why, rather than filling the
+      // box with a string that cannot be imported anywhere.
+      const encoded = encodePQWSave(character);
+      setCurrentPQW(encoded.ok ? encoded.value : '');
+      setFeedback(encoded.ok ? null : { kind: 'alert', message: encoded.error.message });
       refreshRoster();
     }
   }, [isOpen]);
@@ -63,16 +66,29 @@ export const SaveModal: React.FC<SaveModalProps> = ({ isOpen, onClose }) => {
       return;
     }
     setCurrentName(character.Traits.Name);
-    setCurrentPQW(encodePQWSave(character));
+    // `saveToRoster` has already validated to get here, so this cannot fail — but the box is filled
+    // from the result rather than from an assumption, so the two can never disagree.
+    const encoded = encodePQWSave(character);
+    setCurrentPQW(encoded.ok ? encoded.value : '');
     setRoster(result.value);
-    setFeedback({ kind: 'status', message: 'Character saved to this browser.' });
+    setFeedback(encoded.ok
+      ? { kind: 'status', message: 'Character saved to this browser.' }
+      : { kind: 'alert', message: encoded.error.message });
   };
 
   const handleCopyPQW = async () => {
     if (isCopying) return;
     const character = useGameStore.getState().character;
-    const saveText = encodePQWSave(character);
+    const encoded = encodePQWSave(character);
     setCurrentName(character.Traits.Name);
+    if (!encoded.ok) {
+      // Refused before the clipboard is touched. Copying a string the importer will reject is worse
+      // than copying nothing, because the player finds out on the far side of the paste.
+      setCurrentPQW('');
+      setFeedback({ kind: 'alert', message: encoded.error.message });
+      return;
+    }
+    const saveText = encoded.value;
     setCurrentPQW(saveText);
     setFeedback(null);
     setIsCopying(true);

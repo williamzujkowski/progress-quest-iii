@@ -30,12 +30,30 @@ function saveFailure(code: SaveErrorCode, message: string): SaveResult<never> {
   return { ok: false, error: { code, message } };
 }
 
-export function encodePQWSave(sheet: CharacterSheet): string {
+/**
+ * The save as a shareable string, or a refusal — never a file the importer will reject.
+ *
+ * This did not validate. So while a hero was in a state the checkpoint writer and the roster writer
+ * both correctly refused, the export button and the error boundary's "download current save" both
+ * succeeded, and handed the player a `.pqw` that `decodePQWSave` then turned away as
+ * `invalid_schema`. The one path offering an escape from a broken save was the one that silently
+ * produced a dead file, and nothing said so until the player tried to import it somewhere else —
+ * by which time the session it came from is usually gone.
+ *
+ * Validated against `characterSheetSchema`, the same schema the importer applies, so the two cannot
+ * drift into disagreeing about what a save is. Returning a result rather than throwing, because both
+ * callers are player-facing and have somewhere to put the message.
+ */
+export function encodePQWSave(sheet: CharacterSheet): SaveResult<string> {
+  const parsed = characterSheetSchema.safeParse(sheet);
+  if (!parsed.success) {
+    return saveFailure('invalid_schema', 'This character has invalid save data and cannot be exported. Nothing was changed.');
+  }
   const jsonString = JSON.stringify(sheet);
   const bytes = new TextEncoder().encode(jsonString);
   let binary = '';
   for (const byte of bytes) binary += String.fromCharCode(byte);
-  return btoa(binary);
+  return { ok: true, value: btoa(binary) };
 }
 
 function decodeBase64Utf8(value: string): string {
