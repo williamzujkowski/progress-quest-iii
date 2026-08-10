@@ -2,8 +2,21 @@ import { Scale } from 'lucide-react';
 import React from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '../state/gameStore';
-import { KIND_LABELS, QUEST_KINDS, describeSpan, displayTarget, isEmpty, mostLitigated } from '../state/caseload';
+import { KIND_LABELS, QUEST_KINDS, describeSpan, displayTarget, isEmpty, mostLitigated, KIND_DESCRIPTIONS } from '../state/caseload';
 import { GameNumber } from './GameNumber';
+
+/**
+ * The gloss for a row, found by its label.
+ *
+ * Keyed on the label rather than the kind because that is what the rows carry by the time they
+ * reach here. Falls back to nothing rather than to a guess: a row this cannot name is a row that
+ * should say nothing, not one that should say something plausible.
+ */
+const describeKind = (label: string): string | undefined => {
+  const kind = (Object.keys(KIND_LABELS) as (keyof typeof KIND_LABELS)[]).find((key) => KIND_LABELS[key] === label);
+  return kind === undefined ? undefined : KIND_DESCRIPTIONS[kind];
+};
+
 
 /**
  * What the casework has consisted of. Every figure is a count of quests the engine classified
@@ -43,7 +56,7 @@ export const Caseload: React.FC = () => {
       </div>
       <ul className="equip-list commendation-list" aria-label="Docket summary">
         {filed.map(([label, count]) => (
-          <li className="equip-item" key={label}>
+          <li className="equip-item" key={label} title={describeKind(label)}>
             <span className="equip-slot">{label}</span>
             <span className="commendation-value"><GameNumber value={count} /></span>
           </li>

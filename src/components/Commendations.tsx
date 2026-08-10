@@ -31,7 +31,7 @@ export const Commendations: React.FC = () => {
   const rows: ReadonlyArray<readonly [string, number]> = [
     ...(specimens > 0 ? [['Distinct specimens filed', specimens] as const] : []),
     ['Highest level attained', records.highestLevel],
-    ['Largest single sale', records.largestSale],
+    ['Largest single sale, in gold', records.largestSale],
     ['Quests closed', records.questsCompleted],
     ['Acts concluded', records.actsCompleted],
   ];

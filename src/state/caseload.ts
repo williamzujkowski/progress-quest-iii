@@ -27,6 +27,22 @@ export const QUEST_KINDS = ['exterminate', 'seek', 'deliver', 'fetch', 'placate'
 
 export type QuestKindName = (typeof QUEST_KINDS)[number];
 
+/**
+ * What each form is a count of, in plain terms.
+ *
+ * The five labels are near-synonyms by design — an institution that has five words for "job done"
+ * is the joke — but shipped as five bureaucratic phrases with bare integers beside them and no
+ * gloss anywhere in the app, a newcomer cannot tell them apart or work out which of their quests
+ * fed which row. The labels stay; these say what was counted.
+ */
+export const KIND_DESCRIPTIONS: Record<QuestKindName, string> = {
+  exterminate: 'Quests that sent the hero to kill a named thing.',
+  seek: 'Quests that sent the hero to find something.',
+  deliver: 'Quests that sent the hero to carry something somewhere.',
+  fetch: 'Quests that sent the hero to collect a quantity of something.',
+  placate: 'Quests that sent the hero to appease somebody.',
+};
+
 /** How each kind is named on a form, as opposed to in the engine. */
 export const KIND_LABELS: Record<QuestKindName, string> = {
   exterminate: 'Extermination writs closed',
