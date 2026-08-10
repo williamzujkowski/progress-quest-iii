@@ -1,6 +1,6 @@
 import { addInventoryItem, applyQuestReward, applySpellReward, calculateEncumbrance, equipPrice, generateEquipUpgrade, generateItemReward, generateQuest, generateStatReward, generateTaskDescription } from './sim';
 import { BORING_ITEMS, IMPRESSIVE_TITLES, MONSTERS, RACES } from '../data/traits';
-import { MAX_PENDING_TASKS, MAX_PERSISTED_GOLD, MAX_PERSISTED_VALUE } from '../data/limits';
+import { MAX_PENDING_TASKS, MAX_PERSISTED_DESCRIPTION_LENGTH, MAX_PERSISTED_GOLD, MAX_PERSISTED_VALUE } from '../data/limits';
 import { earnGold, goldEarnedBetween, spendGold } from './gold';
 import { storageAllowance } from './storage';
 import { marketFavour } from './marketFavour';
@@ -91,8 +91,28 @@ function sequenceTask(description: string, durationSeconds: number, type: Sequen
   return { description, durationMs: durationSeconds * 1000, elapsedMs: 0, type };
 }
 
+/** What marks a sequence entry as the one running, rather than one still queued. */
+const ELLIPSIS = '...';
+
+/**
+ * The pending entry as it reads while it is running, which is the same sentence trailing off.
+ *
+ * The ellipsis is trimmed out of the description rather than off the end of the result. Both the
+ * pending and the active description are held to the same `MAX_PERSISTED_DESCRIPTION_LENGTH`, so
+ * appending three characters overflowed the cap the source field was allowed to fill — and a
+ * near-cap entry then made every write fail from the first task transition onward, forever, since
+ * the reload restored the same entry and ran the same transition again.
+ *
+ * Clamped so the ellipsis survives, because the ellipsis is the part carrying the meaning: it is
+ * what distinguishes the task being done now from the same task waiting its turn. Truncating the
+ * result instead would drop the mark and leave a sentence that merely looks cut off.
+ *
+ * `describeGameEvent` clamps against the same cap for the same reason. This path is the one that
+ * lacked it.
+ */
 function activeSequenceTask(task: SequenceTask): ProgressTask {
-  return { ...task, description: `${task.description}...` };
+  const description = `${task.description.slice(0, MAX_PERSISTED_DESCRIPTION_LENGTH - ELLIPSIS.length)}${ELLIPSIS}`;
+  return { ...task, description };
 }
 
 function impressiveGuy(rng: RandomGenerator): string {
