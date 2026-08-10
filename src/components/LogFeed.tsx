@@ -231,6 +231,15 @@ export const LogFeed: React.FC = () => {
                 a bar fill for, which is the only genuinely new thing an idle game can put on screen.
                 Both figures come from the same multiplication the engine performed — recovered by
                 division rather than recomputed, because two derivations of one number drift. */}
+            {/* Tenth-of-a-second, and not the `formatDuration` the banner uses.
+                That looks like two duration conventions on one screen and is one deliberate
+                exception. `formatDuration` rounds to whole seconds, and measured over eleven hours
+                of play a kill runs between 692 ms and 12 s — so a comparison of 6.0s against 6.2s
+                would render as "6s" and "6s", which is exactly the defect where the console asserted
+                a difference and showed none.
+                The precision here is what lets the line compare two nearly-equal durations at all,
+                and `projectCounterfactual` suppresses the line entirely when the two would print the
+                same. Unifying the formatters would reintroduce what that guard exists to prevent. */}
             {counterfactual && (
               <li>
                 This encounter is scheduled at {(counterfactual.actualMs / 1000).toFixed(ENCOUNTER_SECONDS_PRECISION)}s.
