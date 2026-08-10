@@ -69,7 +69,13 @@ describe('some drops name the thing', () => {
         expect(Array.from(text).length, `${text.length} chars`).toBeLessThanOrEqual(180);
         if (!text.includes('xxx')) continue;
         named += 1;
-        expect(text, text).toMatch(/nobody has verified|spelled it differently|heading that predates it/);
+        // An enumeration of every naming variant's tail, deliberately: the point is that the remark
+        // survives the name, and a generic "has something after the noun" check would pass on a
+        // line truncated mid-word. Extend this when a naming variant is added — the four loot-drama
+        // ones below were added with the DKP wiring.
+        expect(text, text).toMatch(
+          /nobody has verified|spelled it differently|heading that predates it|Nobody rolled|the need was assessed|Master looter is the hero|described instead/i,
+        );
       }
     }
     expect(named, 'a long name has to actually reach a naming variant').toBeGreaterThan(0);

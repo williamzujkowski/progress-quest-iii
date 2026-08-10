@@ -497,6 +497,39 @@ function linesFor(candidate: SceneCandidate): readonly SceneLine[] {
         { speaker: 'support', channel: 'guild', text: 'Filed as described by itself.' },
         { speaker: 'hero', channel: 'hero', text: 'Every object here is on its own word.' },
       ],
+      /*
+       * The loot drama, on the lane that actually fires.
+       *
+       * `socialDkp.ts` is the best MMO material in the project and its docstring calls it "this
+       * project's thesis in one bit" — and it was reachable only from a milestone, so it spoke four
+       * times in four measured hours, always at second 28. Meanwhile this lane fired fifty to
+       * seventy-five times an hour and mentioned rolling, needing, greeding or master looter not
+       * once.
+       *
+       * These name the drop, which the block above notes is where the variety comes from: the item
+       * tables are the funniest strings in the project and ten of the thirteen variants declined to
+       * use them. Each opens on `some` rather than `found`, because a shortened scene keeps only its
+       * first line and a player told "filed as need" without a quantity has been told nothing. The bureaucratic refusals stay exactly as they were — they are jokes *about* not
+       * naming it — so this widens the naming half rather than replacing anything.
+       */
+      [
+        { speaker: 'logistics', channel: 'guild', text: `${some} dropped. Nobody rolled. Nobody needed. Nobody greeded.` },
+        { speaker: 'official', channel: 'guild', text: 'It is yours by default, which the minutes will record as a contest.' },
+        { speaker: 'hero', channel: 'hero', text: 'I won an auction I was the only bidder at, again.' },
+      ],
+      [
+        { speaker: 'logistics', channel: 'party', text: `Filed as need: ${some}. The need was assessed by the party that filed it.` },
+        { speaker: 'support', channel: 'party', text: 'Off-spec, on-spec. The spec has never been written down.' },
+      ],
+      [
+        { speaker: 'official', channel: 'guild', text: `Master looter awarded ${some} to the hero. Master looter is the hero.` },
+        { speaker: 'support', channel: 'guild', text: 'The conflict of interest has been minuted by the conflicted party.' },
+        { speaker: 'hero', channel: 'hero', text: 'I recused myself, then overruled the recusal.' },
+      ],
+      [
+        { speaker: 'logistics', channel: 'guild', text: `Nobody linked ${some}. It has been described instead, at length, inaccurately.` },
+        { speaker: 'official', channel: 'guild', text: 'The description is now the official record of the item.' },
+      ],
       [
         { speaker: 'logistics', channel: 'party', text: `${some} entered the manifest. The manifest has spelled it differently.` },
         { speaker: 'support', channel: 'party', text: 'Both spellings have been retained.' },
