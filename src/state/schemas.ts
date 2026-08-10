@@ -179,6 +179,18 @@ export const characterSheetSchema = z.object({
   message: 'Inventory item names must be unique.',
   path: ['Inventory'],
 }).superRefine(({ PendingTasks, Plot, Task }, context) => {
+  // Act 0 is the prologue, whatever else the sheet says.
+  //
+  // The phase rule below only ran when `PendingTasks` was present, so a sheet pairing act 0 with a
+  // kill — no pending list at all — was accepted. The engine then correctly declines to start a
+  // cinematic there, and the plot pins at full forever: the hero keeps levelling and looting and
+  // never advances an act again, with nothing on screen to say so.
+  //
+  // That silent stall replaced a save-loss, which was the right trade at the time and is not a
+  // resting place. Refused at the door instead, where a player can still do something about it.
+  if (Plot.act === 0 && Task.type !== 'loading' && Task.type !== 'prologue') {
+    context.addIssue({ code: 'custom', message: 'Act 0 is the prologue, so its task must be a prologue task.', path: ['Task'] });
+  }
   if (!PendingTasks) return;
   const sequenceEntries = PendingTasks.slice(0, -1);
   const validPrologue = Plot.act === 0
