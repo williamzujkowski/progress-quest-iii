@@ -72,8 +72,31 @@ import {
  * 1-5, and the one that reaches equipment generation draws a base whose quality equals its level, so
  * the loop body never executes there and the tables' lengths are never asked for.
  *
+ * Three fixtures reach equipment generation, not one — `act-transition` at level 1 (Helm, `Lanyard`,
+ * quality 1) and both `purchase-exit-price` fixtures at level 5 (Gauntlets, `Framework`, quality 5).
+ * All three land on `plus === 0`, so the conclusion holds for every one of them.
+ *
  * Verified rather than argued: extending these four leaves all fifteen transition goldens passing,
- * while a one-entry change to `ARMORS` — a table read outside the gate — fails seven of them.
+ * while inserting one entry near the front of `ARMORS` — a table read outside the gate — fails two.
+ *
+ * ## Do not turn any of this into a category rule
+ *
+ * An earlier version of this note said that `ARMORS` change failed *seven*. It does not; seven came
+ * from a different experiment in the same session (the base-selection loop taking six attempts
+ * instead of five) and the two were conflated. Appending to `ARMORS` fails none at all.
+ *
+ * That last figure is the trap. It invites the rule "appending is safe, because `rng.random(n)`
+ * consumes one alea value whatever `n` is, so length changes the mapping and not the stream". The
+ * premise is true and the rule is false: `rng.random(n)` is `floor(u × n)`, so lengthening a table
+ * **remaps every draw against it**. Measured — append one entry: `ARMORS` 0 failures,
+ * `BORING_ITEMS` 0, **`MONSTERS` 4**. The first two survive because those draws are either not
+ * reached at a fixture state or happen to land on the same entry anyway. The sentence at the top of
+ * this file is right, and only the figure under it was wrong.
+ *
+ * The rule that is actually true is ADR 0010's: a change is safe iff it alters no draw reached at a
+ * fixture state. That cannot be decided by category — not "appends", not "modifier tables" — only by
+ * running the fixtures. The modifier tables are safe for a structural reason, stated above, rather
+ * than because of the shape of the edit.
  */
 const COUNTS: [string, readonly unknown[], number][] = [
   ['MONSTERS', MONSTERS, 232],
