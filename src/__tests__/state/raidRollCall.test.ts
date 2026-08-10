@@ -131,6 +131,29 @@ describe('a raid milestone reads its own sheet', () => {
     expect(closing[0]!.text).toContain('Act 14 has closed');
   });
 
+  it('takes no attendance at an act closing, even when the venue is a raid', () => {
+    // The direction the first version of this file did not cover, and the one that was broken.
+    //
+    // The test above checks framing without a venue — nemesis role, act past the threshold, but the
+    // hero walking into a field, so `raidMuster` returns null. That is the case that motivated
+    // gating on the muster rather than the flag. The inverse is what shipped wrong: an
+    // `act_completed` snapshot can carry a nemesis cinematic as its *next* task, and `venueForTask`
+    // reads `nextTask` — so the venue really is a raid at an act closing and a sheet really is
+    // produced. The scene then announced "Act 14 has closed. Every name on the sheet is attending."
+    // on the raid channel, which the block's own comment forbids in as many words.
+    const post = snapshot({ act: 14 });
+    expect(raidMuster(contextOf(post))).not.toBeNull();
+
+    const closing = scene(77, post, { type: 'act_completed', act: 14 } as GameTransitionEvent);
+    expect(closing[0]!.text).toContain('Act 14 has closed');
+    expect(closing[0]!.text).not.toMatch(/The sheet notes|Every name on the sheet/);
+    // Not asserted here: the channel. The ordinary act-closing variants carry
+    // `channel: raid ? 'raid' : 'party'`, so this milestone is still announced on the raid channel
+    // whenever the framing flag is set — which predates this fix and is a separate question about
+    // whether an act closing is raid content at all. Widening the fix to cover it would be changing
+    // behaviour nobody filed. Recorded on the issue instead.
+  });
+
   it('still answers, rather than replacing the scene with a sheet', () => {
     // Three lines: the sheet, the running DKP bit, and the hero. A milestone that dropped the middle
     // beat would trade a running joke for a one-off.
