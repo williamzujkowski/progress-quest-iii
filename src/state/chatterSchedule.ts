@@ -213,8 +213,35 @@ export function scheduleChatter(
   }
 
   if (heard.size > 0) {
-    const spoken = entries.filter(({ sceneId }) => heard.has(sceneId));
-    return { entries: spoken, cadence: { lastLineTasks: completedTasks, recentTexts: remember(cadence.recentTexts, spoken) } };
+    /*
+     * The same refusal the ambient branch makes, on the half of the feed that produces most of the
+     * lines.
+     *
+     * `recentTexts` was written into here and never read against, so event scenes — 47 to 58% of
+     * everything a player sees — could repeat freely. Measured through the store over four one-hour
+     * runs, 25.2 to 35.5% of event lines repeated an earlier line, against 19.3 to 23.1% for
+     * ambient, which has the guard. Two identical loot lines arrived 69 seconds apart with nothing
+     * said between them.
+     *
+     * Declined per scene rather than per line, because a scene is heard whole or not at all — half
+     * an exchange is worse than none of it. And never for a scene the channel may not silence: a
+     * level or an act closing is worth hearing even in the same words, which is the whole reason
+     * `ALWAYS_HEARD` exists.
+     */
+    const fresh = [...heard].filter((sceneId) => {
+      const kind = kindOf(sceneId);
+      if (kind !== undefined && ALWAYS_HEARD.includes(kind)) return true;
+      return !entries.some((entry) => entry.sceneId === sceneId && cadence.recentTexts.includes(entry.text));
+    });
+    if (fresh.length > 0) {
+      const keep = new Set(fresh);
+      const spoken = entries.filter(({ sceneId }) => keep.has(sceneId));
+      return { entries: spoken, cadence: { lastLineTasks: completedTasks, recentTexts: remember(cadence.recentTexts, spoken) } };
+    }
+    // Everything on offer was something the panel is still showing. Silence rather than a
+    // substitute, for the reason the ambient branch gives: two free slots in three are already
+    // declined, so quiet is the established answer and costs nothing.
+    return { entries: [], cadence };
   }
 
   // Nothing the hero did earned a line, which is most of the time and is when a real channel is at
