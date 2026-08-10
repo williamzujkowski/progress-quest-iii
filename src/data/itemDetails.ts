@@ -5,7 +5,7 @@ import { analyzeItemMechanics } from '../engine/itemMechanics';
 import { storageAllowance } from '../engine/storage';
 import { marketFavour } from '../engine/marketFavour';
 import { vitalsFlourish } from '../engine/vitalsFlourish';
-import { boundedLabel, formatGameNumber, stableIndex } from '../engine/text';
+import { plural, boundedLabel, formatGameNumber, stableIndex } from '../engine/text';
 import { substrateStage } from './worldContext';
 import type { ArmourSlot, CharacterSheet, EquipSlot } from '../engine/types';
 
@@ -15,6 +15,13 @@ export interface ItemDetails {
 }
 
 const choose = (options: readonly string[], key: string): string => options[stableIndex(key, options.length)] ?? key;
+/**
+ * The carrying unit, agreeing with its figure.
+ *
+ * `plural` pluralises rather than singularising, so the singular is the branch and not the default.
+ * One cubit is by far the commonest reading — every stack of one item hits it.
+ */
+const cubits = (value: number): string => (value === 1 ? 'cubit' : plural('cubit'));
 const signedGameNumber = (value: number): string => `${value >= 0 ? '+' : ''}${formatGameNumber(value)}`;
 
 /**
@@ -653,11 +660,15 @@ export function describeInventoryItem(name: string, quantity: number, act = 0, l
 
   return {
     description,
+    // The unit agrees with the figure beside it, which it did not for the commonest case there is.
+    // Every single-item stack read "Encumbrance: +1 cubits", while the neighbours have always said
+    // "1 docket on file", "filed against 1 time" and "Items of record retained in 1 slot" — the
+    // consistency around it is what made this an oversight rather than a house style.
     effect: name === 'Gold'
-      ? `Quantity: ${formatGameNumber(mechanics.quantity)}. Encumbrance: +${formatGameNumber(mechanics.encumbranceCubits)} cubits. Funds equipment purchases; combat contribution: ${mechanics.combatContribution}.`
+      ? `Quantity: ${formatGameNumber(mechanics.quantity)}. Encumbrance: +${formatGameNumber(mechanics.encumbranceCubits)} ${cubits(mechanics.encumbranceCubits)}. Funds equipment purchases; combat contribution: ${mechanics.combatContribution}.`
       : [
         `Quantity: ${formatGameNumber(mechanics.quantity)}.`,
-        `Encumbrance: +${formatGameNumber(mechanics.encumbranceCubits)} cubits.`,
+        `Encumbrance: +${formatGameNumber(mechanics.encumbranceCubits)} ${cubits(mechanics.encumbranceCubits)}.`,
         // Empty when no level was supplied, so the sentences join without leaving a gap where a
         // price would have been.
         saleValue(name, mechanics.quantity, level),
