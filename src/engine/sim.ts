@@ -199,9 +199,43 @@ export function applySpellReward(rng: RandomGenerator, level: number, wisdom: nu
 
 export function generateStatReward(rng: RandomGenerator, stats: StatsMap): keyof StatsMap {
   if (rng.random(2) < 1) return rng.pick(ALL_STATS);
-  let roll = rng.random(PRIME_STATS.reduce((total, stat) => total + Math.trunc(stats[stat]) ** 2, 0));
-  for (const stat of PRIME_STATS) {
-    roll -= Math.trunc(stats[stat]) ** 2;
+  // The draw argument is clamped, not the generator. `RandomGenerator.random(n)` is `uint32() % n`,
+  // so for `n` above 2^32 the modulo is a no-op and the result is bounded by 2^32 whatever `n` says —
+  // which collapses this weighted branch to always returning the first stat. The sum of squares
+  // passes 2^32 once a single prime stat reaches 65 536, and stats grow about ninety points a day, so
+  // that is roughly two years of continuous running: inside the horizon of a game whose premise is
+  // that nobody is watching it.
+  //
+  // Clamping here rather than in `RandomGenerator` on purpose. That generator is the fidelity core
+  // and every recorded world depends on its exact behaviour, including its modulo bias, which is
+  // inherited and stays. At every fixture state this sum is in the low thousands, so `min` returns it
+  // unchanged and the draw is byte-identical.
+  const squares = PRIME_STATS.map((stat) => Math.trunc(stats[stat]) ** 2);
+  const weight = squares.reduce((total, square) => total + square, 0);
+
+  // Scaled to fit the generator, rather than the draw clamped to it.
+  //
+  // `RandomGenerator.random(n)` is `uint32() % n`, so above 2^32 the modulo is a no-op and the roll
+  // is bounded by 2^32 whatever `n` says. Clamping the argument alone does not help: the *weights*
+  // are still larger than any roll, so the first subtraction always wins and this branch collapses to
+  // returning `STR` every time. Measured at six equal stats of 100 000, STR took 57% of draws with
+  // the argument clamped and no weights scaled.
+  //
+  // Dividing every square by a common factor keeps the ratios — which are the whole point of the
+  // weighting — while bringing the total inside the range the generator can actually express.
+  //
+  // The sum passes 2^32 once a single prime stat reaches 65 536, which at the measured growth of
+  // about ninety points a day is roughly two years of continuous running. That is inside the horizon
+  // of a game whose premise is that nobody is watching it.
+  //
+  // `RandomGenerator.random` itself is untouched: it is the fidelity core, every recorded world
+  // depends on its exact behaviour including its modulo bias, and at every fixture state this total
+  // is in the low thousands — so the scale is one and the draw is byte-identical.
+  const ceiling = 2 ** 32;
+  const scale = weight > ceiling ? weight / ceiling : 1;
+  let roll = rng.random(Math.min(weight, ceiling));
+  for (const [index, stat] of PRIME_STATS.entries()) {
+    roll -= squares[index]! / scale;
     if (roll < 0) return stat;
   }
   return PRIME_STATS.at(-1) ?? 'STR';
@@ -522,9 +556,23 @@ function generateMonsterTask(rng: RandomGenerator, character: CharacterSheet): {
     //
     // A starting loadout floors to zero quality and multiplies by exactly one, which is why every
     // recorded golden is unchanged rather than merely close. See ADR 0008.
-    durationMs: Math.floor(
+    //
+    // Floored at one millisecond, because zero is a save-loss state rather than a fast encounter.
+    // `progressTaskSchema` requires `durationMs >= 1` and `characterSheetSchema` embeds it as `Task`,
+    // so a sheet that generates a zero-duration task is refused by the checkpoint writer, the roster
+    // writer and the exporter at once, with no repair offered — the same failure `gold.ts` carries a
+    // paragraph about, in a place nothing defended.
+    //
+    // Reachable at level one, not merely at absurd levels, because the quality comes from the item
+    // *name* rather than the level: eleven slots of `+1000000 Sacrosanct Antipode` is a legal import
+    // and produced a zero duration on 23 of 30 generated tasks. Reaching it by playing would need a
+    // level near 545 000.
+    //
+    // Also stops a zero duration from making `elapsedMs < durationMs` unsatisfiable, which burned the
+    // whole catch-up budget every tick and returned with time still owed.
+    durationMs: Math.max(1, Math.floor(
       ((2 * 3 * opponentLevel * 1000) / characterLevel) * encounterSpeedMultiplier(loadoutQuality(character)),
-    ),
+    )),
     // Reported at the site that decided it. Nothing downstream recomputes it, and nothing in the
     // engine reads it back - the duration above is still derived from the same local value.
     opponents: quantity,
