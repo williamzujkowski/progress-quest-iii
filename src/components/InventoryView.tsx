@@ -38,7 +38,16 @@ export const InventoryView: React.FC = () => {
           <Package size={18} />
           <h2 id="inventory-heading">Inventory & Loot</h2>
         </div>
-        <div className={`inventory-weight${atCapacity ? ' inventory-weight-full' : ''}`}>
+        {/* The rule, on the figure that obeys it.
+            "cubits" is visible here, but what a cubit *is* was nowhere in the app — there is no
+            glossary — and the consequence of filling the bar was behind a collapsed disclosure that
+            never populated until the market trip started carrying its reason. Now that it does, the
+            same sentence can sit on the figure it is about, so the number and the rule are in one
+            place rather than two panels apart. */}
+        <div
+          className={`inventory-weight${atCapacity ? ' inventory-weight-full' : ''}`}
+          title="Cubits — how much the pack holds. When it fills, procurement routes the hero to market."
+        >
           <Weight size={16} aria-hidden="true" />
           {/* The noun, on screen rather than under it.
               This read `0 / 14` beside a weight icon, with "cubits" living only in an `sr-only`

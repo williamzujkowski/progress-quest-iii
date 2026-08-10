@@ -70,3 +70,33 @@ describe('the encumbrance readout says what it is counting', () => {
     expect(screen.getByRole('progressbar', { name: /Encumbrance/ }).getAttribute('aria-valuenow')).toBe('0');
   });
 });
+
+describe('the encumbrance figure explains what fills it and what happens then', () => {
+  /*
+   * The noun was made visible earlier; what a cubit *is* was still nowhere in the app, and the
+   * consequence of filling the bar sat behind a disclosure that never populated — the market trip
+   * only started carrying its reason when the ordinary path was given one.
+   *
+   * Now that it does, the rule can sit on the figure it governs rather than a panel away.
+   */
+  it('names the unit and the consequence in one place', () => {
+    carrying([]);
+
+    const title = document.querySelector('.inventory-weight')?.getAttribute('title') ?? '';
+    expect(title, 'the weight pill carries no gloss').not.toBe('');
+    expect(title).toMatch(/cubits/i);
+    // The consequence, not only the noun. "Cubits — a unit of carrying" would pass a presence
+    // check and answer none of the question a newcomer actually has.
+    expect(title, title).toMatch(/market/i);
+  });
+
+  it('says the same thing the engine says when it routes the hero', () => {
+    // The gloss and `describeDecisionReason` have to agree: the engine's line is "At capacity,
+    // procurement routes the hero to market", and a tooltip offering a different rule would be a
+    // second explanation of one mechanic.
+    carrying([]);
+
+    const title = document.querySelector('.inventory-weight')?.getAttribute('title') ?? '';
+    expect(title, title).toMatch(/procurement routes the hero to market/);
+  });
+});
