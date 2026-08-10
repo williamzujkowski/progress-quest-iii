@@ -1162,13 +1162,25 @@ test.describe('Progress Quest III terminal dashboard', () => {
 
     await page.emulateMedia({ forcedColors: 'active', reducedMotion: 'reduce' });
     await page.setViewportSize({ width: 320, height: 900 });
-    const selectedColors = await chatterTab.evaluate((element) => ({
-      tab: getComputedStyle(element).color,
-      label: getComputedStyle(element.querySelector('span')!).color,
-      truth: getComputedStyle(element.querySelector('small')!).color,
-    }));
-    expect(selectedColors.label).toBe(selectedColors.tab);
-    expect(selectedColors.truth).toBe(selectedColors.tab);
+    // Polled rather than sampled once. `emulateMedia` returns before the forced-colours recalculation
+    // has necessarily reached every node, and this reads three of them — so a single sample can
+    // catch the tab after the recalc and its children before it. Under forced colours that pair
+    // resolves to `HighlightText` and `ButtonText`, which is exactly the white-against-black failure
+    // this produced on main while the identical suite passed on the same commit in the other
+    // workflow.
+    //
+    // The assertion is unchanged and still strict: a label whose colour drifts from its tab is
+    // unreadable in forced colours, which is the accessibility failure worth catching. Only the
+    // reading of it waits. A fixed sleep would also pass and would be the wrong instrument — it
+    // would trade the race for a slower race.
+    await expect.poll(async () => chatterTab.evaluate((element) => {
+      const colourOf = (node: Element | null) => (node === null ? null : getComputedStyle(node).color);
+      const tab = getComputedStyle(element).color;
+      return {
+        labelMatchesTab: colourOf(element.querySelector('span')) === tab,
+        truthMatchesTab: colourOf(element.querySelector('small')) === tab,
+      };
+    })).toEqual({ labelMatchesTab: true, truthMatchesTab: true });
     await chatterTab.focus();
     await page.keyboard.press('End');
     await expect(activityTab).toBeFocused();
