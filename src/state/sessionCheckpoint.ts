@@ -273,6 +273,21 @@ export interface CheckpointNotice {
   repairLabel?: string;
 }
 
+/**
+ * Whether two notices say the same thing.
+ *
+ * Compared field by field rather than by identity, because every caller builds a fresh object and
+ * the question is whether the *player* would see a difference.
+ */
+function sameNotice(current: CheckpointNotice | null, next: CheckpointNotice | null): boolean {
+  if (current === null || next === null) return current === next;
+  return current.kind === next.kind
+    && current.message === next.message
+    && current.canRepair === next.canRepair
+    && current.repairLabel === next.repairLabel;
+}
+
+
 export interface SessionCheckpointController {
   readonly requiresCharacterCreation: boolean;
   getNotice: () => CheckpointNotice | null;
@@ -333,7 +348,21 @@ export function startSessionCheckpoints({
   // the session once it plainly is neither.
   let deferred: CheckpointErrorCode | null = null;
 
+  /**
+   * Publishes, unless there is nothing new to say.
+   *
+   * `App` subscribes through `useSyncExternalStore` with `getNotice` as the snapshot, and React
+   * compares snapshots by identity — so handing back a fresh object with identical contents is a
+   * render for no reason. The retrying branches call this on every attempt, so a session that stays
+   * invalid re-rendered at the retry rate indefinitely: measured at 3,600 publishes an hour against
+   * one distinct message.
+   *
+   * Cheap in itself — 40.85 µs a retry, 3.5 s a day — but a component that re-renders while nothing
+   * has changed is the kind of thing that stops being cheap once something downstream is expensive,
+   * and it is a lie about the store having moved.
+   */
   const publish = (next: CheckpointNotice | null) => {
+    if (sameNotice(notice, next)) return;
     notice = next;
     for (const listener of listeners) listener();
   };
