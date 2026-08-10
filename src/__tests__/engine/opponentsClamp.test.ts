@@ -59,9 +59,13 @@ describe('the monster count stays inside what a sheet can hold', () => {
      * schema itself permits, since that is what an importer may write.
      */
     const character = hostile(MAX_PERSISTED_VALUE);
-    // Many draws, because the bias fires on roughly one task in four and the count depends on the
-    // roll — a single sample would miss it more often than not.
-    for (let attempt = 0; attempt < 4000; attempt += 1) {
+    // Enough draws to hit the bias many times over — it fires on roughly one task in four, so a
+    // single sample would miss it more often than not. Not four thousand, which is what this asked
+    // for at first: `generateMonsterTask` drifts the target level in a loop bounded by
+    // `min(level, 5049)` steps, so at the persisted ceiling each call costs five thousand
+    // iterations, and the test spent seven seconds against a five-second default timeout. It
+    // passed alone and timed out under a full-suite run, which is the worst way for a test to fail.
+    for (let attempt = 0; attempt < 300; attempt += 1) {
       const task = generateTaskDescription(new RandomGenerator(`hostile-${attempt}`), character);
       expect(task.opponents ?? 0, `attempt ${attempt}: ${task.description}`).toBeLessThanOrEqual(MAX_PERSISTED_VALUE);
     }
