@@ -60,9 +60,16 @@ describe('legendary acquisitions', () => {
 
   it('still state plainly that nothing was gained in a fight', () => {
     const legendary = harvested.get('legendary')!;
-    expect(legendary.texts.some((text) => text.includes('no combat effect is modeled'))).toBe(true);
+    // "damage is not modeled", not "no combat effect": equipment does shorten encounters, and the
+    // panel beside this one prints "Processing time reduced by N%" citing the same items. The old
+    // string made the console contradict its neighbour, and this assertion defended it.
+    expect(legendary.texts.some((text) => text.includes('damage is not modeled'))).toBe(true);
+    expect(legendary.texts.some((text) => text.includes('no combat effect is modeled'))).toBe(false);
     for (const text of legendary.texts) {
-      expect(text).not.toMatch(/damage|mitigat|stronger|deadlier|powerful|bonus to/i);
+      // A claim of power, not the word. The disclaimer above *denies* damage, so banning the token
+      // outright would forbid the very sentence this test now requires — the check has to be about
+      // what the line asserts rather than which nouns it contains.
+      expect(text, text).not.toMatch(/deals? damage|damage bonus|increases? damage|mitigat|stronger|deadlier|powerful|bonus to/i);
     }
   });
 });

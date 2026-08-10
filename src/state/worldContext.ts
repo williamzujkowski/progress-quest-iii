@@ -247,8 +247,16 @@ function equipmentFor(event: GameTransitionEvent): EquipmentClassification | und
  * What the archive says about a legendary acquisition, which is the only thing it gets.
  *
  * Ceremony rather than power. Every line describes filing, storage, or the reaction of people who
- * handle paperwork, because equipment carries no combat contribution at any quality and a rare
- * one that read as strong would be the exact claim CONTEXT.md forbids.
+ * handle paperwork, because a rare item that read as strong would be the exact claim CONTEXT.md
+ * forbids.
+ *
+ * "No combat contribution at any quality" stopped being true when ADR 0008 made loadout quality
+ * multiply encounter speed. Equipment models no *damage* — the hero has no attack roll to improve —
+ * but it does shorten encounters, and the panel one column over prints "Processing time reduced by
+ * N%" citing these very items. Saying both on one screen is worse than saying neither.
+ *
+ * `itemDetails.ts` reached this distinction first and `serviceRecord.ts` followed it; the wording
+ * here is theirs rather than a third attempt at it.
  */
 const LEGENDARY_REMARKS: readonly string[] = [
   'Two modifiers on one item. The registrar has asked for the form to be re-copied in ink.',
@@ -285,7 +293,7 @@ function noticesFor(source: IdentifiedGameTransitionRecord, context: WorldContex
   }
   if (event.type === 'equipment_gained' || event.type === 'equipment_purchased') {
     if (!equipment) return [];
-    const filed = notice(activityId, 0, 'loot', `${equipment.label} equipment filed at generation quality ${formatGameNumber(equipment.quality)}; no combat effect is modeled.`);
+    const filed = notice(activityId, 0, 'loot', `${equipment.label} equipment filed at generation quality ${formatGameNumber(equipment.quality)}; damage is not modeled.`);
     // A legendary piece turns up in roughly one acquisition in fifty and used to read exactly
     // like the other forty-nine: the same sentence with a different adjective in the middle of
     // it. The institution now says something, which is the whole of what a rare find gets here -
