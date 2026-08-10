@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { RandomGenerator } from '../../engine/prng';
 import { createNewCharacter } from '../../engine/sim';
 import { levelUpTime } from '../../engine/math';
-import { advanceGame } from '../../engine/transition';
+import { advanceGame, type GameTransitionState } from '../../engine/transition';
 import { EMPTY_DIGEST, accumulateDigest, describeDigest, isEmptyDigest } from '../../state/absenceDigest';
 import { useGameStore } from '../../state/gameStore';
 
