@@ -4,6 +4,7 @@ import { createNewCharacter } from '../../engine/sim';
 import { decodePQWSave, encodePQWSave } from '../../state/saveManager';
 import { MAX_PERSISTED_DESCRIPTION_LENGTH } from '../../data/limits';
 import type { CharacterSheet } from '../../engine/types';
+import { characterSheetSchema } from '../../state/schemas';
 
 /**
  * The escape hatch that produced a dead file.
@@ -59,6 +60,24 @@ describe('an exported save is one the importer will accept', () => {
     if (encoded.ok) return;
     expect(encoded.error.message).toMatch(/cannot be exported/i);
     expect(encoded.error.message).toMatch(/nothing was changed/i);
+  });
+
+  it('refuses a sheet the importer would reject for its size, not only its shape', () => {
+    /*
+     * `decodePQWSave` checks length *before* it validates, so the schema is only one of the
+     * importer's two gates. A sheet could satisfy the schema, encode happily, and be refused on the
+     * way back in — the same defect this function exists to close, one gate further along.
+     *
+     * Measured by bisection at 3,658 rows of 180-character names. Not reachable in play, where the
+     * bag plateaus near 1,014 rows, but the check belongs beside the one already here.
+     */
+    const huge: CharacterSheet = {
+      ...legal(),
+      Inventory: Array.from({ length: 3_800 }, (_unused, index) => ({ name: `${'n'.repeat(180)}${index}`, qty: 1 })),
+    };
+    // The schema accepts it, which is what made this reachable at all.
+    expect(characterSheetSchema.safeParse(huge).success).toBe(true);
+    expect(encodePQWSave(huge)).toMatchObject({ ok: false, error: { code: 'input_too_large' } });
   });
 
   it('agrees with the importer about what is legal, in both directions', () => {

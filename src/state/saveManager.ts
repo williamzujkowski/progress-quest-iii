@@ -53,7 +53,21 @@ export function encodePQWSave(sheet: CharacterSheet): SaveResult<string> {
   const bytes = new TextEncoder().encode(jsonString);
   let binary = '';
   for (const byte of bytes) binary += String.fromCharCode(byte);
-  return { ok: true, value: btoa(binary) };
+  const encoded = btoa(binary);
+  // The importer's other gate, checked here for the same reason as the schema.
+  //
+  // `decodePQWSave` rejects anything past `MAX_PQW_INPUT_LENGTH` *before* it validates, so a sheet
+  // could satisfy the schema, encode happily, and be refused on the way back in — which is the
+  // defect this function was written to close, one gate further along. Measured by bisection: 3,658
+  // inventory rows at 180-character names encodes `ok` and decodes `input_too_large`.
+  //
+  // Not reachable in play, and the check is cheap enough not to care: `generateItemReward` stops
+  // adding distinct names once the bag holds 999, so a 72-hour soak plateaued at 1,014 rows and
+  // 59 KB against a cap of a million characters.
+  if (encoded.length > MAX_PQW_INPUT_LENGTH) {
+    return saveFailure('input_too_large', 'This character is too large to export. Nothing was changed.');
+  }
+  return { ok: true, value: encoded };
 }
 
 function decodeBase64Utf8(value: string): string {
