@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createNewCharacter, generateStatReward, generateTaskDescription } from '../../engine/sim';
 import { RandomGenerator } from '../../engine/prng';
+import { advanceGame, type GameTransitionState } from '../../engine/transition';
 import { characterSheetSchema, progressTaskSchema } from '../../state/schemas';
 import { loadoutQuality } from '../../engine/loadout';
 import type { CharacterSheet } from '../../engine/types';
@@ -73,5 +74,41 @@ describe('the weighted stat draw keeps working at large stats', () => {
     const str = picks.get('STR') ?? 0;
     expect(str / 4000, `STR took ${((str / 4000) * 100).toFixed(0)}%`).toBeLessThan(0.35);
     expect(picks.size).toBeGreaterThan(4);
+  });
+});
+
+describe('a new character owns nothing, rather than an empty stack of gold', () => {
+  /*
+   * `createNewCharacter` seeded `{ name: 'Gold', qty: 0 }`, and the market walk sells
+   * `inventory[0]`. So the first market trip of every character that has ever existed opened with
+   * "Selling 0 Golds...", "Sold 0x Gold for 0 gold." and "Got paid 0 gold pieces" — three
+   * ungrammatical lines describing nothing, about three minutes in.
+   *
+   * Fixed at creation rather than in the market, because nothing needed the row: the purse is
+   * `character.Gold`, and both `calculateEncumbrance` and the loot generator filter Gold out by name.
+   * A recorded fixture does sell a Gold stack, but at a quantity of ten — the degenerate case was
+   * only ever the empty one.
+   */
+  it('starts with an empty inventory', () => {
+    const character = createNewCharacter('Fresh', 'Half Daemon', 'Robot Monk', new RandomGenerator('fresh'));
+    expect(character.Inventory).toEqual([]);
+  });
+
+  it('never reports selling nothing for nothing', () => {
+    let state: GameTransitionState = {
+      character: createNewCharacter('Fresh', 'Half Daemon', 'Robot Monk', new RandomGenerator('market')),
+      progression: { experience: { currentSeconds: 0, maxSeconds: 100 }, completedTasks: 0, elapsedSeconds: 0 },
+    };
+    const rng = new RandomGenerator('market-run');
+
+    // Long enough to cover several market trips, the first of which is where this always fired.
+    for (let tick = 0; tick < 4000; tick += 1) {
+      const result = advanceGame(state, 1000, rng);
+      state = result.state;
+      // The task description is the surface a watcher reads, and it is where the defect showed:
+      // "Selling 0 Golds..." with the ungrammatical plural. `inventory_sold` carries only the gold
+      // received, so the description is the thing to assert on rather than the event.
+      expect(state.character.Task.description, state.character.Task.description).not.toMatch(/Selling 0 /);
+    }
   });
 });
