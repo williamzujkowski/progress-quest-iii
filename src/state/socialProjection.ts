@@ -612,7 +612,21 @@ function linesFor(candidate: SceneCandidate): readonly SceneLine[] {
   //
   // Two at most, and the wording never claims to be the whole roll. "The sheet notes" is true of a
   // partial reading; "roll call" would not be.
-  const muster = raidMuster(world.context);
+  //
+  // ## The event has to be excluded explicitly
+  //
+  // The venue is not enough on its own, which is what the first version of this got wrong. An
+  // `act_completed` snapshot can carry a nemesis cinematic as its *next* task, and `venueForTask`
+  // reads `nextTask` — so the venue is `raid` at an act closing and `raidMuster` duly returns a
+  // sheet. The paragraph above said "an act closing is not a raid and takes no attendance" while
+  // the gate said only "is there a sheet", and the two disagreed for a year of act ordinals:
+  //
+  //   [raid] Act 14 has closed. Every name on the sheet is attending.
+  //   [hero] Mark me present, and the rest as read.
+  //
+  // The test I wrote alongside it covered the opposite direction — framing without a venue — which
+  // is the case that motivated the design rather than the case that breaks it.
+  const muster = event.type === 'act_completed' ? null : raidMuster(world.context);
   if (muster !== null && muster.length > 0) {
     const exceptions = muster.filter(({ attendance }) => attendance !== 'present').slice(0, 2);
     const sheet = exceptions.length === 0
