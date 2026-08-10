@@ -3,6 +3,7 @@ import React from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '../state/gameStore';
 import { hasRoute, projectRoute } from '../state/worldContext';
+import { ActLabel } from './GameNumber';
 
 /**
  * Where the paperwork has sent the hero, oldest posting first.
@@ -47,7 +48,7 @@ export const Route: React.FC = () => {
       <ol className="equip-list route-list" aria-label="Places this hero has been posted">
         {stops.map((stop) => (
           <li className={`equip-item${stop.current ? ' route-current' : ''}`} key={stop.act}>
-            <span className="equip-slot">Act {stop.act}</span>
+            <span className="equip-slot"><ActLabel act={stop.act} /></span>
             <span className="route-place">
               {stop.town ?? <span className="route-pending">pending assignment</span>}
             </span>
