@@ -111,6 +111,49 @@ describe('the modifier vocabulary stays parseable', () => {
     }
   });
 
+  it('carries no rung the draw cannot reach', () => {
+    /*
+     * Six negative rungs were added on the argument that |plus| is bounded by the tallest base, so
+     * anything inside thirty is drawable. The bound is right and the distribution is not: the base
+     * is chosen best-of-six-closest-to-level, so the shortfall is small by construction and never
+     * approaches it. Four of the six were drawn zero times in 194 811 negative draws.
+     *
+     * Asserted by sampling rather than by a value threshold, because the reachable depth is a
+     * consequence of the base tables and the selection rule, not a number anybody chose. If either
+     * changes, this measures the new answer instead of enforcing the old one.
+     */
+    const drawn = new Set<string>();
+    for (let level = 1; level <= 25; level += 1) {
+      const rng = new RandomGenerator(`reach-${level}`);
+      for (let index = 0; index < 1200; index += 1) {
+        const { slot, name } = generateEquipUpgrade(rng, level);
+        for (const { name: modifier } of analyzeItemMechanics({ kind: 'equipment', name, slot }).quality!.modifiers) {
+          drawn.add(modifier);
+        }
+      }
+    }
+
+    // Asserted on depth rather than on each individual word, and the first draft got that wrong.
+    // Requiring every rung to be *observed* fails on `Unfunded`, which is genuinely reachable — two
+    // draws in 194 811 — and simply absent from a sample this size. That is an underpowered test
+    // reporting a defect, which is worse than no test.
+    //
+    // Depth is the stable quantity: the deepest rung the draw reaches barely moves between samples,
+    // while which rare word turns up does. A rung deeper than anything observed is dead, whoever
+    // added it.
+    const deepestDrawn = Math.max(...[...drawn].map((modifier) => {
+      const entry = [...OFFENSE_BAD, ...DEFENSE_BAD].find(([label]) => label === modifier);
+      return entry ? Math.abs(entry[1]) : 0;
+    }));
+    expect(deepestDrawn).toBeGreaterThan(0);
+
+    for (const table of [OFFENSE_BAD, DEFENSE_BAD]) {
+      const deepestListed = Math.max(...table.map(([, value]) => Math.abs(value)));
+      expect(deepestListed, `a rung at -${deepestListed} when the draw reaches -${deepestDrawn}`)
+        .toBeLessThanOrEqual(deepestDrawn);
+    }
+  });
+
   it('keeps the ladders reaching further than the tallest base', () => {
     // The good tables have to out-reach the bases, or the mark absorbs the difference again. The bad
     // tables must not: they are only consulted when the base out-levels the character, so |plus| is
