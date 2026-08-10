@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createNewCharacter } from '../../engine/sim';
+import { GAME_TICK_MS } from '../../state/gameClock';
 import { advanceGame, type GameTransitionState } from '../../engine/transition';
 import { RandomGenerator } from '../../engine/prng';
 import { NEW_CADENCE, scheduleChatter, type ChatterCadence } from '../../state/chatterSchedule';
@@ -23,9 +24,21 @@ import type { IdentifiedGameTransitionRecord } from '../../state/worldContext';
  * So the band is here instead. Wide on purpose: the exact rate is a cadence decision and should be
  * free to move. What it must not do is reach every tick, which would silently restore the cost the
  * thunk exists to avoid, or fall to zero, which would mean the ambient channel had gone quiet.
+ *
+ * Measured at `GAME_TICK_MS`, taken from the clock rather than restated, because this harness used
+ * to advance a full second per iteration — twenty times the real cadence. Every figure it produced
+ * was therefore per simulated *second* while reading like a per-tick rate, and the two differ by
+ * more than an order of magnitude: 3.1% per second against about 0.15% per tick. The deferral is
+ * worth considerably more than the old numbers claimed, but a test that models an interval nobody
+ * runs at is measuring a different game, and the direction of the error is luck rather than design.
  */
 
-const TICKS = 6000;
+/**
+ * Two thousand simulated seconds, about thirty-three minutes, at the interval the game actually
+ * runs at. Cheap despite the count: `advanceGame` early-returns on the overwhelming majority of
+ * ticks, which is the same fact that makes the thunk worth deferring.
+ */
+const TICKS = 40_000;
 
 const measure = (seed: string) => {
   let state: GameTransitionState = {
@@ -39,7 +52,7 @@ const measure = (seed: string) => {
   let ticksWithRecords = 0;
 
   for (let tick = 0; tick < TICKS; tick += 1) {
-    const result = advanceGame(state, 1000, rng);
+    const result = advanceGame(state, GAME_TICK_MS, rng);
     state = result.state;
     const sources = result.records.map((record, index) => ({ activityId: tick * 10 + index, record })) as IdentifiedGameTransitionRecord[];
     if (sources.length === 0) continue;
@@ -67,10 +80,11 @@ describe('the ambient thunk stays rare enough to be worth being a thunk', () => 
     for (const seed of ['rate-a', 'rate-b']) {
       const { invoked } = measure(seed);
       const share = invoked / TICKS;
-      // The measured rate is about 0.031. The band tolerates a cadence redesign and refuses the two
-      // failures that matter: a thunk on every tick, and a channel that stopped talking.
-      expect(share, `${seed}: ${invoked}/${TICKS}`).toBeGreaterThan(0.005);
-      expect(share, `${seed}: ${invoked}/${TICKS}`).toBeLessThan(0.12);
+      // About 0.0013 to 0.0018 per tick when written. The band sits an order of magnitude either
+      // side, so it tolerates a cadence redesign and refuses the two failures that matter: a thunk
+      // on every tick, and a channel that stopped talking.
+      expect(share, `${seed}: ${invoked}/${TICKS}`).toBeGreaterThan(0.0003);
+      expect(share, `${seed}: ${invoked}/${TICKS}`).toBeLessThan(0.02);
     }
   });
 
@@ -87,11 +101,12 @@ describe('the ambient thunk stays rare enough to be worth being a thunk', () => 
     // The other half, and the thing the rate is in service of. A thunk that never fired would pass
     // the band above and mean the seven memory-fed lanes were invisible.
     //
-    // Roughly 120 lines an hour at one tick per second, which is about a third of the sampled span
-    // here. Asserted as a floor rather than a band: the ceiling is the band above.
+    // 67 to 87 lines across the thirty-three simulated minutes sampled here — a couple a minute,
+    // which is a room that is talking. Asserted as a floor rather than a band: the ceiling is the
+    // band above.
     for (const seed of ['rate-a', 'rate-b']) {
       const { ambientLines } = measure(seed);
-      expect(ambientLines, `${seed}`).toBeGreaterThan(TICKS / 100);
+      expect(ambientLines, `${seed}`).toBeGreaterThan(20);
     }
   });
 });

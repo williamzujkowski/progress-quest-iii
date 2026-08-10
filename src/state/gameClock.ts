@@ -1,3 +1,12 @@
+/**
+ * How often the clock wakes, in milliseconds.
+ *
+ * Exported so nothing has to restate it. A test that models the tick at some other interval is
+ * measuring a game nobody plays — `chatterThunkRate.test.ts` ran at one second, twenty times the
+ * real cadence, and reported a per-second rate as though it were a per-tick one.
+ */
+export const GAME_TICK_MS = 50;
+
 export function startGameClock(
   tick: (elapsedMs: number) => void,
   now = () => performance.now(),
@@ -33,7 +42,7 @@ export function startGameClock(
       // identical from here unless the magnitude travels with the error.
       onError(error, elapsedMs);
     }
-  }, 50);
+  }, GAME_TICK_MS);
 
   return () => {
     clearInterval(timer);
