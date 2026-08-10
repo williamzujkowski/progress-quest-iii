@@ -77,10 +77,20 @@ export function adversaryDossier(target: string | undefined, dockets: number): A
   const opening = openings[stableIndex(`${standing}:${target}`, openings.length)]!;
 
   // The count is stated plainly beside the flourish, so the joke decorates a fact rather than
-  // standing in for one. A target with no dockets says so rather than reporting a bare zero.
+  // standing in for one.
+  //
+  // Absent at zero, and that is the repair rather than an omission. `standingFor` returns `unfiled`
+  // exactly when the count is nought, so the zero tally always landed beside an `unfiled` opening —
+  // and all three of those already say there is no prior file, in their own words and with a joke
+  // attached. The panel read "Nothing previously filed. No prior file. A new folder has been opened
+  // with some optimism", which is the failure `socialAmbient` states for its own banks: no line
+  // explains the line before it, and agreement is the weakest possible second beat.
+  //
+  // The tally exists so a target with no dockets says so rather than reporting a bare zero. No bare
+  // zero can appear if it is simply not there, and the opening says so better.
   const tally = count === 0
-    ? 'Nothing previously filed.'
+    ? null
     : `${formatGameNumber(count)} ${count === 1 ? 'docket' : 'dockets'} on file.`;
 
-  return { target, standing, dockets: count, summary: `${tally} ${opening}` };
+  return { target, standing, dockets: count, summary: tally === null ? opening : `${tally} ${opening}` };
 }
