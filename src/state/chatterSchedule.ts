@@ -159,6 +159,11 @@ export function scheduleChatter(
    * a perf comment nobody can run is how a number drifts this far without anybody noticing, so the
    * rate is now asserted in `chatterThunkRate.test.ts` rather than only claimed here.
    */
+  /*
+   * Defaulted for the cadence tests, which ask what the schedule does with no ambient source at all
+   * — the production caller always passes a thunk. Kept rather than made required: every cadence
+   * test would otherwise carry a `() => []` that says nothing about what it is testing.
+   */
   ambientFor: () => readonly SocialEntry[] = () => [],
 ): { readonly entries: readonly SocialEntry[]; readonly cadence: ChatterCadence } {
   const scenes = [...new Set(entries.map(({ sceneId }) => sceneId))];

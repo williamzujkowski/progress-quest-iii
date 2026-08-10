@@ -11,10 +11,10 @@ import { projectWorld, type WorldNotice } from './worldContext';
 import { projectAmbient, projectSocialBatch, type SocialEntry } from './socialProjection';
 import { scheduleChatter, NEW_CADENCE, type ChatterCadence } from './chatterSchedule';
 import { fileLoadout } from '../engine/loadoutFiling';
-import { EMPTY_COMMENDATIONS, mergeEvents, mergeExhibit, readCommendations, writeCommendations, type Commendations } from './commendations';
-import { EMPTY_CASELOAD, mergeRecords, readCaseload, writeCaseload, type Caseload } from './caseload';
+import { mergeEvents, mergeExhibit, readCommendations, writeCommendations, type Commendations } from './commendations';
+import { mergeRecords, readCaseload, writeCaseload, type Caseload } from './caseload';
 import { EMPTY_DIGEST, accumulateDigest, describeDigest, type AbsenceDigest } from './absenceDigest';
-import { EMPTY_SPECIMEN_LOG, mergeSpecimens, readSpecimenLog, writeSpecimenLog, type SpecimenLog } from './specimenLog';
+import { mergeSpecimens, readSpecimenLog, writeSpecimenLog, type SpecimenLog } from './specimenLog';
 import { loadRoster, saveToRoster } from './saveManager';
 import { predecessorFor } from './predecessor';
 
@@ -240,9 +240,9 @@ export const useGameStore = create<GameStore>((set, get) => {
         log: createActivityEntries([message], nextActivityId),
         worldNotices: [],
         socialEntries: [],
-        commendations: get().commendations ?? EMPTY_COMMENDATIONS,
-        caseload: get().caseload ?? EMPTY_CASELOAD,
-        specimens: get().specimens ?? EMPTY_SPECIMEN_LOG,
+        commendations: get().commendations,
+        caseload: get().caseload,
+        specimens: get().specimens,
         nextActivityId: nextActivityId + 1,
         sessionGeneration: sessionGeneration + 1,
         isPaused: false,
@@ -271,9 +271,9 @@ export const useGameStore = create<GameStore>((set, get) => {
         log: createActivityEntries(session.log.toReversed(), nextActivityId).reverse(),
         worldNotices: [],
         socialEntries: [],
-        commendations: get().commendations ?? EMPTY_COMMENDATIONS,
-        caseload: get().caseload ?? EMPTY_CASELOAD,
-        specimens: get().specimens ?? EMPTY_SPECIMEN_LOG,
+        commendations: get().commendations,
+        caseload: get().caseload,
+        specimens: get().specimens,
         nextActivityId: nextActivityId + session.log.length,
         sessionGeneration: sessionGeneration + 1,
         pendingElapsedMs: session.pendingElapsedMs,
