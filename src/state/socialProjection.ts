@@ -267,7 +267,7 @@ function linesFor(candidate: SceneCandidate): readonly SceneLine[] {
           { speaker: 'hero', channel: 'hero', text: 'Permitted, unsupervised, and unexamined. The usual arrangement.' },
         ],
         [
-          { speaker: 'official', channel: 'world', text: `The hero is now level ${formatGameNumber(event.level)} and holds ${certified.name} at the accredited grade. Nobody has been told what the grade means.` },
+          { speaker: 'official', channel: 'world', text: `The hero is now level ${formatGameNumber(event.level)} and holds ${certified.name} at the accredited grade. Nobody has explained it.` },
           gratsFor(candidate, 'world'),
           { speaker: 'hero', channel: 'hero', text: 'I will keep the certificate somewhere the audit can find it.' },
         ],
