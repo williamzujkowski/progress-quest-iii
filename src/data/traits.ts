@@ -116,7 +116,7 @@ export const DEFENSE_ATTRIB: [string, number][] = [
   // The same ladder as OFFENSE_ATTRIB above and the same reasoning, in this table's own register:
   // the offensive words are things done to a process, these are things done to a document.
   ['Attested', 8],
-  ['Notarised', 10],
+  ['Registered', 10],
   ['Engrossed', 13],
   ['Enrolled', 17],
   ['Warranted', 21],

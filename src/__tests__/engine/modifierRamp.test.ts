@@ -190,6 +190,39 @@ describe('the modifier vocabulary stays parseable', () => {
     }
   });
 
+  it('carries no two spellings of one word', () => {
+    /*
+     * The substring screen cannot see this class and did not. `Notarized` was already in the
+     * defensive table and I added `Notarised` at a different rung — neither contains the other, so
+     * every collision check passed, and a save could carry "Notarized Notarised Flag of
+     * Convenience". Caught by reading generated names rather than by any assertion.
+     *
+     * Edit distance one, within a table. Two modifiers that differ by a single character are a
+     * spelling slip rather than two words, whatever the values beside them say.
+     */
+    const withinOne = (left: string, right: string): boolean => {
+      if (Math.abs(left.length - right.length) > 1) return false;
+      const [shorter, longer] = left.length <= right.length ? [left, right] : [right, left];
+      let edits = 0;
+      for (let i = 0, j = 0; j < longer.length; i += 1, j += 1) {
+        if (shorter[i] === longer[j]) continue;
+        if ((edits += 1) > 1) return false;
+        if (shorter.length !== longer.length) i -= 1;
+      }
+      return true;
+    };
+
+    for (const table of [OFFENSE_ATTRIB, OFFENSE_BAD, DEFENSE_ATTRIB, DEFENSE_BAD]) {
+      const names = table.map(([name]) => name);
+      for (const left of names) {
+        for (const right of names) {
+          if (left === right) continue;
+          expect(withinOne(left, right), `"${left}" and "${right}" are one character apart`).toBe(false);
+        }
+      }
+    }
+  });
+
   it('keeps the ladders reaching further than the tallest base', () => {
     // The good tables have to out-reach the bases, or the mark absorbs the difference again. The bad
     // tables must not: they are only consulted when the base out-levels the character, so |plus| is
