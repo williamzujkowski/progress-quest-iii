@@ -19,6 +19,27 @@ export const MAX_CHECKPOINT_SERIALIZED_LENGTH = MAX_STORED_PAYLOAD_LENGTH;
  */
 const QUOTA_RETRY_FACTOR = 30;
 
+/**
+ * Failures worth attempting again, as against failures that have ended the matter.
+ *
+ * The two here are transient for different reasons, which is why the distinction is drawn on the
+ * code rather than on some property of the write.
+ *
+ * A full store is transient in its *environment*: the quota is shared across the origin, so it can
+ * be relieved by the player deleting something or by another site releasing space, without this tab
+ * doing anything.
+ *
+ * An invalid session is transient in its *subject*. The engine keeps ticking, and a character that
+ * momentarily fails the schema is very likely legal again by the next completed task — a few seconds
+ * away, not a session away. Treating it as terminal meant one such moment ended persistence for the
+ * rest of the session, with `repair()` an inert no-op, while the store went on accruing progress
+ * that would never be written. The player is told once and then watches an hour evaporate.
+ *
+ * Everything else describes the target rather than a moment: storage that is unavailable, corrupt,
+ * or claimed by another tab. Those are terminal, and the ones that have a way back offer a repair.
+ */
+const RETRYABLE_CODES: readonly CheckpointErrorCode[] = ['storage_full', 'invalid_schema'];
+
 type CheckpointErrorCode =
   | 'invalid_schema'
   | 'storage_unavailable'
@@ -307,8 +328,10 @@ export function startSessionCheckpoints({
   let repairAllowed = false;
   let requiresCharacterCreation = false;
   let repairSuccessMessage = 'The active-session checkpoint was replaced. Automatic checkpoints resumed.';
-  // Whether a quota failure is currently being retried, so a later success knows to clear the alert.
-  let quotaDeferred = false;
+  // Whether a retryable failure is currently outstanding, so a later success knows to clear the
+  // alert. Without it the player is told storage is full, or the session invalid, for the rest of
+  // the session once it plainly is neither.
+  let deferred: CheckpointErrorCode | null = null;
 
   const publish = (next: CheckpointNotice | null) => {
     notice = next;
@@ -343,20 +366,20 @@ export function startSessionCheckpoints({
     if (!dirty || !canPersist || storage === undefined) return;
     const result = writeActiveCheckpoint(storage, captureActiveSession(now()), expectedPrimaryRaw);
     if (!result.ok) {
-      // A full store is the one write failure that is transient by nature: the quota is shared
-      // across the origin, so it can be relieved by the player deleting something or by another
-      // site releasing space, without this tab doing anything. Treating it as terminal meant a
-      // single spike ended persistence for the session — the `pagehide` flush included, so closing
-      // the tab lost everything since the spike, and only a reload recovered, which lost it too.
+      // A retryable failure stays armed rather than ending persistence — see `RETRYABLE_CODES` for
+      // why each of the two is a moment rather than a verdict. Treating either as terminal meant a
+      // single spike ended persistence for the session, the `pagehide` flush included, so closing
+      // the tab lost everything since the spike and only a reload recovered, which lost it too.
       //
-      // So it stays armed and tries again. Backed off well beyond the ordinary interval, because a
-      // store that is genuinely full will keep failing and there is nothing to gain by asking it
-      // at the debounce rate.
-      if (result.error.code === 'storage_full') {
-        quotaDeferred = true;
+      // The two wait differently, because what they are waiting for differs. A full store is backed
+      // off well beyond the ordinary cadence: it will keep failing, and there is nothing to gain by
+      // asking at the debounce rate. An invalid session is waiting on the next completed task, which
+      // is seconds away, so it retries at the ordinary interval and catches the moment it passes.
+      if (RETRYABLE_CODES.includes(result.error.code)) {
+        deferred = result.error.code;
         recordFailure('write');
         publish({ kind: 'alert', message: `${result.error.message} It will keep trying.`, canRepair: false });
-        timer = setTimeout(flush, intervalMs * QUOTA_RETRY_FACTOR);
+        timer = setTimeout(flush, intervalMs * (result.error.code === 'storage_full' ? QUOTA_RETRY_FACTOR : 1));
         return;
       }
       block(result.error.message);
@@ -365,10 +388,13 @@ export function startSessionCheckpoints({
     expectedPrimaryRaw = result.value.raw;
     dirty = false;
     // Clearing the alert is the half that makes the retry worth having: without it the player is
-    // told storage is full for the rest of the session even once it plainly is not.
-    if (quotaDeferred) {
-      quotaDeferred = false;
-      publish({ kind: 'status', message: 'Browser storage recovered. Automatic checkpoints resumed.', canRepair: false });
+    // told storage is full, or the session invalid, for the rest of the session once it plainly is
+    // neither. Which of the two recovered is worth saying, because they name different culprits and
+    // a player who freed disk space to fix a schema complaint has been sent to the wrong place.
+    if (deferred !== null) {
+      const recovered = deferred === 'storage_full' ? 'Browser storage recovered.' : 'The active session is valid again.';
+      deferred = null;
+      publish({ kind: 'status', message: `${recovered} Automatic checkpoints resumed.`, canRepair: false });
     }
   };
   const schedule = () => {
