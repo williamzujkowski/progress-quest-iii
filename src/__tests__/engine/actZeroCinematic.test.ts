@@ -34,13 +34,29 @@ const stranded = (): GameTransitionState => {
 };
 
 describe('a plot bar that fills during act 0 does not start a cinematic', () => {
-  it('keeps the sheet writable, which is the whole of the defect', () => {
-    let state = stranded();
-    const rng = new RandomGenerator('act0-run');
+  it('refuses the sheet at the door rather than stranding it', () => {
+    /*
+     * This asserted that the stranded sheet stayed *writable* across 600 ticks, which it did — and
+     * that turned out to be half an answer. The engine correctly declines to start a cinematic at
+     * act 0, so the plot pinned at full and the hero never advanced an act again: the save-loss
+     * became a silent permanent stall, with the hero still levelling and looting.
+     *
+     * The schema now refuses `act === 0` paired with a non-prologue task, so the sheet never gets
+     * far enough to strand. The engine guard below stays, because it is what makes the state
+     * unreachable from play rather than merely unimportable.
+     */
+    expect(characterSheetSchema.safeParse(stranded().character).success).toBe(false);
+  });
 
-    // Long enough to cover many task transitions. The original failed on the very first one, but a
-    // guard that merely deferred the illegality would pass a single tick.
-    for (let tick = 0; tick < 600; tick += 1) {
+  it('keeps an ordinary act-0 character writable throughout the prologue', () => {
+    // The refusal must not catch a real newcomer. A fresh character is act 0 for its first
+    // twenty-eight seconds, and every tick of that has to stay valid.
+    let state: GameTransitionState = {
+      character: createNewCharacter('Ordinary', 'Half Daemon', 'Robot Monk', new RandomGenerator('act0-ok')),
+      progression: { experience: { currentSeconds: 0, maxSeconds: 100 }, completedTasks: 0, elapsedSeconds: 0 },
+    };
+    const rng = new RandomGenerator('act0-ok-run');
+    for (let tick = 0; tick < 120; tick += 1) {
       state = advanceGame(state, 1000, rng).state;
       const parsed = characterSheetSchema.safeParse(state.character);
       expect(parsed.success, `tick ${tick}: ${parsed.success ? '' : parsed.error.issues[0]?.message}`).toBe(true);
