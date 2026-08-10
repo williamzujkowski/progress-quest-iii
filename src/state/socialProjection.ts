@@ -319,9 +319,66 @@ function linesFor(candidate: SceneCandidate): readonly SceneLine[] {
       ],
     ] as const, candidate);
   }
-  if (candidate.kind === 'quest' && (event.type === 'quest_started' || event.type === 'quest_completed')) {
+  if (candidate.kind === 'quest' && event.type === 'quest_completed') {
     const scope = world.context.assignmentScope ?? 'local';
-    const status = event.type === 'quest_completed' ? 'completed' : 'approved';
+
+    // A completion, said as one.
+    //
+    // This branch used to share the bank below with `quest_started`, and the only thing that
+    // differed was a participle — `approved` against `completed`. Everything after the first clause
+    // was written for a departure and spoken at a return: "Route confidence is high" about a route
+    // already walked, "I have marked every uncertain direction as scenic" at the point there is
+    // nothing left to mark, and a hero replying "Proceed until the objective becomes retrospectively
+    // obvious" to an objective that has stopped.
+    //
+    // Worse than bland, and worse than it looks: `SCENE_LENGTHS` renders a quest scene as one line
+    // five times in nine, so the opening carries the scene — and the opening was the clause that
+    // differed by that single word.
+    //
+    // The certification branch first, mirroring the level scene. `spellRewards` carries quest awards
+    // as well as promotion ones, and the quest half reached a dry world notice and nothing else.
+    const certified = post.spellRewards?.find(({ source: rewardSource }) => rewardSource === 'quest');
+    if (certified) {
+      return variant([
+        [
+          { speaker: 'official', channel: 'guild', text: `The ${scope} assignment closed with a certification in ${certified.name}. Nobody has said what it was for.` },
+          { speaker: 'support', channel: 'guild', text: 'Logged against a record nobody audits. Congratulations remain pre-approved.' },
+          { speaker: 'hero', channel: 'hero', text: 'A second qualification. The first has not been requested either.' },
+        ],
+        [
+          { speaker: 'official', channel: 'guild', text: `Assignment closed. ${certified.name} was conferred on the way out, which is when these are conferred.` },
+          gratsFor(candidate, 'guild'),
+          { speaker: 'hero', channel: 'hero', text: 'Received on departure. I will file it beside the others.' },
+        ],
+        [
+          { speaker: 'official', channel: 'whisper', text: `The ${scope} brief is closed and ${certified.name} is attached to it. The attachment was not requested.` },
+          { speaker: 'support', channel: 'guild', text: 'Certification noted. The file is now longer and no clearer.' },
+          { speaker: 'hero', channel: 'hero', text: 'Closed, certified, and unexamined. The usual three.' },
+        ],
+      ] as const, candidate);
+    }
+
+    return variant([
+      [
+        { speaker: 'official', channel: 'guild', text: `A ${scope} assignment has been completed. The objectives were met in the order they were guessed.` },
+        { speaker: 'field', channel: 'party', text: 'The route is closed behind us. Nothing out there has been told the assignment ended.' },
+        { speaker: 'hero', channel: 'hero', text: 'Closed. I will wait here until the next one is handed down.' },
+      ],
+      [
+        { speaker: 'official', channel: 'guild', text: `Quest paperwork says ${scope} and completed. Nobody has verified the objective, and the objective is not disputing it.` },
+        { speaker: 'support', channel: 'guild', text: 'Completion recorded. Morale forms will follow at the usual interval.' },
+        { speaker: 'hero', channel: 'hero', text: 'Filed as complete. No further instruction has been received.' },
+      ],
+      [
+        { speaker: 'official', channel: 'whisper', text: `The ${scope} brief is completed. The wording that made it hard has been retained for reuse.` },
+        { speaker: 'field', channel: 'party', text: 'I have walked this back to the office. The office was not expecting me.' },
+        { speaker: 'hero', channel: 'hero', text: 'Returned. The assignment is closed and the walk is not reimbursable.' },
+      ],
+    ] as const, candidate);
+  }
+  if (candidate.kind === 'quest' && event.type === 'quest_started') {
+    const scope = world.context.assignmentScope ?? 'local';
+    const status = 'approved';
     return variant([
       [
         { speaker: 'official', channel: 'whisper', text: `A ${scope} assignment has been ${status}. Its objectives remain somebody else’s handwriting.` },
