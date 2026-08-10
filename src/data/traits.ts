@@ -93,11 +93,18 @@ export const OFFENSE_ATTRIB: [string, number][] = [
   ['Gazetted', 10],
   ['Enshrined', 13],
   ['Upheld', 17],
+  // Each rung below carries a second word at the same value, in the register the world acquires as
+  // acts accumulate. Same value, so the arithmetic is untouched and only the noun moves.
   ['Entrenched', 21],
+  ['Deployed', 21],
   ['Sustained', 27],
+  ['Anchored', 27],
   ['Statutory', 34],
+  ['Pinned', 34],
   ['Settled', 43],
+  ['Committed', 43],
   ['Canonical', 55],
+  ['Hardcoded', 55],
   ['Perpetual', 89],
   ['Inviolable', 144],
   ['Immemorial', 233],
@@ -119,15 +126,44 @@ export const DEFENSE_ATTRIB: [string, number][] = [
   ['Registered', 10],
   ['Engrossed', 13],
   ['Enrolled', 17],
+  // Each rung below carries a second word at the same value, in the register the world acquires as
+  // acts accumulate. Same value, so the arithmetic is untouched and only the noun moves.
   ['Warranted', 21],
+  ['Mirrored', 21],
   ['Executed', 27],
+  ['Replicated', 27],
   ['Ordained', 34],
+  ['Persisted', 34],
   ['Perfected', 43],
+  ['Archived', 43],
   ['Hallowed', 55],
+  ['Vaulted', 55],
   ['Sacrosanct', 89],
   ['Unabridged', 144],
   ['Definitive', 233],
 ];
+
+/**
+ * Which modifiers belong to the register the world acquires as acts accumulate.
+ *
+ * `substrateStage(act)` already swaps whole pools of place names and item provenance at acts five
+ * and twelve, so the map and the paperwork age together. The modifier vocabulary was the one surface
+ * that did not move, and the owner asked that modifiers escalate with level *and* act.
+ *
+ * Magnitude stays level's job and register becomes act's. Every word here shares a value with a
+ * legal-register word already in its table, so `base + modifiers + mark === level` is untouched and
+ * pacing cannot move — the arithmetic is identical and only the noun changes.
+ *
+ * A set rather than a third tuple element: `traitTables.test.ts` asserts every quality entry is a
+ * two-element pair, and that assertion is worth more than the convenience of packing a third field.
+ *
+ * Only the middle rungs. The shift is invisible on a `+8`, and the tallest rungs need a level no
+ * save reaches — so this covers 21 through 55, which is the band a long file actually occupies.
+ */
+export const INDUSTRIAL_MODIFIERS: ReadonlySet<string> = new Set([
+  'Deployed', 'Anchored', 'Pinned', 'Committed', 'Hardcoded',
+  'Mirrored', 'Replicated', 'Persisted', 'Archived', 'Vaulted',
+]);
 
 export const SHIELDS: [string, number][] = [
   ['Placeholder', 0],

@@ -46,7 +46,14 @@ function runActs({ resumeAt }: { resumeAt?: number } = {}) {
       'Gold',
       ...ready.character.Inventory.filter(({ name }) => name !== 'Gold').map(({ name }) => name),
     ]);
-    const expectedEquipment = generateEquipUpgrade(expectedRng, ready.character.Traits.Level);
+    // The act is passed because the engine passes it: the modifier register escalates with
+    // `substrateStage(act)` while magnitude stays a pure function of level. An oracle that omitted it
+    // would expect the legal vocabulary for ever and disagree with the engine from act twelve on.
+    //
+    // `ready.character.Plot.act` specifically — the act as the tick receives it. The engine reads the
+    // same field rather than the local it reassigns while advancing, so a reward generated during an
+    // act transition is filed under the act that earned it rather than the one that follows.
+    const expectedEquipment = generateEquipUpgrade(expectedRng, ready.character.Traits.Level, ready.character.Plot.act);
 
     const result = advanceGame(ready, 1, rng);
     const events = result.records.map(({ event }) => event);

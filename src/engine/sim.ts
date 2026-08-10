@@ -1,6 +1,7 @@
 import { encounterSpeedMultiplier, loadoutQuality } from './loadout';
 import { armourNameForSlot } from '../data/armourBySlot';
-import { ALL_STATS, ARMORS, BORING_ITEMS, DEFENSE_ATTRIB, DEFENSE_BAD, EQUIP_SLOTS, ITEM_ATTRIB, ITEM_OFS, KLASSES, MONSTERS, OFFENSE_ATTRIB, OFFENSE_BAD, PRIME_STATS, RACES, SHIELDS, SPECIALS, SPELLS, TITLES, WEAPONS } from '../data/traits';
+import { substrateStage } from '../data/worldContext';
+import { INDUSTRIAL_MODIFIERS, ALL_STATS, ARMORS, BORING_ITEMS, DEFENSE_ATTRIB, DEFENSE_BAD, EQUIP_SLOTS, ITEM_ATTRIB, ITEM_OFS, KLASSES, MONSTERS, OFFENSE_ATTRIB, OFFENSE_BAD, PRIME_STATS, RACES, SHIELDS, SPECIALS, SPELLS, TITLES, WEAPONS } from '../data/traits';
 import { MAX_PERSISTED_GOLD, MAX_PERSISTED_ITEMS, MAX_PERSISTED_VALUE } from '../data/limits';
 import { storageAllowance } from './storage';
 import { calculateEncumbranceMax, generateInitialStats, generateName, MAX_FINITE_CHARACTER_LEVEL } from './math';
@@ -224,6 +225,29 @@ export function generateItemReward(rng: RandomGenerator, inventoryNames: readonl
  */
 const MODIFIER_WINDOW = 4;
 
+/** The `substrateStage` at which the vocabulary changes register. Twelve acts, per `SUBSTRATE_ACTS`. */
+const INDUSTRIAL_STAGE = 2;
+
+/*
+ * Whether a rung has both a legal and an industrial word, cached per table.
+ *
+ * A rung with only one word is always eligible — most of the ladder is like that, since the
+ * industrial half covers only the middle band. Filtering those out would empty the low rungs and
+ * leave an early character with nothing to wear.
+ */
+const COUNTERPARTS = new WeakMap<readonly [string, number][], ReadonlySet<number>>();
+
+function hasCounterpart(table: readonly [string, number][], name: string): boolean {
+  let paired = COUNTERPARTS.get(table);
+  if (!paired) {
+    const industrialValues = new Set(table.filter(([label]) => INDUSTRIAL_MODIFIERS.has(label)).map(([, value]) => value));
+    paired = industrialValues;
+    COUNTERPARTS.set(table, paired);
+  }
+  const entry = table.find(([label]) => label === name);
+  return entry !== undefined && paired.has(entry[1]);
+}
+
 /**
  * The tables as ladders, sorted by how much they are worth rather than by when they were written.
  *
@@ -276,8 +300,20 @@ function drawModifier(
   rng: RandomGenerator,
   table: [string, number][],
   plus: number,
+  act = 0,
 ): readonly [string, number] | null {
-  const ladder = ladderFor(table);
+  // The register the world has reached, which decides which of two words at one rung is eligible.
+  //
+  // Every industrial synonym shares its value with a legal-register word already in the table, so
+  // this filters the ladder rather than reshaping it: the rung a character can reach is identical
+  // either way and only the noun differs. Magnitude stays a pure function of level.
+  //
+  // Two stages, not three. `substrateStage` thresholds at acts five and twelve; the industrial words
+  // arrive at the top one, because a register that shifts twice in a run reads as churn rather than
+  // as a world ageing.
+  const industrial = substrateStage(act) >= INDUSTRIAL_STAGE;
+  const ladder = ladderFor(table)
+    .filter(([name]) => INDUSTRIAL_MODIFIERS.has(name) === industrial || !hasCounterpart(table, name));
   // Ascending by magnitude, so everything that fits is a prefix and the grand end of it is the tail.
   let fits = 0;
   while (fits < ladder.length && Math.abs(ladder[fits]![1]) <= Math.abs(plus)) fits += 1;
@@ -287,7 +323,7 @@ function drawModifier(
   return ladder[low + rng.random(fits - low)]!;
 }
 
-export function generateEquipUpgrade(rng: RandomGenerator, level: number): { slot: EquipSlot; name: string } {
+export function generateEquipUpgrade(rng: RandomGenerator, level: number, act = 0): { slot: EquipSlot; name: string } {
   const slot = rng.pick(EQUIP_SLOTS);
   let stuff: [string, number][];
   let better: [string, number][];
@@ -323,7 +359,7 @@ export function generateEquipUpgrade(rng: RandomGenerator, level: number): { slo
   let plus = level - quality;
   if (plus < 0) better = worse;
   for (let count = 0; count < 2 && plus !== 0; count += 1) {
-    const drawn = drawModifier(rng, better, plus);
+    const drawn = drawModifier(rng, better, plus, act);
     // Nothing in the table is small enough to fit inside the remaining shortfall. Previously this
     // was the same `break` as a duplicate, reached by drawing something too large — see the note on
     // `drawModifier` for why that mattered.
