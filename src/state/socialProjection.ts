@@ -400,20 +400,52 @@ function linesFor(candidate: SceneCandidate): readonly SceneLine[] {
   if (candidate.kind === 'equipment' && (event.type === 'equipment_gained' || event.type === 'equipment_purchased')) {
     const filing = world.equipment?.label ?? 'serviceable';
     const source = event.type === 'equipment_purchased' ? 'purchase' : 'receipt';
+    // The item, named.
+    //
+    // `event.name` and `event.slot` were both in hand and neither was used, so a `legendary`
+    // acquisition read identically to a `serviceable` one apart from the adjective — and getting an
+    // upgrade is the guild-chat moment. The world console already does this properly.
+    //
+    // Naming it also fixes a rendering defect rather than only a flat one. `filing` was interpolated
+    // at sentence position one, so three of the six openings began with a lower-case letter:
+    // "receipt filed as notable." and "serviceable equipment receipt confirmed." A sentence that
+    // opens on a proper noun cannot do that.
+    const item = boundedLabel(event.name, 'an unlabelled item', 48);
+    // The rarest acquisition, said differently. Gated the way the recurring-quest branch is, because
+    // a variant list whose members are not all reachable lies about its own odds.
+    if (world.equipment?.label === 'legendary') {
+      return variant([
+        [
+          { speaker: 'logistics', channel: 'guild', text: `${item} is filed legendary, which is a heading and not an advantage.` },
+          { speaker: 'support', channel: 'guild', text: 'Nobody rolled. Nobody needed. Nobody greeded. It is yours by default.' },
+          { speaker: 'hero', channel: 'hero', text: 'Recorded as an uncontested award. There was nobody to contest it.' },
+        ],
+        [
+          { speaker: 'logistics', channel: 'guild', text: `${item} enters the ${event.slot} slot at the highest grade the schedule has.` },
+          gratsFor(candidate, 'guild'),
+          { speaker: 'hero', channel: 'hero', text: 'Filed at the top of a scale nobody else is on.' },
+        ],
+        [
+          { speaker: 'logistics', channel: 'party', text: `${item} is the finest thing the ${event.slot} entry has carried. The entry has not been updated with why.` },
+          { speaker: 'support', channel: 'party', text: 'Grade legendary. Combat contribution unchanged, which is to say none.' },
+          { speaker: 'hero', channel: 'hero', text: 'Superlative and inert. The file records only the first.' },
+        ],
+      ] as const, candidate);
+    }
     return variant([
       [
-        { speaker: 'logistics', channel: 'guild', text: `${filing} equipment ${source} confirmed. Provenance is now somebody else’s problem.` },
+        { speaker: 'logistics', channel: 'guild', text: `${item} enters the ${event.slot} slot at ${filing}. Provenance is now somebody else’s problem.` },
         { speaker: 'support', channel: 'guild', text: 'Combat contribution remains none; confidence contribution has been overfunded.' },
         { speaker: 'hero', channel: 'hero', text: 'I accept it in my capacity as everyone present.' },
       ],
       [
-        { speaker: 'logistics', channel: 'party', text: `${filing} equipment entered by ${source}. Eligibility was unanimous among the absent.` },
-        { speaker: 'support', channel: 'party', text: 'No combat effect is modeled, which greatly simplifies the warranty.' },
+        { speaker: 'logistics', channel: 'party', text: `${source.charAt(0).toUpperCase()}${source.slice(1)} of ${item} confirmed. Eligibility was unanimous among the absent.` },
+        { speaker: 'support', channel: 'party', text: 'No combat effect is modeled. The warranty covers exactly that.' },
         { speaker: 'hero', channel: 'hero', text: 'Equip the paperwork somewhere load-bearing.' },
       ],
       [
-        { speaker: 'logistics', channel: 'guild', text: `${source} filed as ${filing}. The item has declined further examination.` },
-        { speaker: 'support', channel: 'guild', text: 'Its tactical effect is none, presented with unusual confidence.' },
+        { speaker: 'logistics', channel: 'guild', text: `${item} is filed ${filing}. The ${event.slot} entry has been amended and the amendment initialled.` },
+        { speaker: 'support', channel: 'guild', text: 'An upgrade. Combat contribution remains none, as it did for the last one.' },
         { speaker: 'hero', channel: 'hero', text: 'Then it perfectly matches our strategic doctrine.' },
       ],
     ] as const, candidate);
