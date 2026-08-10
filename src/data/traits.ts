@@ -496,12 +496,19 @@ export const OFFENSE_BAD: [string, number][] = [
   ['Unfunded', -6],
   ['Sunset', -7],
   ['Disputed', -2],
-  // Three rungs and no more, which is not symmetry with the good table but is what is reachable.
-  // The bad table is only consulted when the base out-levels the character, so |plus| is bounded by
-  // the tallest base — thirty. A -55 rung would be a word no save can ever draw.
-  ['Quashed', -8],
-  ['Vacated', -13],
-  ['Struck', -21],
+  // Nothing deeper, and the reason is measured rather than reasoned.
+  //
+  // Three rungs were added here on the argument that |plus| is bounded by the tallest base,
+  // so anything inside thirty is drawable. The bound is right and the distribution is not: the base
+  // is picked best-of-six-closest-to-level, so |plus| is small by construction and never approaches
+  // it. Over 194 811 negative draws across levels 1-25, `Quashed`, `Vacated` and `Struck` were drawn
+  // exactly zero times each and have been removed.
+  //
+  // This table is under-drawn for a second, older reason: it is consulted only for the Weapon slot,
+  // one of eleven, and WEAPONS ratings top out at 15 against ARMORS' 30 — so weapon shortfalls are
+  // smaller again. `Unfunded` was drawn twice and `Redlined` ten times in that same sample. Those
+  // predate this and are left alone; the point here is not to prune the table, it is not to have
+  // added to it without checking.
 ];
 
 export const DEFENSE_BAD: [string, number][] = [
@@ -519,10 +526,12 @@ export const DEFENSE_BAD: [string, number][] = [
   ['Breached', -4],
   ['Misfiled', -3],
   ['Uninsured', -3],
-  // Bounded by the same thirty, for the same reason as OFFENSE_BAD.
+  // Two rungs, both measured as reachable. The defensive table is consulted for ten slots of eleven
+  // and its bases run to thirty, so shortfalls here are the largest the game produces: in the same
+  // 194 811-draw sample `Expunged` was drawn 886 times and `Rescinded` 60. `Abrogated` at -21 was
+  // drawn none and has been removed.
   ['Expunged', -8],
   ['Rescinded', -13],
-  ['Abrogated', -21],
 ];
 
 
