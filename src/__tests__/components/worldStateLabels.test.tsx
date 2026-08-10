@@ -33,6 +33,22 @@ describe('the world line says what its terms are', () => {
     }
   });
 
+  it('says what the adventure clock is counting', () => {
+    /*
+     * `0:10:12` with no h/m/s markers, degrading to `1.16e6s` past a million. The shape is
+     * conventional enough; what it counts is not. This is task time the hero has logged, so a
+     * paused game does not advance it and it is not the age of the file — and nothing said so.
+     */
+    const clock = [...feed().querySelectorAll('.world-context-line span[title]')]
+      .find((span) => span.textContent?.includes('adventure elapsed'));
+    expect(clock, 'no elapsed clock rendered').toBeTruthy();
+    const title = clock?.getAttribute('title') ?? '';
+    expect(title, title).toMatch(/task time/i);
+    // The distinction is the whole point: a clock that looked like the file's age would be read as
+    // one, and this one stops when the hero does.
+    expect(title, title).toMatch(/not the time since|only while the hero is working/i);
+  });
+
   it('says tenor is not something the hero can move', () => {
     // It is a function of the act alone, so a newcomer reading it as a stat to raise would be
     // chasing a number that ignores them. That is the specific confusion worth pre-empting.

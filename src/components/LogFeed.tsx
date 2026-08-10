@@ -166,7 +166,15 @@ export const LogFeed: React.FC = () => {
             <span className="sr-only">Look: {world.spokenLocation}</span>
           </strong>
           <span>
-            <span aria-hidden="true"><ActLabel act={world.act} /> · {formatElapsed(world.elapsedSeconds)} adventure elapsed</span>
+            {/* `0:10:12` with no markers, and `1.16e6s` past a million. The shape is conventional
+                enough, but what it counts is not: this is task time the hero has logged, not time
+                since the file was opened, so a paused game does not advance it. Nothing said so. */}
+            <span
+              aria-hidden="true"
+              title="Hours:minutes:seconds of task time the hero has logged. It advances only while the hero is working, so it is not the time since this file was opened."
+            >
+              <ActLabel act={world.act} /> · {formatElapsed(world.elapsedSeconds)} adventure elapsed
+            </span>
             <span className="sr-only">{world.act === 0 ? 'Prologue' : `Act ${describeGameNumber(world.act)}`} · {formatElapsedForSpeech(world.elapsedSeconds)} adventure elapsed</span>
           </span>
         </div>
