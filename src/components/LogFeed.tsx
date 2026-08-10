@@ -1,5 +1,6 @@
 import { Scroll } from 'lucide-react';
 import { ENCOUNTER_SECONDS_PRECISION } from '../engine/loadoutFiling';
+import { MAX_WORLD_NOTICES } from '../data/limits';
 import React, { useId, useLayoutEffect, useRef, useState } from 'react';
 import { describeGameNumber, formatGameNumber } from '../engine/text';
 import { useGameStore } from '../state/gameStore';
@@ -244,7 +245,14 @@ export const LogFeed: React.FC = () => {
           </ul>
         )}
         <details className="world-context-details">
-          <summary>World filings{worldNotices.length > 0 ? ` (${worldNotices.length})` : ''}</summary>
+          {/* The count says what it is once it stops being a count.
+              `gameStore` slices to `MAX_WORLD_NOTICES`, so after a few minutes this read
+              "World filings (40)" permanently — a buffer size wearing a quantity, inviting a reader
+              to watch a number that cannot change. Below the cap it is still the honest total. */}
+          <summary>
+            World filings
+            {worldNotices.length > 0 && ` (${worldNotices.length}${worldNotices.length >= MAX_WORLD_NOTICES ? ' most recent' : ''})`}
+          </summary>
           <div className="world-context-notices" role="region" tabIndex={0} aria-label="Derived world notices">
             {worldNotices.length > 0
               ? worldNotices.toReversed().map((entry) => <p key={entry.id}>{entry.text}</p>)

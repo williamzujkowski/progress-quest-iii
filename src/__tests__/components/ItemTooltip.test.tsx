@@ -2,6 +2,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { ItemTooltip } from '../../components/ItemTooltip';
+import { describeInventoryItem } from '../../data/itemDetails';
 import { useGameStore } from '../../state/gameStore';
 
 afterEach(cleanup);
@@ -88,5 +89,22 @@ describe('tooltip triggers are not disclosure buttons', () => {
     const describedBy = trigger.getAttribute('aria-describedby');
     expect(describedBy).not.toBeNull();
     expect(screen.getByRole('tooltip').id).toBe(describedBy);
+  });
+});
+
+describe('the carrying unit agrees with its figure', () => {
+  /*
+   * Every stack of one item read "Encumbrance: +1 cubits" — the commonest reading there is — while
+   * the neighbours have always said "1 docket on file", "filed against 1 time" and "Items of record
+   * retained in 1 slot". The consistency around it is what made this an oversight.
+   */
+  it('says one cubit and two cubits', () => {
+    expect(describeInventoryItem('rubber duck', 1, 3).effect).toContain('+1 cubit.');
+    expect(describeInventoryItem('rubber duck', 1, 3).effect).not.toContain('+1 cubits');
+    expect(describeInventoryItem('rubber duck', 2, 3).effect).toContain('+2 cubits.');
+  });
+
+  it('agrees at zero, which is plural in English', () => {
+    expect(describeInventoryItem('rubber duck', 0, 3).effect).toContain('+0 cubits.');
   });
 });
