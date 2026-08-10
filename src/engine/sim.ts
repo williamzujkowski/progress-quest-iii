@@ -48,9 +48,17 @@ export function createNewCharacter(name: string, race: string, klass: string, se
     },
     Stats: stats,
     Equip: initialEquip,
-    Inventory: [
-      { name: 'Gold', qty: 0 },
-    ],
+    // Nothing, which is what a new hire owns.
+    //
+    // This seeded an empty Gold stack, and the market walk sells inventory[0] - so the first market
+    // trip of every character that has ever existed opened with three ungrammatical lines describing
+    // nothing, about three minutes in, which is exactly when a newcomer is working out what the
+    // market is.
+    //
+    // Nothing needed the row. The purse is character.Gold; calculateEncumbrance filters Gold out by
+    // name, and so does the loot generator. A recorded fixture does sell a Gold stack, but at a
+    // quantity of ten - the degenerate case is the empty one, and only a new character had it.
+    Inventory: [],
     Spells: [],
     Gold: 0,
     Plot: {
