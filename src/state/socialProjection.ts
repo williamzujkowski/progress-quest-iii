@@ -1067,6 +1067,25 @@ export function projectAmbient(
   // The best thing the hero owns is still entry-tier, so the hall explains itself to them. Anything
   // better equipped ends it, which is why it needs no timer and cannot outstay its welcome.
   if (lane === 'onboarding' && (loadout?.itemOfRecord?.standing ?? 0) > ONBOARDING_STANDING) lane = 'ambient';
+  // And promoted, not merely permitted, while that window is open.
+  //
+  // Weighted as an ordinary lane it was one slot in twenty-six, drawn by a thunk that fires on well
+  // under one per cent of ticks, inside a window that closes on an equipment tier rather than a
+  // clock. Measured over six fresh characters: one heard onboarding never and a second heard it
+  // once. The comment above claimed it was loud while it lasted; a lane cannot be loud at one slot
+  // in twenty-six no matter how short-lived it is, because rarity multiplies rather than cancels.
+  //
+  // So while the hall still has something to explain, it takes about half the draws. Nothing else
+  // changes: the window still ends the moment the hero out-equips entry tier, and still needs no
+  // timer to end it.
+  //
+  // Conditioned on a loadout having been passed at all, rather than on there being an item in it.
+  // A hero who has equipped nothing yet is the newest newcomer there is — treating that as "not
+  // entry tier" put the promotion out of reach for exactly the character who needs it most, which
+  // is what the first attempt at this did. What must not trigger it is a caller that passes no
+  // memory whatsoever, which is most tests and no player.
+  const entryTier = loadout !== undefined && (loadout.itemOfRecord?.standing ?? 0) <= ONBOARDING_STANDING;
+  if (entryTier && stableChoice(`onboard-window:${key}`, 2) === 0) lane = 'onboarding';
 
   // The two running bits step with the task counter and wrap, so a feud restarts rather than
   // resolving.
