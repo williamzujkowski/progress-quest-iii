@@ -560,8 +560,6 @@ export const DEFENSE_BAD: [string, number][] = [
   ['Hotfixed', -1],
   ['Derated', -2],
   ['Lapsed', -1],
-  ['Unpatched', -3],
-  ['Unposted', -3],
   ['Damaged', -2],
   ['Voided', -3],
   ['Contested', -3],

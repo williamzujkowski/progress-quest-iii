@@ -110,7 +110,10 @@ const COUNTS: [string, readonly unknown[], number][] = [
   ['ARMORS', ARMORS, 20],
   ['KLASSES', KLASSES, 18],
   ['SHIELDS', SHIELDS, 16],
-  ['DEFENSE_BAD', DEFENSE_BAD, 16],
+  // Two entries fewer since `Unpatched` and `Unposted` were removed: the windowed draw made them
+  // unreachable at every `plus`, and removing them shifts ladder index and `fits` by the same two,
+  // so every window lands on the same word it did before.
+  ['DEFENSE_BAD', DEFENSE_BAD, 14],
   ['IMPRESSIVE_TITLES', IMPRESSIVE_TITLES, 14],
   ['EQUIP_SLOTS', EQUIP_SLOTS, 11],
   ['OFFENSE_ATTRIB', OFFENSE_ATTRIB, 28],
