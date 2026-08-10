@@ -28,7 +28,11 @@ export function useFilingVelocity(nowMs: () => number = systemNowMs): number | n
     const sample = () => {
       const now = nowMs();
       samples.current = retainWindow(
-        [...samples.current, { atMs: now, completedTasks: useGameStore.getState().progression.completedTasks }],
+        [...samples.current, {
+          atMs: now,
+          completedTasks: useGameStore.getState().progression.completedTasks,
+          elapsedSeconds: useGameStore.getState().progression.elapsedSeconds,
+        }],
         now,
       );
       const next = computeFilingVelocity(samples.current);
