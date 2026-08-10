@@ -35,7 +35,7 @@ const readTrack = (track: ProjectedTrack) => {
  * show a figure that changes at most once per sample.
  *
  * Both tracks reset when they fill and grow their ceiling afterwards, so the reset guard inside
- * the projection is needed for either — the plot track was measured at 0.841 progress-seconds per
+ * the projection is needed for either — the plot track was measured at 0.87 to 0.92 progress-seconds per
  * elapsed second, so it is no more a clock than the experience track is and the same sampled rate
  * is the honest way to read it.
  */

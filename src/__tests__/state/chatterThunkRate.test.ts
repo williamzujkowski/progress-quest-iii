@@ -12,7 +12,7 @@ import type { IdentifiedGameTransitionRecord } from '../../state/worldContext';
  * The rate the ambient thunk actually fires at, asserted rather than claimed.
  *
  * `scheduleChatter` takes its ambient argument as a thunk because building it is the most expensive
- * thing on the tick — `fileLoadout` alone is 22 µs of a 26 µs tick, and the memory bag behind it now
+ * thing on the tick — the memory bag behind it is 24 µs against a tick of 2 to 4, and the memory bag behind it now
  * walks the roster, the caseload and the world context as well. The whole justification is that the
  * branch is rare.
  *

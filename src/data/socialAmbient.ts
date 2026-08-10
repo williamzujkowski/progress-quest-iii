@@ -625,8 +625,8 @@ export const EXCHANGES: readonly (readonly AmbientLine[])[] = [
    * Loot drama, which is the oldest argument in raiding and belongs here rather than in a lane of
    * its own.
    *
-   * The obvious build was a `loot` lane. The rotation is already fourteen distinct kinds across
-   * nineteen slots, and another running bit would have taken weight from the ones already there
+   * The obvious build was a `loot` lane. The rotation is already twenty-one distinct kinds across
+   * twenty-six slots, and another running bit would have taken weight from the ones already there
    * rather than adding to them — while the measurement that actually mattered said something else:
    * ambient is 43.8% of what is on screen at any moment and reuses each line 2.5 times, which is now
    * the highest reuse in the feed. Deepening a bank costs no lane weight and lowers that directly.

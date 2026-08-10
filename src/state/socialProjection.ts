@@ -134,12 +134,13 @@ function candidateFor(source: IdentifiedGameTransitionRecord, recurring: Readonl
   }
   // The file being opened, which is the one moment the channel had nothing at all to say.
   //
-  // A new character's first twenty-eight seconds are the prologue, whose durations are fixed and
+  // A new character's first twenty-eight seconds are the prologue: a two-second loading task and
+  // four entries of ten, six, six and four. The durations are fixed and
   // sum to exactly that. No prologue task is a market or kill boundary, so `chooseCandidate`
   // offered nothing for any of them — the console opens on Chatter and Chatter was empty, not
   // because the cadence gate declined but because nothing was ever proposed to it.
   //
-  // Only the first step, and only the one that follows loading. Five prologue tasks would be five
+  // Only the first step, and only the one that follows loading. Four prologue tasks would be four
   // scenes, and a guild that narrates every beat of somebody's backstory is the caption track this
   // channel was rebuilt to stop being.
   if (event.type === 'task_started' && event.task.type === 'prologue' && post.completedTask === 'loading') {

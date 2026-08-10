@@ -50,7 +50,7 @@ export const HeroBanner: React.FC = () => {
   // Derived, non-authoritative, and sampled on its own timer - see useFilingVelocity.
   const velocity = useFilingVelocity();
   // Projected from the observed rate rather than the experience track's own arithmetic, which
-  // only advances on kill tasks and so runs about a quarter short. See useTrackProjection.
+  // only advances on kill tasks and so runs about a tenth short. See useTrackProjection.
   const promotionSeconds = useTrackProjection('experience');
   // The act is the coarsest thing the engine advances and the unit a watcher thinks in.
   const actSeconds = useTrackProjection('plot');
