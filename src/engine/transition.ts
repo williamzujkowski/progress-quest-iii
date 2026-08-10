@@ -338,7 +338,17 @@ export function advanceGame(state: GameTransitionState, elapsedMs: number, rng: 
     const nextProgression: ProgressionState = {
       experience,
       completedTasks: Math.min(MAX_PERSISTED_VALUE, progression.completedTasks + 1),
-      elapsedSeconds: Math.min(MAX_PERSISTED_VALUE, progression.elapsedSeconds + Math.floor(progressDelta)),
+      // Rounded, not floored. Flooring discarded every task's fractional second — about 0.368 s
+      // each — in the same direction every time, so the loss compounded: over twelve simulated
+      // hours the clock read 0.916 of real task time, sixty-two minutes short. That clock is the
+      // console's "adventure elapsed" and the denominator both hero-banner ETAs divide by, so it
+      // also made those read about 9.5% optimistic.
+      //
+      // Rounded rather than carrying the remainder, because this is a `boundedInteger` in the
+      // checkpoint schema: holding a fraction in `progression` fails validation on the next write,
+      // which five tests catch. Rounding keeps the integer contract and makes the error unbiased,
+      // which is what stops it compounding — measured at 0.997 to 0.999 after.
+      elapsedSeconds: Math.min(MAX_PERSISTED_VALUE, progression.elapsedSeconds + Math.round(progressDelta)),
     };
     let quest = { ...character.Quest };
     let plot = { ...character.Plot };
