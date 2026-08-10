@@ -525,7 +525,16 @@ function generateMonsterTask(rng: RandomGenerator, character: CharacterSheet): {
   let quantity = 1;
   if (targetLevel - monster.level > 10) {
     const divisor = Math.max(monster.level, 1);
-    quantity = Math.max(1, Math.floor((targetLevel + rng.random(divisor)) / divisor));
+    // Clamped, because this was the one engine output on the task path that was not. Dividing a
+    // near-billion `targetLevel` by a level-zero monster's divisor of one hands back the level
+    // itself, which is past `MAX_PERSISTED_VALUE` and so unwritable — and `getRandomMonster` would
+    // never pair those, but the quest-target bias uses an imported `targetIndex`, and 42 of the 232
+    // monsters are level one or lower.
+    //
+    // Clamped before the division rather than after, so the level the hero is actually pitted
+    // against is derived from the count the task will report. Clamping afterwards would leave the
+    // two describing different fights.
+    quantity = Math.min(MAX_PERSISTED_VALUE, Math.max(1, Math.floor((targetLevel + rng.random(divisor)) / divisor)));
     targetLevel = Math.floor(targetLevel / quantity);
   }
 
