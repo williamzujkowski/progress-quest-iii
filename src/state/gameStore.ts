@@ -214,6 +214,19 @@ export const useGameStore = create<GameStore>((set, get) => {
       } else {
         character = structuredClone(request.character);
         rng = new RandomGenerator(JSON.stringify(character));
+        // A hero caught mid-duel brings the continuation with them.
+        //
+        // The checkpoint schema requires a nemesis cursor's `replayRngState` to equal the session's
+        // RNG state, and seeding from the character's own JSON cannot land on it — so a character
+        // holding a cursor imported and loaded cleanly and was then unwritable for as long as the
+        // duel lasted, with the checkpoint refused on every tick.
+        //
+        // Adopting the cursor's state rather than dropping the cursor, because the cursor is already
+        // self-contained: `replayNemesisRound` sets the generator from this same field before every
+        // round. So this parks the generator exactly where the next round will start it anyway, and
+        // the duel resumes where it left off instead of being silently discarded on load.
+        const cursor = character.PendingTasks?.find((entry) => entry.type === 'nemesis_cursor');
+        if (cursor?.type === 'nemesis_cursor') rng.setState(cursor.replayRngState);
         message = `Loaded character ${character.Traits.Name} from ${request.source === 'import' ? 'save data' : 'roster'}.`;
       }
 
