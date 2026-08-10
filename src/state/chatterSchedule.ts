@@ -148,16 +148,24 @@ export function scheduleChatter(
   cadence: ChatterCadence,
   completedTasks: number,
   /*
-   * A thunk, because building it costs more than the rest of the tick and is discarded almost
-   * always. `fileLoadout` behind it runs twenty-two `analyzeItemMechanics` calls, and this branch is
-   * reached on roughly 610 of 20 000 ticks — 3.1%, or about one tick in eight of those that produce
-   * any record at all. The caller cannot know whether it is needed — that is this function's
-   * decision — so the decision is where the work now happens.
+   * A thunk, because building it costs several times the rest of the tick and is discarded almost
+   * always. The caller cannot know whether it is needed — that is this function's decision — so the
+   * decision is where the work now happens.
    *
-   * That figure read "27 of 20 000" until it was measured again and came back twenty-three times
-   * larger. The conclusion did not move — 3.1% against 100% is still a thirty-two-fold saving — but
-   * a perf comment nobody can run is how a number drifts this far without anybody noticing, so the
-   * rate is now asserted in `chatterThunkRate.test.ts` rather than only claimed here.
+   * The cost is not where this used to say it was. `fileLoadout` was named as the expense, at
+   * twenty-two `analyzeItemMechanics` calls; it is keyed on `Equip` identity and comes back a hit
+   * at about 0.04 µs almost every time the thunk fires. What costs is `projectAmbient` with a full
+   * memory bag — roughly 24 µs against 6 µs without one — because the bag derives every lane's
+   * material before one lane is chosen, so most of it is thrown away on every ambient line.
+   *
+   * The rate has been restated twice: "27 of 20 000", then "610 of 20 000, 3.1%". Both were per
+   * simulated second, measured by a harness that advanced a full second per iteration while the
+   * clock wakes every 50 ms. Per real tick it is about 0.15%, so the deferral is worth roughly
+   * twenty times what the last correction claimed.
+   *
+   * Which is why the rate is asserted in `chatterThunkRate.test.ts` against `GAME_TICK_MS` rather
+   * than written here: a figure nobody can run drifts, and a figure measured at the wrong interval
+   * drifts without ever looking wrong.
    */
   /*
    * Defaulted for the cadence tests, which ask what the schedule does with no ambient source at all

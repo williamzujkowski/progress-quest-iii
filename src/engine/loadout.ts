@@ -36,9 +36,15 @@ import type { CharacterSheet } from './types';
  * behind `encounterSpeedMultiplier`, so it runs inside `projectCounterfactual` on a render path that
  * fires every tick, while `Equip` itself changed 14 times in 2 000 measured ticks.
  *
- * Identity rather than contents: the engine replaces `Equip` with a new object whenever it changes a
- * slot and never mutates one in place, so a stale hit would need a change that skipped that
- * replacement. One entry, because the question is only ever "the same as last time?".
+ * Identity rather than contents: the engine never mutates an `Equip` in place, so a stale hit would
+ * need a change that skipped the replacement, and nothing does that. One entry, because the question
+ * is only ever "the same as last time?".
+ *
+ * It is replaced far more often than it changes, though — the per-task loop spreads it
+ * unconditionally, so identity moves on every completed task. Measured over 40 000 ticks: about 450
+ * identity changes against 16 to 35 real ones. The cache errs conservative, which costs a fraction
+ * of a microsecond per tick and is not worth fixing; what is worth saying is that "whenever it
+ * changes a slot" was never the rule.
  *
  * It is also on the engine's own path — `sim.ts` calls it once per kill — where the character is
  * rebuilt each transition and the cache simply misses. That costs one comparison and changes no
