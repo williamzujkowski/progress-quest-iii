@@ -642,7 +642,7 @@ function linesFor(candidate: SceneCandidate): readonly SceneLine[] {
       ],
       [
         { speaker: 'support', channel: 'guild', text: 'A hero has arrived. Standing by to audit the consequences.' },
-        { speaker: 'logistics', channel: 'guild', text: 'There will be consequences. The cupboard has been opened.' },
+        { speaker: 'logistics', channel: 'guild', text: 'There will be consequences. Starting kit has been issued from the bottom of the cupboard.' },
         { speaker: 'hero', channel: 'hero', text: 'Everyone here talks about me in the third person and I have only just got in.' },
       ],
     ] as const, candidate);
@@ -849,12 +849,17 @@ function spokenLines(candidate: SceneCandidate, lines: readonly SceneLine[]): re
   // rare, it is the one moment a room reacts to rather than narrates, and drawing its length like
   // any other left most promotions rendering as a single announcement with nobody answering.
   //
-  // The rule this follows is one the cadence layer already applies: `ALWAYS_HEARD` lists exactly
-  // `milestone`, `level` and `catch_up`, and refuses to suppress them. A scene the channel may never
-  // silence is a scene worth hearing out, so the two that are also *written* as scenes get their
-  // written length. Still three lines, so the bound every other scene is held to is not widened.
+  // The rule this follows is one the cadence layer already applies: `ALWAYS_HEARD` refuses to
+  // suppress `milestone`, `level`, `arrival` and `catch_up`. A scene the channel may never silence
+  // is a scene worth hearing out, so the three that are also *written* as scenes get their written
+  // length. Still three lines, so the bound every other scene is held to is not widened.
   // `catch_up` is one line by construction and needs no exemption.
-  if (candidate.kind === 'level' || candidate.kind === 'milestone') return lines;
+  //
+  // `arrival` was added to `ALWAYS_HEARD` without being added here, and this paragraph went on
+  // naming the old list. So the greeting was guaranteed to be heard and truncated anyway, and three
+  // seeds in four lost its third line — which is the punchline and the hero's first words. The two
+  // lists have to move together: the whole argument above is that they describe the same set.
+  if (candidate.kind === 'level' || candidate.kind === 'milestone' || candidate.kind === 'arrival') return lines;
 
   const { hero, completedTasks } = candidate.source.record.post;
   const key = `len:${hero.name}:${candidate.kind}:${candidate.source.activityId}:${completedTasks}`;

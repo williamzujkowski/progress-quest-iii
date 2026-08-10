@@ -111,6 +111,43 @@ describe('the guild says something when the file is opened', () => {
     expect(openings.size, [...openings].join(' | ')).toBeGreaterThan(1);
   });
 
+  it('is heard whole, not guaranteed-heard and then truncated', () => {
+    /*
+     * `arrival` is in `ALWAYS_HEARD`, so the cadence layer may never silence it — and `spokenLines`
+     * has a matching exemption from the `SCENE_LENGTHS` truncation that it was not added to. The
+     * greeting was therefore guaranteed to arrive and then cut, and three seeds in four lost the
+     * third line: the punchline, and the first thing the hero ever says.
+     *
+     * Asserted as a count rather than on the text, because the point is that nothing downstream may
+     * shorten this scene, whichever variant it draws.
+     */
+    for (const name of HEROES) {
+      const { texts } = arrivalsFor(name);
+      expect(texts.length, `${name}: ${texts.join(' | ')}`).toBe(3);
+    }
+  });
+
+  it('gives every variant its own setup, since a player sees exactly one', () => {
+    /*
+     * Variant 4 opened "There will be consequences. The cupboard has been opened." while the cupboard
+     * was introduced only in variant 1 — a referent three quarters of players never meet. A variant
+     * is the whole of somebody's first impression, so it has to stand on its own.
+     *
+     * Checked within a scene and in order, not across the flattened set: variant 1's hero line says
+     * "The cupboard" perfectly well, because that variant's own previous line put one there. The
+     * rule is that a definite reference must follow its introduction inside the same airing, which
+     * is the thing that was actually broken.
+     */
+    for (const name of HEROES) {
+      const { texts } = arrivalsFor(name);
+      texts.forEach((text, index) => {
+        if (!/\bThe cupboard\b/.test(text)) return;
+        const introduced = texts.slice(0, index).some((earlier) => /\bcupboard\b/i.test(earlier));
+        expect(introduced, `${name}: "${text}" refers to a cupboard nothing before it mentioned`).toBe(true);
+      });
+    }
+  });
+
   it('quotes no figures at second two', () => {
     // The hero has done nothing yet, so a number here would be one the player has had no chance to
     // see — and the arrival lines are also a newcomer's first read of what this panel is.
