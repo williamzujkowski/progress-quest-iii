@@ -43,6 +43,14 @@ export function accumulateDigest(digest: AbsenceDigest, events: readonly GameTra
       case 'gold_received':
         next = { ...next, gold: next.gold + event.amount };
         break;
+      // The gold a player actually earns. `gold_received` is the rarer of the two by a wide margin:
+      // it needs `generateItemReward` to return 'Gold', which needs more than 250 distinct names in
+      // the bag. Measured over twelve simulated hours to level 23, it fired zero times while sales
+      // brought in 805,161 gold — so the digest reported "none of it witnessed" after an absence
+      // that earned six figures, on the one screen whose whole job is saying what was missed.
+      case 'inventory_sold':
+        next = { ...next, gold: next.gold + event.gold };
+        break;
       default:
         break;
     }
