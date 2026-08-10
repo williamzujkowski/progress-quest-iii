@@ -353,9 +353,11 @@ export interface RouteStop {
  * Everywhere the paperwork has sent the hero, recomputed rather than remembered.
  *
  * Nothing here is stored, and that is the point. Every place name in this game is already a pure
- * function of the hero's identity and an act — `choose(townNamesAt(act), '<name>:<class>:town:<act>')`
- * and its two siblings — so an act the hero finished names its own town, dungeon and raid on demand,
- * exactly as it did at the time. A route therefore needs no new field on the sheet and no schema
+ * function of the hero's identity and an act — `placeFor` over the per-act name tables — so an act
+ * the hero finished names its own town, dungeon and raid on demand, exactly as it did at the time.
+ * (This described a `choose(townNamesAt(act), '<name>:<class>:town:<act>')` that no longer exists;
+ * the shuffle replaced it, and the argument the paragraph makes is unaffected by which.)
+ * A route therefore needs no new field on the sheet and no schema
  * change, which matters more than it sounds: every persisted addition is a migration against a
  * directive that reads `player data > correctness`.
  *

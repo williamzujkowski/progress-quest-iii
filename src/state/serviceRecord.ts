@@ -103,7 +103,7 @@ const bound = (text: string): string => boundCodePoints(text, MAX_TEXT_CODE_POIN
 function postingLine(stop: RouteStop): string | null {
   if (stop.town === null) return null;
   const places = [stop.town, stop.dungeon, stop.raid].filter((place): place is string => place !== null && place.length > 0);
-  return bound(`Act ${stop.act} — ${places.join(', ')}${stop.current ? ' (current posting)' : ''}`);
+  return bound(`Act ${formatGameNumber(stop.act)} — ${places.join(', ')}${stop.current ? ' (current posting)' : ''}`);
 }
 
 function postings(hero: GamePresentationSnapshot['hero'], act: number): ServiceRecordSection | null {

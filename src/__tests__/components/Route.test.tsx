@@ -27,8 +27,12 @@ describe('the postings record', () => {
     const list = screen.getByRole('list', { name: 'Places this hero has been posted' });
     const rows = [...list.querySelectorAll('li')];
 
+    // "Prologue", not "Act 0". This panel interpolated the ordinal raw and was the last surface
+    // still calling act zero by its number, while `GameNumber`, the world console and the activity
+    // log all name it. A newcomer was told they had finished the Prologue, that Act 0 had closed,
+    // and that they were posted to Act 0, in the same minute.
     expect(rows.map((row) => row.querySelector('.equip-slot')?.textContent))
-      .toEqual(['Act 0', 'Act 1', 'Act 2', 'Act 3', 'Act 4', 'Act 5']);
+      .toEqual(['Prologue', 'Act 1', 'Act 2', 'Act 3', 'Act 4', 'Act 5']);
     expect(rows.filter((row) => row.className.includes('route-current'))).toHaveLength(1);
     expect(rows[4]?.className).toContain('route-current');
   });
