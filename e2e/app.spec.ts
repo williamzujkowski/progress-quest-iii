@@ -736,7 +736,11 @@ test.describe('Progress Quest III terminal dashboard', () => {
       });
     });
 
-    const summary = context.getByText('World filings (40)');
+    // Matched on the prefix, not the whole label. This test is about the disclosure's *layout* at a
+    // reflowed viewport; the parenthetical is incidental to that and pinning it exactly meant a
+    // refinement to the wording failed a layout assertion. The three sibling locators already match
+    // 'World filings' alone, and this was the odd one out.
+    const summary = context.getByText(/^World filings/);
     expect((await summary.boundingBox())?.height).toBeGreaterThanOrEqual(44);
     await summary.click();
     const notices = page.getByRole('region', { name: 'Derived world notices' });
