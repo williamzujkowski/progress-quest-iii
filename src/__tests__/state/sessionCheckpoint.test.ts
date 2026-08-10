@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { RandomGenerator } from '../../engine/prng';
 import { createNewCharacter } from '../../engine/sim';
 import { advanceGame } from '../../engine/transition';
-import { MAX_PENDING_ELAPSED_MS, MAX_PERSISTED_ITEMS } from '../../data/limits';
+import { MAX_PENDING_ELAPSED_MS, MAX_PERSISTED_DESCRIPTION_LENGTH, MAX_PERSISTED_ITEMS } from '../../data/limits';
 import { createActivityEntries, useGameStore } from '../../state/gameStore';
 import { activeCheckpointV1Schema } from '../../state/schemas';
 import { diagnostics } from '../../state/diagnostics';
@@ -354,6 +354,53 @@ describe('active session checkpoint boundary', () => {
     // Clearing the alert is the half that makes the retry worth having.
     expect(controller.getNotice()).toMatchObject({ kind: 'status' });
     expect(setItem).toHaveBeenCalled();
+    controller.dispose();
+  });
+
+  it('keeps trying after the session is momentarily invalid, and saves what accrued meanwhile', () => {
+    /*
+     * The other half of the same rule, and the one that made every import-reachable save bug
+     * unrecoverable rather than merely annoying.
+     *
+     * An invalid session is transient in its subject rather than its environment: the engine keeps
+     * ticking, and a character that momentarily fails the schema is legal again by the next
+     * completed task. Treating it as terminal ended persistence for the whole session, with
+     * `repair()` an inert no-op, while the store went on accruing progress that would never be
+     * written — the player is told once, and then watches an hour evaporate.
+     *
+     * Retried at the ordinary interval rather than the quota's backed-off one, because what this is
+     * waiting for is seconds away rather than a player freeing disk space.
+     */
+    vi.useFakeTimers();
+    const character = createNewCharacter('Momentary', 'Half Daemon', 'Robot Monk', 720);
+    useGameStore.setState({ character, sessionGeneration: 1 });
+
+    const controller = startSessionCheckpoints({ now: () => FIXED_SAVED_AT, storage: localStorage, intervalMs: 1 });
+
+    // Illegal only for an instant: a description three characters past the cap is exactly what the
+    // engine's own ellipsis produces from a near-cap pending task.
+    useGameStore.setState({
+      character: { ...character, Task: { ...character.Task, description: 'x'.repeat(MAX_PERSISTED_DESCRIPTION_LENGTH + 3) } },
+      log: activityLog('Earned while the sheet was illegal'),
+    });
+    vi.advanceTimersByTime(5);
+
+    expect(controller.getNotice()).toMatchObject({ kind: 'alert', canRepair: false });
+    expect(controller.getNotice()?.message).toContain('keep trying');
+    expect(localStorage.getItem(ACTIVE_CHECKPOINT_KEY)).toBeNull();
+
+    // The next task arrives and the sheet is ordinary again. Nothing else happens — no reload, no
+    // repair, no player action of any kind, because there is none available to take.
+    useGameStore.setState({ character, log: activityLog('Earned after it passed') });
+    vi.advanceTimersByTime(5);
+
+    const written = localStorage.getItem(ACTIVE_CHECKPOINT_KEY);
+    expect(written).not.toBeNull();
+    expect(activeCheckpointV1Schema.safeParse(JSON.parse(written ?? '{}')).success).toBe(true);
+    // Named for what actually recovered. A player sent to free disk space over a schema complaint
+    // has been sent to the wrong place.
+    expect(controller.getNotice()).toMatchObject({ kind: 'status' });
+    expect(controller.getNotice()?.message).toContain('session is valid again');
     controller.dispose();
   });
 
