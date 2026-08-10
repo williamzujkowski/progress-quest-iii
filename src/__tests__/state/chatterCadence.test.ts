@@ -18,7 +18,11 @@ const scene = (sceneId: string, sceneKind: SocialSceneKind, lines = 3): SocialEn
     sourceActivityId: 1,
     channel: 'guild' as const,
     speaker: { id: 'x', kind: 'cast' as const, displayName: 'X', role: 'r', fictional: true as const, automaticHero: false },
-    text: `line ${index}`,
+    // Distinct per scene, because the gate now declines a scene whose text is still on screen.
+    // `line ${index}` made all 600 scenes byte-identical, which no real run produces — the loot bank
+    // alone has thirteen variants and interpolates item names — and it turned a rate test into a
+    // repetition test that reported the gate had silenced the channel.
+    text: `${sceneId} line ${index}`,
   }));
 
 /** Drives many batches through the gate the way the store does, one per completed task. */
@@ -32,6 +36,49 @@ const run = (kind: SocialSceneKind, batches: number) => {
   }
   return spoken;
 };
+
+describe('the guild does not repeat itself inside one panel', () => {
+  /*
+   * `recentTexts` was written into by the event branch and never read against it, so event scenes —
+   * 47 to 58% of everything a player sees — could repeat freely. Measured on real play, six lines an
+   * hour arrived while an identical line was still on screen, including two loot lines 69 seconds
+   * apart with nothing said between them.
+   *
+   * Cheap to refuse: the same measurement puts the cost at about eight lines an hour out of 271.
+   */
+  const repeatedScene = (task: number) => scene('same', 'loot').map((entry) => ({ ...entry, sceneId: `s:${task}` }));
+
+  it('declines an ordinary scene whose words are still on screen', () => {
+    let cadence = NEW_CADENCE;
+    let spoken = 0;
+    for (let task = 1; task <= 200; task += 1) {
+      const result = scheduleChatter(repeatedScene(task), cadence, task);
+      cadence = result.cadence;
+      spoken += result.entries.length;
+    }
+    // Heard once and then refused while it stays in the window. Not zero — the first airing is not
+    // a repeat of anything.
+    expect(spoken).toBeGreaterThan(0);
+    expect(spoken).toBeLessThan(30);
+  });
+
+  it('still speaks a scene the channel may never silence, even in the same words', () => {
+    // A level or an act closing is worth hearing however it is worded, which is the whole reason
+    // `ALWAYS_HEARD` exists. Suppressing those as repeats would be the fix eating the exemption.
+    let cadence = NEW_CADENCE;
+    let spoken = 0;
+    for (let task = 1; task <= 200; task += 1) {
+      const result = scheduleChatter(
+        scene('same', 'level').map((entry) => ({ ...entry, sceneId: `s:${task}` })),
+        cadence,
+        task,
+      );
+      cadence = result.cadence;
+      spoken += result.entries.length;
+    }
+    expect(spoken).toBe(600);
+  });
+});
 
 describe('how much the guild actually says', () => {
   it('cuts ordinary chatter by roughly an order of magnitude', () => {
