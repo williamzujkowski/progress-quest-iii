@@ -404,6 +404,38 @@ describe('active session checkpoint boundary', () => {
     controller.dispose();
   });
 
+  it('does not republish a notice the player is already looking at', () => {
+    /*
+     * The retry is right; telling the subscriber about it every interval is not. `App` subscribes
+     * through `useSyncExternalStore` with `getNotice` as the snapshot, and React compares snapshots
+     * by identity — so a fresh object with identical contents is a render for no reason.
+     *
+     * Measured before this: 3,600 publishes an hour against one distinct message, for as long as
+     * the condition lasted.
+     */
+    vi.useFakeTimers();
+    const character = createNewCharacter('Stuck', 'Half Daemon', 'Robot Monk', 720);
+    useGameStore.setState({
+      character: { ...character, Task: { ...character.Task, description: 'x'.repeat(MAX_PERSISTED_DESCRIPTION_LENGTH + 3) } },
+      sessionGeneration: 1,
+    });
+
+    const controller = startSessionCheckpoints({ now: () => FIXED_SAVED_AT, storage: localStorage, intervalMs: 1 });
+    let notifications = 0;
+    const unsubscribe = controller.subscribe(() => { notifications += 1; });
+
+    useGameStore.setState({ log: activityLog('Earned while the sheet stayed illegal') });
+    vi.advanceTimersByTime(400);
+
+    // The alert is raised once and then held. A handful of notifications rather than one, because
+    // the store subscription also fires — what must not happen is one per retry.
+    expect(controller.getNotice()).toMatchObject({ kind: 'alert', canRepair: false });
+    expect(notifications, `${notifications} notifications across 400 retries`).toBeLessThan(10);
+
+    unsubscribe();
+    controller.dispose();
+  });
+
   it('disables further repair after an explicit repair write fails', () => {
     localStorage.setItem(ACTIVE_CHECKPOINT_KEY, '{broken');
     const original = localStorage.getItem(ACTIVE_CHECKPOINT_KEY);
