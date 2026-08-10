@@ -49,6 +49,19 @@ export interface AmbientLine {
   readonly seat: SocialSeat;
   readonly channel: AmbientChannel;
   readonly text: string;
+  /**
+   * The persona this line belongs to, where it belongs to one rather than to a seat.
+   *
+   * Every other bank is keyed by seat, and each seat has two personas — so a `support` line is
+   * spoken by the healer auditor in some saves and the tank liaison in others, and cannot be about
+   * either. That is why the cast's roles had never once been spoken: they are not a property the
+   * banks could address.
+   *
+   * `castForHero` resolves one persona per seat per hero and holds it for the life of the save, so a
+   * file always has the same eight characters. A line keyed here belongs to a person the reader
+   * recognises rather than to a slot that rotates.
+   */
+  readonly persona?: string;
 }
 
 /**
@@ -291,6 +304,56 @@ export const DOCKET_LINES: readonly AmbientLine[] = [
   { seat: 'field', channel: 'party', text: 'We have met {docket} often enough that I no longer announce it.' },
   { seat: 'logistics', channel: 'world', text: 'WTB anything {docket} is known to want. Enquiries have gone unanswered.' },
   { seat: 'official', channel: 'guild', text: 'Nobody has raised {docket} at review, and review is where things are raised.' },
+];
+
+/**
+ * The cast, speaking as the people the roster says they are.
+ *
+ * `socialCatalog.ts` gives every persona a name, a role and a declared preoccupation, and the feed
+ * prints the name and the role beside every line. A reader has been looking at
+ * `SOLILOQ_TankAlt · Tank liaison` for hours. Neither `Tank liaison` nor `Healer auditor` appeared
+ * in a single line of dialogue — the roles were labels next to a speaker and never things the
+ * speaker was.
+ *
+ * Half the guild is machine-named, which is its own joke about a roster made of bots and alts, and
+ * two of those names are jokes nobody had cashed: a scout called AFK, and a tank who is somebody's
+ * alt whose declared preoccupation is blame allocation.
+ *
+ * Keyed to the persona rather than the seat, because a seat has two occupants and a line about being
+ * the tank is wrong half the time in a bank the seat draws from. The cast is fixed per save, so
+ * these read as a person rather than a rotation.
+ *
+ * The preoccupation is the brief for each one. Nothing here says what the persona *is* — the feed
+ * already prints that — it says what somebody with that job would be worrying about.
+ */
+export const PERSONA_LINES: readonly AmbientLine[] = [
+  // Tank liaison, preoccupation: blame allocation. The tank is an alt, and the alt is the one asked.
+  { persona: 'soliloq-tankalt', seat: 'support', channel: 'guild', text: 'I am asked to hold the front because I am the one who answers.' },
+  { persona: 'soliloq-tankalt', seat: 'support', channel: 'guild', text: 'The post is held by a secondary file. The primary file was not asked.' },
+  { persona: 'soliloq-tankalt', seat: 'support', channel: 'party', text: 'Everything arrives at me first. That is the entire job description.' },
+  // Healer auditor, preoccupation: morale forms.
+  { persona: 'mira-triage', seat: 'support', channel: 'guild', text: 'Morale is assessed weekly whether or not any has occurred.' },
+  { persona: 'mira-triage', seat: 'support', channel: 'guild', text: 'I am told to keep everyone standing and to file why they were not.' },
+  { persona: 'mira-triage', seat: 'support', channel: 'party', text: 'Nobody has needed attention. I have prepared the forms regardless.' },
+  // Scout, preoccupation: routes. The name says AFK; the joke is that the reports keep arriving.
+  { persona: 'cogito-afk', seat: 'field', channel: 'party', text: 'The route is filed. I was not on it at the time.' },
+  { persona: 'cogito-afk', seat: 'field', channel: 'party', text: 'Scouting continues in my absence and reaches the same conclusions.' },
+  { persona: 'cogito-afk', seat: 'field', channel: 'guild', text: 'I have reported from a position I am not standing in.' },
+  // Raid coordinator, preoccupation: quorum.
+  { persona: 'odo-margin', seat: 'field', channel: 'party', text: 'Quorum is the number present. The number present is being reviewed.' },
+  { persona: 'odo-margin', seat: 'field', channel: 'guild', text: 'I coordinate an assembly that has never assembled.' },
+  // Quest clerk, preoccupation: quest scope. The name is an unresolved versioning dispute.
+  { persona: 'parley-v4-final', seat: 'official', channel: 'guild', text: 'The scope was final. It has been final on four separate occasions.' },
+  { persona: 'parley-v4-final', seat: 'official', channel: 'guild', text: 'A later version exists and is also called final.' },
+  // Market broker, preoccupation: prices. A second revision of a market broker.
+  { persona: 'candor-mk2', seat: 'logistics', channel: 'world', text: 'Prices are as quoted by the previous revision of me.' },
+  { persona: 'candor-mk2', seat: 'logistics', channel: 'guild', text: 'The rate is unchanged. I have been replaced twice since it was set.' },
+  // Quartermaster, preoccupation: loot provenance.
+  { persona: 'brin-parcel', seat: 'logistics', channel: 'guild', text: 'Everything here arrived from somewhere. Almost none of it says where.' },
+  { persona: 'brin-parcel', seat: 'logistics', channel: 'guild', text: 'Provenance is a field on the form. It is usually left blank.' },
+  // Guild registrar, preoccupation: attendance.
+  { persona: 'sable-quoin', seat: 'official', channel: 'guild', text: 'Attendance is recorded. Attendance has been one for some time.' },
+  { persona: 'sable-quoin', seat: 'official', channel: 'guild', text: 'The register is complete. It is complete because it is short.' },
 ];
 
 /**
