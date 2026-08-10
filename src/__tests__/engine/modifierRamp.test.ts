@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { generateEquipUpgrade } from '../../engine/sim';
 import { analyzeItemMechanics } from '../../engine/itemMechanics';
 import { RandomGenerator } from '../../engine/prng';
-import { ARMORS, DEFENSE_ATTRIB, DEFENSE_BAD, OFFENSE_ATTRIB, OFFENSE_BAD, SHIELDS, WEAPONS } from '../../data/traits';
+import { ARMORS, DEFENSE_ATTRIB, DEFENSE_BAD, INDUSTRIAL_MODIFIERS, OFFENSE_ATTRIB, OFFENSE_BAD, SHIELDS, WEAPONS } from '../../data/traits';
 import { ARMOUR_BY_SLOT } from '../../data/armourBySlot';
 
 /**
@@ -123,6 +123,68 @@ describe('modifier grandeur tracks the character', () => {
     // the reason this change cannot affect pacing: `plus` is the shortfall and the leftover becomes
     // the mark, so base + modifiers + mark is the character's level whatever the words are.
     for (const level of [1, 3, 17, 64, 200]) profile(level, 400);
+  });
+});
+
+describe('the register ages with the acts, and the arithmetic does not', () => {
+  /*
+   * The owner asked that modifiers escalate with level *and* act. Level governs magnitude, which the
+   * ladder above does. Act governs register, which is this — and the split is not a compromise, it is
+   * forced: experience and plot advance by the same `progressDelta` in the same branch, so act is a
+   * logarithmic compression of level and carries no magnitude information level does not. Adding it
+   * to the value would land in the assessor's mark, making it bigger, or break the invariant
+   * everything reads as its contract.
+   *
+   * `substrateStage` already swaps place names and provenance at acts five and twelve. This is the
+   * one surface that was not moving with them.
+   */
+  const drawnAt = (act: number, level: number, draws = 2500) => {
+    const rng = new RandomGenerator(`register-${act}-${level}`);
+    const words = new Set<string>();
+    let industrial = 0;
+    let total = 0;
+    for (let index = 0; index < draws; index += 1) {
+      const { slot, name } = generateEquipUpgrade(rng, level, act);
+      for (const { name: modifier } of analyzeItemMechanics({ kind: 'equipment', name, slot }).quality!.modifiers) {
+        words.add(modifier);
+        total += 1;
+        if (INDUSTRIAL_MODIFIERS.has(modifier)) industrial += 1;
+      }
+    }
+    return { words: words.size, industrialShare: industrial / Math.max(1, total) };
+  };
+
+  it('says nothing industrial before the world has become industrial', () => {
+    // `substrateStage` reaches its top tier at act twelve. Below it the vocabulary is the legal one
+    // it has always been, so an early file reads exactly as it did.
+    for (const act of [0, 1, 4, 6, 11]) {
+      expect(drawnAt(act, 55).industrialShare, `act ${act}`).toBe(0);
+    }
+  });
+
+  it('changes register once it has, without touching what an item is worth', () => {
+    expect(drawnAt(12, 55).industrialShare).toBeGreaterThan(0.2);
+    expect(drawnAt(20, 55).industrialShare).toBeGreaterThan(0.2);
+  });
+
+  it('swaps words rather than adding or removing them', () => {
+    // The filter picks between two words at one rung. If it changed how many rungs are reachable, it
+    // would be a magnitude change wearing a vocabulary change's clothes.
+    const early = drawnAt(1, 55);
+    const late = drawnAt(20, 55);
+    expect(Math.abs(early.words - late.words), `${early.words} words early, ${late.words} late`).toBeLessThanOrEqual(2);
+  });
+
+  it('leaves the totals identical, which is the whole reason act may not touch magnitude', () => {
+    // Asserted directly: the same seed at the same level must produce items worth exactly the level
+    // regardless of act. `profile` already checks the invariant; this checks act cannot move it.
+    for (const act of [0, 6, 12, 20]) {
+      const rng = new RandomGenerator('invariant');
+      for (let index = 0; index < 300; index += 1) {
+        const { slot, name } = generateEquipUpgrade(rng, 55, act);
+        expect(analyzeItemMechanics({ kind: 'equipment', name, slot }).quality!.total, `${name} at act ${act}`).toBe(55);
+      }
+    }
   });
 });
 

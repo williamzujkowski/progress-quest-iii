@@ -489,7 +489,7 @@ export function advanceGame(state: GameTransitionState, elapsedMs: number, rng: 
         // decade has been shed, and returns the purse untouched when one has and the balance is
         // short; behind `gold >= price` neither branch can differ from the subtraction it replaces.
         ({ gold } = spendGold({ gold, decades: goldDecades }, price));
-        const upgrade = generateEquipUpgrade(rng, traits.Level);
+        const upgrade = generateEquipUpgrade(rng, traits.Level, character.Plot.act);
         equip = { ...equip, [upgrade.slot]: upgrade.name };
         events.push({ type: 'equipment_purchased', slot: upgrade.slot, name: upgrade.name });
       }
@@ -538,7 +538,7 @@ export function advanceGame(state: GameTransitionState, elapsedMs: number, rng: 
             inventory = addedItem.inventory;
             if (addedItem.added) events.push({ type: 'item_gained', name: itemName, quantity: 1 });
           }
-          const upgrade = generateEquipUpgrade(rng, traits.Level);
+          const upgrade = generateEquipUpgrade(rng, traits.Level, character.Plot.act);
           equip = { ...equip, [upgrade.slot]: upgrade.name };
           events.push({ type: 'equipment_gained', slot: upgrade.slot, name: upgrade.name });
         }
