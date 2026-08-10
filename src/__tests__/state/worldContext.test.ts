@@ -4,8 +4,9 @@ import { RandomGenerator } from '../../engine/prng';
 import { advanceGame, type GamePresentationSnapshot, type GameTransitionEvent } from '../../engine/transition';
 import { activeCheckpointV1Schema } from '../../state/schemas';
 import { encodePQWSave } from '../../state/saveManager';
-import { projectWorld, type IdentifiedGameTransitionRecord } from '../../state/worldContext';
+import { projectWorld, type IdentifiedGameTransitionRecord, projectRoute } from '../../state/worldContext';
 import { dungeonNamesAt, fieldNamesAt, raidNamesAt, substrateStage, townNamesAt } from '../../data/worldContext';
+import { RAID_ACT_THRESHOLD } from '../../data/worldContext';
 
 const snapshot = (overrides: Partial<GamePresentationSnapshot> = {}): GamePresentationSnapshot => ({
   hero: { name: 'Krg', race: 'Sub-Subprocessor', className: 'Robot Monk', level: 7 },
@@ -389,4 +390,40 @@ describe('sited substrate', () => {
     ).toBe(true);
   });
 
+});
+
+describe('the service record names no raid before there are raids', () => {
+  /*
+   * Every route stop was filled with a town, a dungeon and a raid. But `venueForTask` only resolves
+   * 'raid' from `RAID_ACT_THRESHOLD` upward, so a raid named at act 2 is a place the game cannot
+   * send anyone — the record was inventing a posting.
+   *
+   * Reproduced before the fix: `projectRoute(hero, 1)` returned
+   * `{ act: 0, town: "New Requisition", dungeon: "The Unbudgeted Depths", raid: "Citadel of
+   * Necessary Meetings" }`.
+   *
+   * The existing guard in `serviceRecord` tests the *hero's* act, so a hero past act 0 cleared it
+   * and had raid-less stops rendered anyway. Whether a raid exists is a property of the stop.
+   */
+  const hero = { name: 'Routed', race: 'Half Daemon', className: 'Robot Monk', level: 40 } as const;
+
+  it('leaves the raid unnamed below the threshold', () => {
+    for (const stop of projectRoute(hero, RAID_ACT_THRESHOLD - 1, 20)) {
+      expect(stop.raid, `act ${stop.act} named a raid`).toBeNull();
+    }
+  });
+
+  it('names one at and above the threshold, so the fix is a boundary rather than a removal', () => {
+    const stops = projectRoute(hero, RAID_ACT_THRESHOLD + 3, 20);
+    const named = stops.filter((stop) => stop.raid !== null);
+    expect(named.length, 'no raid named at any act').toBeGreaterThan(0);
+    for (const stop of named) expect(stop.act).toBeGreaterThanOrEqual(RAID_ACT_THRESHOLD);
+    // And the towns are untouched: they are named at every act reached, and the console names them
+    // there too. The stop past the hero's act is excluded because it is deliberately unnamed — an
+    // institution that has not decided where you are going yet is this game's register, and that
+    // blank is a feature rather than the defect above.
+    for (const stop of stops.filter(({ act }) => act <= RAID_ACT_THRESHOLD + 3)) {
+      expect(stop.town, `act ${stop.act}`).not.toBeNull();
+    }
+  });
 });

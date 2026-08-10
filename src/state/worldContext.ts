@@ -373,11 +373,20 @@ export function projectRoute(hero: GamePresentationSnapshot['hero'], act: number
 
   const named = (current: number): RouteStop => {
     const post = { hero, act: current } as GamePresentationSnapshot;
+    // Whether a raid exists is a property of the stop, not of the hero.
+    //
+    // Every stop was filled with all three, so the record asserted a raid at acts that have none —
+    // `venueForTask` only ever resolves 'raid' from `RAID_ACT_THRESHOLD` upward, so a raid named at
+    // act 2 is a place the game cannot send anyone.
+    //
+    // Town and dungeon are left alone deliberately. They are named at every act including zero, and
+    // the world console names them there too — `routeAgreesWithConsole` exists to keep the two
+    // saying the same thing, and nulling them here would trade one disagreement for a worse one.
     return {
       act: current,
       town: townName(post).split(' // ')[0] ?? null,
       dungeon: milestoneName(post, 'dungeon').split(' // ')[0] ?? null,
-      raid: milestoneName(post, 'raid').split(' // ')[0] ?? null,
+      raid: current >= RAID_ACT_THRESHOLD ? milestoneName(post, 'raid').split(' // ')[0] ?? null : null,
       current: current === act,
     };
   };
