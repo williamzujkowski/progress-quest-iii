@@ -51,6 +51,11 @@ const FURNISHED = {
     exhibit: { Gauntlets: { name: '+9 Bonded Signing Authority', label: 'legendary' as const, quality: 40 } },
   },
   venue: { venue: 'town' as const, location: 'Ashfield', act: 3 },
+  // Added when the specimen lane shipped. Leaving it out did not fail anything directly — it made
+  // that lane fall back, which quietly inflated `ambient` by exactly its share and pushed the
+  // furnished bound to the edge. A constant meaning "everything the institution can remember" has
+  // to actually mean it, or the mix it measures is a different mix.
+  specimens: { specimens: ['item:rubber duck', 'item:paperclip', 'item:egg timer'] },
 };
 
 const FILING = {
@@ -166,7 +171,7 @@ describe('the guild talks about itself', () => {
     expect((counts.get('ambient') ?? 0) / TASKS).toBeLessThan(0.25);
     // Every memory-fed lane is actually reached, or the spread above is an average over lanes that
     // never fire.
-    for (const fed of ['docket', 'modifier', 'predecessor', 'exhibit', 'era', 'venue', 'item', 'blame']) {
+    for (const fed of ['docket', 'modifier', 'predecessor', 'exhibit', 'era', 'venue', 'item', 'blame', 'persona']) {
       expect(counts.get(fed) ?? 0, `${fed} never fired`).toBeGreaterThan(0);
     }
   });
@@ -176,7 +181,7 @@ describe('the guild talks about itself', () => {
     // owning nothing worth citing is exactly the one the hall is still explaining itself to, so
     // onboarding does fire.
     const lanes = new Set(Array.from({ length: 2000 }, (_, task) => projectAmbient(HERO, task)[0]?.sceneId.split(':')[2]));
-    expect(lanes).toEqual(new Set(['ambient', 'reaction', 'trade', 'feud', 'question', 'utility', 'auction', 'notice', 'onboarding', 'exchange', 'mistell']));
+    expect(lanes).toEqual(new Set(['ambient', 'reaction', 'trade', 'feud', 'question', 'utility', 'auction', 'notice', 'onboarding', 'exchange', 'mistell', 'persona']));
   });
 
   it('stops explaining the hall once the hero owns something better than a lanyard', () => {
@@ -304,7 +309,7 @@ describe('the guild notices what is being worn', () => {
       .map((entry) => entry?.sceneId.split(':')[2]);
 
   it('reaches the two loadout lanes when there is something to cite', () => {
-    expect(new Set(lanesOf(FILING))).toEqual(new Set(['ambient', 'reaction', 'trade', 'feud', 'question', 'utility', 'auction', 'notice', 'item', 'blame', 'exchange', 'mistell']));
+    expect(new Set(lanesOf(FILING))).toEqual(new Set(['ambient', 'reaction', 'trade', 'feud', 'question', 'utility', 'auction', 'notice', 'item', 'blame', 'exchange', 'mistell', 'persona']));
   });
 
   it('says nothing about a loadout that earns nothing, rather than falling silent', () => {

@@ -3,7 +3,7 @@ import { GRATS } from '../data/socialGrats';
 import { DKP_ALLOCATION, DKP_STANDINGS } from '../data/socialDkp';
 import { recurringAssignments } from './questRecurrence';
 import { boundCodePoints, boundedLabel, MAX_TEXT_CODE_POINTS, formatGameNumber, stableIndex, stableChoice } from '../engine/text';
-import { DOCKET_LINES, ERA_LINES, SPECIMEN_LINES, VENUE_LINES, EXHIBIT_LINES, PREDECESSOR_MISTELLS, SYSTEM_NOTICES, AUCTION_LINES, MISTELLS, UTILITY_BEATS, AMBIENT_LINES, BLAME_BEATS, EXCHANGES, FEUD_BEATS, ITEM_OF_RECORD_LINES, ONBOARDING_LINES, QUESTION_BEATS, REACTION_LINES, REPEATED_MODIFIER_LINES, TRADE_LINES, type AmbientLine } from '../data/socialAmbient';
+import { DOCKET_LINES, ERA_LINES, PERSONA_LINES, SPECIMEN_LINES, VENUE_LINES, EXHIBIT_LINES, PREDECESSOR_MISTELLS, SYSTEM_NOTICES, AUCTION_LINES, MISTELLS, UTILITY_BEATS, AMBIENT_LINES, BLAME_BEATS, EXCHANGES, FEUD_BEATS, ITEM_OF_RECORD_LINES, ONBOARDING_LINES, QUESTION_BEATS, REACTION_LINES, REPEATED_MODIFIER_LINES, TRADE_LINES, type AmbientLine } from '../data/socialAmbient';
 import type { LoadoutFiling } from '../engine/loadoutFiling';
 import { displayTarget, mostLitigated, type Caseload } from './caseload';
 import type { Predecessor } from './predecessor';
@@ -900,6 +900,10 @@ const AMBIENT_LANES = [
   // a lane that fired often would say the same thing about the same item all afternoon.
   'item',
   'blame',
+  // The cast, speaking as the people the roster says they are. One lane's worth: these are about
+  // who somebody is rather than about what just happened, and a channel that reintroduced its own
+  // staff every minute would be a channel with a turnover problem.
+  'persona',
   // One thing out of everything the archive holds. Ranked last of the seven and kept to one lane's
   // worth for the reason it was ranked there: it is the quietest of them, and a room that asked
   // after a different mislaid object every minute would be a room with a storage problem.
@@ -1055,6 +1059,11 @@ export function projectAmbient(
   // not a state a save reaches, but one a caller can hand over.
   const curios = specimens ? itemSpecimens(specimens) : [];
   if (lane === 'specimen' && curios.length === 0) lane = 'ambient';
+  // Only the four personas this save actually seated. The other four exist and are somebody else's
+  // guild; a line about the tank is wrong in a file whose support seat drew the healer.
+  const seated = new Set(Object.values(cast).map(({ id }) => id));
+  const ownLines = PERSONA_LINES.filter(({ persona }) => persona !== undefined && seated.has(persona));
+  if (lane === 'persona' && ownLines.length === 0) lane = 'ambient';
   // The best thing the hero owns is still entry-tier, so the hall explains itself to them. Anything
   // better equipped ends it, which is why it needs no timer and cannot outstay its welcome.
   if (lane === 'onboarding' && (loadout?.itemOfRecord?.standing ?? 0) > ONBOARDING_STANDING) lane = 'ambient';
@@ -1092,6 +1101,8 @@ export function projectAmbient(
       ? VENUE_LINES[stableChoice(`venue:${key}`, VENUE_LINES.length)]!
     : lane === 'specimen'
       ? SPECIMEN_LINES[stableChoice(`specimen:${key}`, SPECIMEN_LINES.length)]!
+    : lane === 'persona'
+      ? ownLines[stableChoice(`persona:${key}`, ownLines.length)]!
     : lane === 'blame'
       ? beat(BLAME_BEATS)
       : lane === 'feud'
