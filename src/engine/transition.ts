@@ -597,6 +597,24 @@ export function advanceGame(state: GameTransitionState, elapsedMs: number, rng: 
     } else {
       const nextTaskInfo = generateTaskDescription(rng, transitionedCharacter);
       nextTask = { ...nextTaskInfo, elapsedMs: 0 };
+      // The same two figures the engine compared, on the path that actually produces market trips.
+      //
+      // `describeDecisionReason` renders "Carrying N of M cubits. At capacity, procurement routes
+      // the hero to market." — the only mechanical gloss in the game — and it was reachable solely
+      // from the `act_marker` branch above. Ordinary play routes to market from
+      // `generateTaskDescription` instead, so across an hour of play the word "cubits" appeared
+      // zero times against twenty-one market trips: the mechanic that hijacks the hero most often
+      // was the one never explained, by copy that already existed and was already tested.
+      //
+      // Recomputed here rather than returned from `generateTaskDescription`, because that function
+      // is shared with the roster preview and the goldens record its shape. The comparison is the
+      // same one it just made, and both figures are the engine's own rather than a second estimate.
+      if (nextTaskInfo.type === 'heading_to_market') {
+        marketReason = {
+          carriedCubits: calculateEncumbrance(inventory),
+          capacityCubits: calculateEncumbranceMax(stats.STR, storageAllowance(equip)),
+        };
+      }
     }
     if (!nextTask) throw new Error('Sequence transition did not produce a task');
     transitionedCharacter = { ...transitionedCharacter, Equip: equip, Inventory: inventory, Gold: gold, GoldDecades: goldDecades, Plot: plot, PendingTasks: pendingTasks };
