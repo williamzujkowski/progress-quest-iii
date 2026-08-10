@@ -11,6 +11,28 @@ import { formatDuration } from '../engine/text';
 import { ActLabel, GameNumber } from './GameNumber';
 import { ItemTooltip } from './ItemTooltip';
 
+/**
+ * What each prime stat actually does, in the register of the thing that reads it.
+ *
+ * The figures shipped as six three-letter codes with bare integers and no gloss anywhere in the
+ * app — there is no help screen, tutorial or glossary — while this file already states the rule
+ * being broken twice over: a figure whose noun lives only in `sr-only` is unlabelled for most of
+ * the people looking at it.
+ *
+ * Every one of them is consulted by the engine, which is worth recording because a review of this
+ * screen reported that only STR was. Checked at the call sites: STR sets carrying capacity, CON and
+ * INT set what a promotion adds to the two vitals, WIS decides how much of the curriculum is open,
+ * DEX adds a sale pass per market trip, and CHA improves the terms.
+ */
+const PRIME_STAT_TITLES: Record<(typeof PRIME_STATS)[number], string> = {
+  STR: 'Strength — how much the pack holds. When it fills, procurement routes the hero to market.',
+  CON: 'Constitution — how much a promotion adds to HP Max.',
+  DEX: 'Dexterity — how many stacks the hero can clear in one market trip.',
+  INT: 'Intelligence — how much a promotion adds to MP Max.',
+  WIS: 'Wisdom — how much of the spell curriculum the hero is permitted to attempt.',
+  CHA: 'Charisma — the terms the hero gets at market, which are never good.',
+};
+
 
 export const HeroBanner: React.FC = () => {
   // Traits and Stats changed identity 3 times across a measured 400 ticks, Inventory 0; the
@@ -96,7 +118,12 @@ export const HeroBanner: React.FC = () => {
       <div className="hero-meters">
         <div className="meter-group">
           <div className="meter-header">
-            <span className="inline-icon meter-health">
+            <span
+              className="inline-icon meter-health"
+              // Inert, and said so rather than implied. Nothing damages the hero, so this is a
+              // ceiling with no floor beneath it — a health bar that cannot go down.
+              title="HP Max — grows with Constitution at every promotion. Nothing in the world reduces it."
+            >
               <Heart size={12} /> HP Max
             </span>
             <strong><GameNumber value={character.Stats['HP Max']} /></strong>
@@ -105,7 +132,10 @@ export const HeroBanner: React.FC = () => {
 
         <div className="meter-group">
           <div className="meter-header">
-            <span className="inline-icon meter-magic">
+            <span
+              className="inline-icon meter-magic"
+              title="MP Max — grows with Intelligence at every promotion. No spell has ever spent any."
+            >
               <Sparkles size={12} /> MP Max
             </span>
             <strong><GameNumber value={character.Stats['MP Max']} /></strong>
@@ -140,7 +170,7 @@ export const HeroBanner: React.FC = () => {
 
       <div className="hero-prime-stats" data-testid="hero-prime-stats" aria-label="Prime stats">
         {PRIME_STATS.map((stat) => (
-          <div className="hero-stat" key={stat}>
+          <div className="hero-stat" key={stat} title={PRIME_STAT_TITLES[stat]}>
             <span>{stat}</span>
             <strong><GameNumber value={character.Stats[stat]} /></strong>
           </div>
