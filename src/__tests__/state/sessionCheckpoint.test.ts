@@ -280,21 +280,37 @@ describe('active session checkpoint boundary', () => {
     controller.dispose();
   });
 
-  it('does not authorize repair for unsupported or unavailable checkpoint reads', () => {
+  it('offers a named way out of a checkpoint a later build wrote', () => {
+    /*
+     * This asserted the opposite, and the opposite was a dead end: with an empty roster, an
+     * `unsupported` version meant nothing could ever be saved again and only clearing site data
+     * recovered. `corrupt` — the version skew that actually reaches players, since `.strict()` makes
+     * one added optional field unreadable to the build before it — has always offered repair.
+     *
+     * Withholding the offer never protected the newer bytes. They survive either way; what it
+     * removed was the player's say. So the offer is made, and the label names the cost rather than
+     * the symptom: this is the one repair that discards something another build could still use.
+     */
     const checkpoint = captureActiveSession(FIXED_SAVED_AT);
     const unsupportedRaw = JSON.stringify({ ...checkpoint, schemaVersion: 2 });
     localStorage.setItem(ACTIVE_CHECKPOINT_KEY, unsupportedRaw);
     const unsupported = startSessionCheckpoints({ now: () => FIXED_SAVED_AT, storage: localStorage });
 
-    expect(unsupported.getNotice()).toMatchObject({ kind: 'alert', canRepair: false });
-    unsupported.repair();
+    expect(unsupported.getNotice()).toMatchObject({ kind: 'alert', canRepair: true, repairLabel: 'Discard newer checkpoint' });
+    // Nothing is written until the player asks, which is the half that keeps this safe.
     expect(localStorage.getItem(ACTIVE_CHECKPOINT_KEY)).toBe(unsupportedRaw);
+
+    unsupported.repair();
+    expect(localStorage.getItem(ACTIVE_CHECKPOINT_KEY)).not.toBe(unsupportedRaw);
+    expect(activeCheckpointV1Schema.safeParse(JSON.parse(localStorage.getItem(ACTIVE_CHECKPOINT_KEY) ?? '{}')).success).toBe(true);
     unsupported.dispose();
 
     const denied = {
       getItem: () => { throw new DOMException('Denied', 'SecurityError'); },
       setItem: vi.fn(),
     } as unknown as Storage;
+    // `unavailable` stays unrepairable, and that distinction is the point: the read itself threw,
+    // so asking the same storage again would only throw again. There is nothing to offer.
     const unavailable = startSessionCheckpoints({ storage: denied });
     expect(unavailable.getNotice()).toMatchObject({ kind: 'alert', canRepair: false });
     unavailable.repair();
