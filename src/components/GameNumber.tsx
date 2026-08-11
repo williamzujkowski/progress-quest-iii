@@ -20,12 +20,17 @@ export const GameNumber: React.FC<{ value: number }> = ({ value }) => {
  * and reads correctly as `1.00e6`; a gold total is a reward, and the point at which it stops being
  * legible is the point at which it stops being one.
  *
- * The spoken form is unchanged — a screen reader reads grouped digits correctly, so there is nothing
- * for the `sr-only` twin to fix and adding one would say the number twice.
+ * Grouped digits need no spoken twin — a screen reader reads `1,158,330` correctly, and adding one
+ * would say the number twice. But the fallback past the persisted ceiling is scientific notation,
+ * and that emphatically does need one: rendering it bare made a reader announce "one point zero zero
+ * e twelve". So the plain case is a plain span and the exponent case delegates to `GameNumber`,
+ * which already owns that treatment.
  */
-export const CurrencyNumber: React.FC<{ value: number }> = ({ value }) => (
-  <span className="game-number">{formatCurrency(value)}</span>
-);
+export const CurrencyNumber: React.FC<{ value: number }> = ({ value }) => {
+  const plain = formatCurrency(value);
+  if (plain !== formatGameNumber(value)) return <span className="game-number">{plain}</span>;
+  return <GameNumber value={value} />;
+};
 
 export const ActLabel: React.FC<{ act: number }> = ({ act }) => act === 0
   ? <>Prologue</>
