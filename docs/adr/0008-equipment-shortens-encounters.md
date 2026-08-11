@@ -37,6 +37,12 @@ The curve is asymptotic rather than linear. `1000 / (1000 + quality)` approaches
 reaching it, so an encounter can become very fast and never becomes instant or negative. A linear
 reduction would need a clamp, and a clamp is a second rule that has to be kept true.
 
+*(Corrected: `sim.ts` has `Math.max(1, ...)` on the duration. The asymptote does not prevent a zero
+— eleven slots of `+1000000 Sacrosanct Antipode` is a legal import and produced a zero duration on
+23 of 30 generated tasks, and a zero duration is a save-loss state because `progressTaskSchema`
+requires `durationMs >= 1`. The clamp is right and is pinned by `durationFloor.test.ts`; the
+argument against it was wrong.)*
+
 ## Consequences
 
 **Every recorded golden is unchanged, and the reason has now been wrong twice.** The first draft said
@@ -77,7 +83,10 @@ anticipated when it recorded that this is a spiritual successor free to diverge 
 play is untouched and the mechanic becomes noticeable as the numbers grow — the same shape the rest
 of this game's escalation already has.
 
-**Nothing else in the simulation reads equipment.** This is the only coupling introduced, and it is
+**Nothing else in the simulation reads equipment.** *(Superseded by ADR 0010: six further effects
+now do — `storageAllowance`, `marketFavour`, `clawbackPerMille`, `bulkStacks`,
+`nimbleStacks`/`hagglingFavour` and `vitalsFlourish`. The correction marker three paragraphs above
+covers the inertness rule; this paragraph needed its own.)* This is the only coupling introduced, and it is
 one multiplication at one site.
 
 ## Not included
