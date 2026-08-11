@@ -15,20 +15,21 @@ import { MONSTERS } from '../../data/traits';
  */
 
 describe('a drop is not its own monster said twice', () => {
-  it('never ends the monster name with the word its drop uses', () => {
+  it('never uses a word the monster name already contains', () => {
+    /*
+     * Anywhere in the name, not just the end. My first version of this compared the drop to the
+     * *last* word and separately looked for adjacent duplicates in the joined string — and both
+     * missed `Wisp of Scope` dropping a `wisp`, which repeats the first word and puts three words
+     * between the two copies. The mutation restoring it passed, which is how I found out.
+     *
+     * The rendered form is `${name} ${item}` lowercased, so any shared word is a stutter to a
+     * reader whether or not the two land next to each other.
+     */
     for (const { name, item } of MONSTERS) {
-      const lastWord = name.toLowerCase().split(/\s+/u).at(-1);
-      expect(item.toLowerCase(), `${name} drops "${item}"`).not.toBe(lastWord);
-    }
-  });
-
-  it('does not read as a stutter once the two are joined', () => {
-    // The rendered form is what a player meets. Checking the joined string catches cases the
-    // word-comparison above would miss, such as a drop repeating a word from the middle of a name.
-    for (const { name, item } of MONSTERS) {
-      const joined = `${name} ${item}`.toLowerCase().split(/\s+/u);
-      const doubled = joined.some((word, index) => index > 0 && word === joined[index - 1]);
-      expect(doubled, `"${name} ${item}" repeats a word`).toBe(false);
+      const words = new Set(name.toLowerCase().split(/\s+/u));
+      for (const part of item.toLowerCase().split(/\s+/u)) {
+        expect(words.has(part), `"${name} ${item}" says "${part}" twice`).toBe(false);
+      }
     }
   });
 
