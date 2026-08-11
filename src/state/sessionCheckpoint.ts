@@ -58,6 +58,18 @@ export type CheckpointLoad =
   | { status: 'recovered_lkg'; canPersist: false; canRepair: boolean; repairLabel: string; checkpoint: ActiveCheckpointV1; expectedPrimaryRaw: string | null; message: string }
   | { status: 'corrupt'; canPersist: false; canRepair: false; message: string }
   | { status: 'corrupt'; canPersist: false; canRepair: true; expectedPrimaryRaw: string; message: string }
+  /**
+   * Bytes a later build wrote, which this one can read but not understand.
+   *
+   * Repairable on the same terms as a corrupt payload: automatic writes stay blocked, and nothing is
+   * overwritten unless the player says so. Withholding the offer never protected the newer
+   * checkpoint — the bytes survive either way — it only removed the player's say, and with an empty
+   * roster it meant nothing could ever be saved again with no way back short of clearing site data.
+   *
+   * The label names the consequence rather than the symptom, because this is the one repair whose
+   * cost is a payload another build could still use.
+   */
+  | { status: 'unsupported'; canPersist: false; canRepair: true; repairLabel: string; expectedPrimaryRaw: string; message: string }
   | { status: 'unsupported' | 'unavailable'; canPersist: false; message: string };
 
 function failure(code: CheckpointErrorCode, message: string): CheckpointResult<never> {
@@ -217,7 +229,14 @@ export function loadActiveCheckpoint(storage: Pick<Storage, 'getItem'>): Checkpo
     }
   }
   return parsed.unsupported
-    ? { status: 'unsupported', canPersist: false, message: parsed.error.message }
+    ? {
+      status: 'unsupported',
+      canPersist: false,
+      canRepair: true,
+      repairLabel: 'Discard newer checkpoint',
+      expectedPrimaryRaw: primary.value,
+      message: parsed.error.message,
+    }
     : { status: 'corrupt', canPersist: false, canRepair: true, expectedPrimaryRaw: primary.value, message: parsed.error.message };
 }
 
@@ -469,7 +488,11 @@ export function startSessionCheckpoints({
       publish({ kind: 'alert', message: loaded.message, canRepair: loaded.canRepair, ...(loaded.canRepair ? { repairLabel: loaded.repairLabel } : {}) });
       diagnostics.record({ code: 'session_checkpoint_recovered', severity: 'warning', subsystem: 'storage', operation: 'recover', outcome: 'recovered', source: 'session-checkpoint' });
     } else {
-      if (loaded.status === 'corrupt' && loaded.canRepair) expectedPrimaryRaw = loaded.expectedPrimaryRaw;
+      // Both repairable statuses need the bytes they would replace, so the write refuses if another
+      // tab moved them first.
+      if ((loaded.status === 'corrupt' || loaded.status === 'unsupported') && 'expectedPrimaryRaw' in loaded && loaded.canRepair) {
+        expectedPrimaryRaw = loaded.expectedPrimaryRaw;
+      }
 
       // An unreadable checkpoint used to leave the store holding its hard-coded default character,
       // because this branch was the only one that did not consult the roster. The player saw a
@@ -499,7 +522,17 @@ export function startSessionCheckpoints({
       // overwritten by whoever the player creates next, and a payload this build cannot parse is
       // not a payload that is gone. Restoring it is a later build's job, and the existing
       // "blocks automatic writes after a corrupt read" test is the guarantee that says so.
-      block(loaded.message, 'read', loaded.status === 'corrupt' && loaded.canRepair ? 'Replace unreadable checkpoint' : undefined);
+      // Different labels, because the two repairs cost different things. Replacing bytes nobody can
+      // read loses nothing; discarding a checkpoint a later build wrote loses something that build
+      // could still have used, and a player agreeing to it deserves to be told which they are doing.
+      // `unavailable` stays unrepairable: the read itself threw, so asking the same storage again
+      // would only throw again.
+      const repairOffer = loaded.status === 'corrupt' && loaded.canRepair
+        ? 'Replace unreadable checkpoint'
+        : loaded.status === 'unsupported' && 'repairLabel' in loaded && loaded.canRepair
+          ? loaded.repairLabel
+          : undefined;
+      block(loaded.message, 'read', repairOffer);
     }
   }
 
