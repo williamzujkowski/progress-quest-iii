@@ -46,8 +46,16 @@ export const Route: React.FC = () => {
         <Milestone size={14} aria-hidden="true" /> Postings
       </div>
       <ol className="equip-list route-list" aria-label="Places this hero has been posted">
+        {/* `aria-current` on the current stop, because weight and colour were the only signals.
+            The rule beside the CSS asserted "the current posting is marked in text as well as
+            weight, because a reader who cannot see the emphasis still needs to know where they
+            are" — and the code did not do it, so the behaviour and the comment were both wrong. */}
         {stops.map((stop) => (
-          <li className={`equip-item${stop.current ? ' route-current' : ''}`} key={stop.act}>
+          <li
+            className={`equip-item${stop.current ? ' route-current' : ''}`}
+            key={stop.act}
+            {...(stop.current ? { 'aria-current': 'true' as const } : {})}
+          >
             <span className="equip-slot"><ActLabel act={stop.act} /></span>
             <span className="route-place">
               {stop.town ?? <span className="route-pending">pending assignment</span>}

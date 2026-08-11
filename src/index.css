@@ -676,6 +676,13 @@ input[type='radio']:checked::before { transform: scale(1); }
   font-style: italic;
 }
 
+/* At capacity is a state the hero is routed to market by, and it was signalled by colour alone —
+   the ratio turns red and the bar turns danger. Muted rather than loud: the red already carries the
+   urgency for anyone who can see it, and this carries the meaning for everyone else. */
+.inventory-at-capacity {
+  color: var(--text-muted);
+}
+
 .equip-item {
   display: flex;
   justify-content: space-between;
@@ -819,8 +826,9 @@ input[type='radio']:checked::before { transform: scale(1); }
 /* Matches the disclosure the world console already uses, including its coarse-pointer target
    size, so the two read as the same control rather than as two conventions. */
 /* The postings list. Numerals left, place right, matching the equipment rows it sits beside — the
-   record reads as another filing rather than as a widget. The current posting is marked in text as
-   well as weight, because a reader who cannot see the emphasis still needs to know where they are. */
+   record reads as another filing rather than as a widget. The current posting carries
+   `aria-current` as well as weight, because a reader who cannot see the emphasis still needs to know
+   where they are — this claimed "marked in text" for some time while the markup carried neither. */
 .route-place { color: var(--text-muted); text-align: right; overflow-wrap: anywhere; }
 .route-current .equip-slot,
 .route-current .route-place { color: var(--text-main); font-weight: 750; }
