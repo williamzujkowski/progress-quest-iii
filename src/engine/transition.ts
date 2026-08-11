@@ -122,8 +122,8 @@ function impressiveGuy(rng: RandomGenerator): string {
 
 function beginInterplotCinematic(rng: RandomGenerator): CinematicOpening {
   switch (rng.random(3)) {
-    case 0: return { branch: 0, first: sequenceTask('Exhausted, you arrive at a friendly oasis in a hostile land', 1) };
-    case 1: return { branch: 1, first: sequenceTask('Your quarry is in sight, but a mighty enemy bars your path!', 1) };
+    case 0: return { branch: 0, first: sequenceTask('Exhausted, you reach a satellite office with a working kettle', 1) };
+    case 1: return { branch: 1, first: sequenceTask('Your assignment is in sight, but an escalation bars your path', 1) };
     case 2: {
       const patron = impressiveGuy(rng);
       return { branch: 2, patron, first: sequenceTask(`Oh sweet relief! You've reached the kind protection of ${patron}`, 2) };
@@ -142,9 +142,9 @@ function namedMonster(rng: RandomGenerator, level: number): string {
 }
 
 function nemesisRoundTask(nemesis: string, advantageMod3: number): SequenceTask {
-  if (advantageMod3 === 0) return sequenceTask(`Locked in grim combat with ${nemesis}`, 2);
-  if (advantageMod3 === 1) return sequenceTask(`${nemesis} seems to have the upper hand`, 2);
-  return sequenceTask(`You seem to gain the advantage over ${nemesis}`, 2);
+  if (advantageMod3 === 0) return sequenceTask(`Locked in grim correspondence with ${nemesis}`, 2);
+  if (advantageMod3 === 1) return sequenceTask(`${nemesis} appears to have the stronger paper trail`, 2);
+  return sequenceTask(`You appear to gain the procedural advantage over ${nemesis}`, 2);
 }
 
 function replayNemesisRound(cursor: NemesisSequenceCursor, rng: RandomGenerator): { task?: SequenceTask; cursor?: NemesisSequenceCursor } {
@@ -162,11 +162,23 @@ function replayNemesisRound(cursor: NemesisSequenceCursor, rng: RandomGenerator)
   };
 }
 
+/**
+ * The cinematic beats, five of which cannot be reworded.
+ *
+ * `random-star-interplot.json` and `act-transition.json` record this text verbatim on the shared
+ * observable surface, so "sweet relief", "rejoicing", "double-dealer", "overhear", "go back to get it",
+ * "who can possibly be trusted" and "you are chosen" are pinned by fixtures that cannot be re-recorded. They are the last high-fantasy phrases
+ * left in the engine and they stay for that reason rather than a stylistic one.
+ *
+ * Everything not recorded was rewritten into the register the rest of the game speaks. A review put
+ * this whole block in the "no golden impact" column; the goldens disagreed on the first run, which
+ * is the argument for running them rather than reasoning about them.
+ */
 function finishInterplotCinematic(rng: RandomGenerator, act: number, level: number, opening: CinematicOpening): PendingSequenceEntry[] {
   if (opening.branch === 0) {
     return [
-      sequenceTask('You greet old friends and meet new allies', 2),
-      sequenceTask('You are privy to a council of powerful do-gooders', 2),
+      sequenceTask('You greet old colleagues and are introduced to their replacements', 2),
+      sequenceTask('You are invited to a steering committee with no stated agenda', 2),
       sequenceTask('There is much to be done. You are chosen!', 1),
       sequenceTask('Loading', 1, 'act_marker'),
     ];
@@ -179,10 +191,10 @@ function finishInterplotCinematic(rng: RandomGenerator, act: number, level: numb
     for (let round = 1; round < maxRounds; round += 1) {
       if (round > rng.random(act + 2)) {
         return [
-          sequenceTask(`A desperate struggle commences with ${nemesis}`, 4),
+          sequenceTask(`A protracted dispute opens with ${nemesis}`, 4),
           ...materializedRounds,
-          sequenceTask(`Victory! ${nemesis} is slain! Exhausted, you lose consciousness`, 3),
-          sequenceTask('You awake in a friendly place, but the road awaits', 2),
+          sequenceTask(`Resolved in your favour: ${nemesis} is closed. Exhausted, you take the afternoon`, 3),
+          sequenceTask('You come round in a breakout room, and the backlog is waiting', 2),
           sequenceTask('Loading', 1, 'act_marker'),
         ];
       }
@@ -196,7 +208,7 @@ function finishInterplotCinematic(rng: RandomGenerator, act: number, level: numb
     ];
     const openingTask = sequenceTask(`A desperate struggle commences with ${nemesis}`, 4);
     return [openingTask, ...materializedRounds, {
-      description: `Continuing the regrettably extensive struggle with ${nemesis}`,
+      description: `Continuing the regrettably extensive dispute with ${nemesis}`,
       type: 'nemesis_cursor',
       nemesis,
       round: maxRounds,

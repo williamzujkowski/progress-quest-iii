@@ -46,10 +46,10 @@ const midDuel = (): CharacterSheet => {
   return {
     ...character,
     Plot: { act: ACT, currentProgress: 3, maxProgress: 26 },
-    Task: { description: 'Locked in grim combat with Vashenko the Gnoll...', durationMs: 2000, elapsedMs: 0, type: 'cinematic' },
+    Task: { description: 'Locked in grim correspondence with Vashenko the Gnoll...', durationMs: 2000, elapsedMs: 0, type: 'cinematic' },
     PendingTasks: [
       {
-        description: 'Locked in grim combat with Vashenko the Gnoll',
+        description: 'Locked in grim correspondence with Vashenko the Gnoll',
         type: 'nemesis_cursor',
         nemesis: 'Vashenko the Gnoll',
         round: MAX_PENDING_TASKS - 4,

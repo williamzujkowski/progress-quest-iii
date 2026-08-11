@@ -31,10 +31,10 @@ describe('advanceGame', () => {
       Quest: { description: 'Heading to the killing fields...', currentProgress: 0, maxProgress: 1 },
       Task: { description: 'Loading....', durationMs: 2000, elapsedMs: 0 },
       PendingTasks: [
-        { description: 'Experiencing an enigmatic and foreboding night vision', durationMs: 10_000 },
-        { description: "Much is revealed about that wise old bastard you'd underestimated", durationMs: 6000 },
-        { description: 'A shocking series of events leaves you alone and bewildered, but resolute', durationMs: 6000 },
-        { description: 'Drawing upon an unrealized reserve of determination, you set out on a long and dangerous journey', durationMs: 4000 },
+        { description: 'Attending an induction session that will not be repeated', durationMs: 10_000 },
+        { description: 'Much is revealed about the previous holder of this desk', durationMs: 6000 },
+        { description: 'A restructure leaves you alone, unbriefed, and formally accountable', durationMs: 6000 },
+        { description: 'Locating an unallocated reserve of determination and drawing against it', durationMs: 4000 },
         { description: 'Loading', durationMs: 2000, type: 'act_marker' },
       ],
     });
@@ -47,7 +47,7 @@ describe('advanceGame', () => {
 
     expect(result.state.character.Plot).toEqual({ act: 0, currentProgress: 0, maxProgress: 26 });
     expect(result.state.character.Task).toMatchObject({
-      description: 'Experiencing an enigmatic and foreboding night vision...',
+      description: 'Attending an induction session that will not be repeated...',
       durationMs: 10_000,
       elapsedMs: 0,
       type: 'prologue',
@@ -141,10 +141,10 @@ describe('advanceGame', () => {
     {
       branch: 'oasis',
       rngState: [0.719665847485885, 0.8004722977057099, 0.017481706803664565, 1] as [number, number, number, number],
-      first: 'Exhausted, you arrive at a friendly oasis in a hostile land...',
+      first: 'Exhausted, you reach a satellite office with a working kettle...',
       pending: [
-        'You greet old friends and meet new allies',
-        'You are privy to a council of powerful do-gooders',
+        'You greet old colleagues and are introduced to their replacements',
+        'You are invited to a steering committee with no stated agenda',
         'There is much to be done. You are chosen!',
         'Loading',
       ],
@@ -153,12 +153,12 @@ describe('advanceGame', () => {
     {
       branch: 'nemesis',
       rngState: [0.8487152096349746, 0.6674839127808809, 0.22826107195578516, 1] as [number, number, number, number],
-      first: 'Your quarry is in sight, but a mighty enemy bars your path!...',
+      first: 'Your assignment is in sight, but an escalation bars your path...',
       pending: [
-        'A desperate struggle commences with Oomuz the Helpdesk Hound',
-        'Oomuz the Helpdesk Hound seems to have the upper hand',
-        'Victory! Oomuz the Helpdesk Hound is slain! Exhausted, you lose consciousness',
-        'You awake in a friendly place, but the road awaits',
+        'A protracted dispute opens with Oomuz the Helpdesk Hound',
+        'Oomuz the Helpdesk Hound appears to have the stronger paper trail',
+        'Resolved in your favour: Oomuz the Helpdesk Hound is closed. Exhausted, you take the afternoon',
+        'You come round in a breakout room, and the backlog is waiting',
         'Loading',
       ],
       finalRng: [0.6513712389860302, 0.47102646343410015, 0.3233566232956946, 1335114],
@@ -259,11 +259,11 @@ describe('advanceGame', () => {
 
     expect(result.state.character.Inventory).toContainEqual({ name: 'Customary Tariff of Governance', qty: 1 });
     expect(result.state.character.PendingTasks?.map(({ description }) => description)).toEqual([
-      'A desperate struggle commences with Zouvjaen the Wrap-Up Wraith',
-      'Zouvjaen the Wrap-Up Wraith seems to have the upper hand',
-      'Locked in grim combat with Zouvjaen the Wrap-Up Wraith',
-      'Victory! Zouvjaen the Wrap-Up Wraith is slain! Exhausted, you lose consciousness',
-      'You awake in a friendly place, but the road awaits',
+      'A protracted dispute opens with Zouvjaen the Wrap-Up Wraith',
+      'Zouvjaen the Wrap-Up Wraith appears to have the stronger paper trail',
+      'Locked in grim correspondence with Zouvjaen the Wrap-Up Wraith',
+      'Resolved in your favour: Zouvjaen the Wrap-Up Wraith is closed. Exhausted, you take the afternoon',
+      'You come round in a breakout room, and the backlog is waiting',
       'Loading',
     ]);
     expect(rng.getState()).toEqual([0.03230942226946354, 0.7913503504823893, 0.7409795469138771, 678575]);
@@ -583,7 +583,10 @@ describe('advanceGame', () => {
       const result = advanceGame(stateFor(character), 1, new RandomGenerator(`cinematic-role-transition:${seed}`));
       const opening = result.records.find(({ event }) => event.type === 'task_started' && event.task.type === 'cinematic');
       if (!opening || opening.event.type !== 'task_started') continue;
-      const isNemesis = opening.event.task.description.includes('quarry is in sight');
+      // Keyed on the nemesis opening's own wording. It said "quarry is in sight" until that line was
+      // rewritten into the register the rest of the game speaks; the branch it identifies is
+      // unchanged.
+      const isNemesis = opening.event.task.description.includes('an escalation bars your path');
       expect(opening.post.interplotRole).toBe(isNemesis ? 'nemesis' : undefined);
       observed.add(isNemesis ? 'nemesis' : 'other');
     }
