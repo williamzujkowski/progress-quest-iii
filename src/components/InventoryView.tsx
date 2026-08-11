@@ -63,7 +63,12 @@ export const InventoryView: React.FC = () => {
           <span>
             <GameNumber value={encumbrance} /> / <GameNumber value={encumbranceMax} />{' '}
             <span className="stat-unit">cubits</span>
-            {atCapacity && <span className="sr-only">, at capacity</span>}
+            {/* Visible, not `sr-only`. At capacity the ratio turns red and the bar turns danger, and
+                the comment below argued the `sr-only` clause existed *because* that is colour-only
+                signalling — which is backwards: `sr-only` reaches only the readers who were never
+                going to see the red. A sighted player with a colour-vision deficiency got nothing.
+                Visible text fixes WCAG 1.4.1 and removes an sr-only-only string in one edit. */}
+            {atCapacity && <span className="inventory-at-capacity">, at capacity</span>}
           </span>
         </div>
       </div>
@@ -75,7 +80,12 @@ export const InventoryView: React.FC = () => {
           className="progress-bar-track"
           role="progressbar"
           aria-label="Encumbrance, in cubits carried of capacity"
-          aria-valuenow={encumbrance}
+          // Clamped, because ARIA requires `valuenow <= valuemax` and the visible fill is clamped
+          // already — so the two disagreed whenever a capacity drop left the hero over-loaded, which
+          // ordinary play reaches: capacity comes from the Gambeson's base rating, and an upgrade
+          // picks the noun nearest the level, so a swap can lower it below what is already carried.
+          // `aria-valuetext` below stays honest and reports the real figures.
+          aria-valuenow={Math.min(encumbrance, encumbranceMax)}
           aria-valuemin={0}
           aria-valuemax={encumbranceMax}
           aria-valuetext={`${encumbrance} of ${encumbranceMax} cubits`}
