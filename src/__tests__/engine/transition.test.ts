@@ -257,7 +257,7 @@ describe('advanceGame', () => {
 
     const result = advanceGame(stateFor(character), 1000, rng);
 
-    expect(result.state.character.Inventory).toContainEqual({ name: 'Customary Tariff of Governance', qty: 1 });
+    expect(result.state.character.Inventory).toContainEqual({ name: 'Soulbound Tariff of Governance', qty: 1 });
     expect(result.state.character.PendingTasks?.map(({ description }) => description)).toEqual([
       'A protracted dispute opens with Zouvjaen the Wrap-Up Wraith',
       'Zouvjaen the Wrap-Up Wraith appears to have the stronger paper trail',

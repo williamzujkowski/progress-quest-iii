@@ -622,6 +622,29 @@ export const PREDECESSOR_MISTELLS: readonly (readonly AmbientLine[])[] = [
 
 export const EXCHANGES: readonly (readonly AmbientLine[])[] = [
   /*
+   * The three MMO reflexes the corpus had no word for: the corpse run, the linkdead member, and the
+   * spell that simply did not take. Each is a whole exchange rather than a line, because each is a
+   * thing one person says and another has to answer.
+   *
+   * Added here rather than to a fidelity table: these banks are drawn by `stableChoice` from the
+   * social projection, outside the engine's RNG, so growing them remaps nothing. Every table in
+   * `traits.ts` is the opposite — `rng.random(n)` is `floor(u * n)`, so one added entry moves every
+   * draw against it.
+   */
+  [
+    { seat: 'field', channel: 'party', text: 'Back at the entrance. Walking in again.' },
+    { seat: 'logistics', channel: 'party', text: 'The walk is not reimbursed.' },
+  ],
+  [
+    { seat: 'support', channel: 'guild', text: 'Has anyone heard from the fourth seat?' },
+    { seat: 'official', channel: 'guild', text: 'The fourth seat is marked present in the minutes.' },
+  ],
+  [
+    { seat: 'official', channel: 'guild', text: 'The filing was resisted.' },
+    { seat: 'support', channel: 'guild', text: 'Resisted by whom? It was posted to a wall.' },
+  ],
+
+  /*
    * Loot drama, which is the oldest argument in raiding and belongs here rather than in a lane of
    * its own.
    *

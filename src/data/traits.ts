@@ -261,7 +261,15 @@ export const ITEM_ATTRIB: string[] = [
   'Certified', 'Ratified', 'Provisional', 'Archival', 'Commended', 'Confidential', 'Chartered',
   'Dual-Signed', 'Annotated', 'Cross-Filed', 'Unredacted', 'Approved', 'Deferential', 'Unaudited',
   'Escrowed', 'Laminated', 'Executive', 'Privileged', 'Landmark', 'Precedent', 'Itemized', 'Austerity',
-  'Gold-Plated', 'Sole-Source', 'Customary', 'Binding', 'Terminal', 'Discretionary', 'Off-Books',
+  // `Soulbound` replaced `Customary` in place. Bind-on-pickup is the loot rule every MMO player
+  // knows and this table of thirty-three paperwork words had no joke about loot rules at all;
+  // `Customary` was among its deadest entries. A same-length replacement, so no draw moves.
+  //
+  // One consequence, as with the pruned modifier rungs: a save written earlier can hold an item
+  // named "Customary ...", and `analyzeItemMechanics` will no longer recognise that word, so that
+  // item's computed quality changes. The item keeps its name and nothing else about the character
+  // moves.
+  'Gold-Plated', 'Sole-Source', 'Soulbound', 'Binding', 'Terminal', 'Discretionary', 'Off-Books',
   'Flagship', 'Ironclad', 'Overhead', 'Material'
 ];
 
@@ -286,7 +294,7 @@ export const BORING_ITEMS: string[] = [
   'career ladder', 'rubber duck', 'tally sheet', 'dust cap', 'countersign', 'hi-vis vest', 'tech debt',
   'binder clip', 'redacted page', 'punch list', 'carrot', 'compliance binder', 'ink cartridge',
   'hold notice', 'band-aid fix', 'travel voucher', 'time sheet', 'pending tray', 'action register',
-  'audit trail', 'transit pass', 'card key', 'notary seal', 'training cert', 'credenza', 'writ'
+  'audit trail', 'transit pass', 'card key', 'notary seal', 'training cert', 'vendor trash', 'writ'
 ];
 
 export interface MonsterDef {
@@ -558,7 +566,7 @@ export const OFFENSE_BAD: [string, number][] = [
 export const DEFENSE_BAD: [string, number][] = [
   ['Unsigned', -1],
   ['Hotfixed', -1],
-  ['Derated', -2],
+  ['Nerfed', -2],
   ['Lapsed', -1],
   ['Damaged', -2],
   ['Voided', -3],
