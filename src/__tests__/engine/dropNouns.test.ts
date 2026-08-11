@@ -33,6 +33,29 @@ describe('a drop is not its own monster said twice', () => {
     }
   });
 
+  it('drops an artefact the monster produces, not a piece of its body', () => {
+    /*
+     * Two fifths of all loot was a corporate noun welded to a fantasy body part — measured at 51,534
+     * of 129,966 loot events across 90 such drops. `trap ticket shag` was the single most frequent
+     * drop in the game and meant nothing in either register.
+     *
+     * The rule is visible in the drops that land: `cloud giant egress bill`, `chief auditor finding`,
+     * `hotfix goblin patch`. Every one is a corporate noun on a corporate monster — the drop is the
+     * artefact the monster produces, not a piece of it.
+     *
+     * A word list rather than a rule, because "is this a body part" is not decidable from the
+     * string. What this refuses is the specific set that shipped, so removing one of these later is
+     * a deliberate act rather than an accident.
+     */
+    const BODY_PARTS = [
+      'thigh', 'frenum', 'forehead', 'shag', 'dung', 'belly', 'snout', 'trident', 'proboscis',
+      'trode', 'lung', 'pancreas', 'antler', 'feather', 'eye', 'gills',
+    ];
+    for (const { name, item } of MONSTERS) {
+      expect(BODY_PARTS, `${name} drops "${item}"`).not.toContain(item.toLowerCase());
+    }
+  });
+
   it('keeps the two drop nouns the fixtures pin', () => {
     // Every other `item` is free to change; these two are recorded in golden sessions, so a rename
     // here is a re-record rather than an edit. Asserted so the freedom above is not mistaken for
