@@ -95,6 +95,16 @@ export interface GameStore {
   commendations: Commendations;
   caseload: Caseload;
   specimens: SpecimenLog;
+  /**
+   * Whether this tab may write the shared ledgers.
+   *
+   * Set by the checkpoint controller, which is the only thing that knows whether this tab still owns
+   * the save. The three ledgers write straight to storage from the tick handler and have no
+   * cross-tab guard of their own, so without this a tab showing "another tab changed the saved
+   * session" kept incrementing their counters from a base it read at module load — measured rolling
+   * another tab's casework from 900 back to 106.
+   */
+  ledgersWritable: boolean;
   /** Everyone on file, refreshed at a session boundary rather than at a render. */
   roster: Record<string, CharacterSheet>;
   nextActivityId: number;
@@ -201,6 +211,9 @@ export const useGameStore = create<GameStore>((set, get) => {
     commendations: initialCommendations,
     caseload: initialCaseload,
     specimens: initialSpecimens,
+    // True until the checkpoint controller says otherwise; a tab with no controller
+    // running is a test or a preview, and neither shares storage with anyone.
+    ledgersWritable: true,
     roster: readRosterForSession(),
     nextActivityId: 1,
     sessionGeneration: 0,
@@ -351,7 +364,14 @@ export const useGameStore = create<GameStore>((set, get) => {
       const digestLine = draining && result.remainingElapsedMs === 0 ? describeDigest(drainDigest) : null;
       if (draining && result.remainingElapsedMs === 0) drainDigest = EMPTY_DIGEST;
 
-      if (result.remainingElapsedMs === 0 && nextCommendations !== lastPersistedCommendations) {
+      // Gated on the checkpoint controller's verdict, because these three write straight to storage
+      // and have no cross-tab guard of their own. A tab told "another tab changed the saved session"
+      // went on incrementing counters from a base it read at module load, and rolled another tab's
+      // casework from 900 back to 106 — while an alert on screen said this tab was not saving.
+      //
+      // The in-memory ledgers still advance; only the write is withheld. A tab that stops writing
+      // should stop writing, not stop counting.
+      if (get().ledgersWritable && result.remainingElapsedMs === 0 && nextCommendations !== lastPersistedCommendations) {
         lastPersistedCommendations = nextCommendations;
         writeCommendations(ledgerStore(), nextCommendations);
       }
@@ -362,13 +382,13 @@ export const useGameStore = create<GameStore>((set, get) => {
       const nextCaseload = mergeRecords(get().caseload, result.records);
       // A specimen is new only once, so this returns the same object on nearly every tick.
       const nextSpecimens = mergeSpecimens(get().specimens, sources.map(({ record }) => record.event));
-      if (result.remainingElapsedMs === 0 && nextCaseload !== lastPersistedCaseload) {
+      if (get().ledgersWritable && result.remainingElapsedMs === 0 && nextCaseload !== lastPersistedCaseload) {
         lastPersistedCaseload = nextCaseload;
         writeCaseload(ledgerStore(), nextCaseload);
       }
       // Held back through a drain for the same reason the other ledgers are: a catch-up replays
       // many first sightings, and each would otherwise be its own synchronous write.
-      if (result.remainingElapsedMs === 0 && nextSpecimens !== lastPersistedSpecimens) {
+      if (get().ledgersWritable && result.remainingElapsedMs === 0 && nextSpecimens !== lastPersistedSpecimens) {
         lastPersistedSpecimens = nextSpecimens;
         writeSpecimenLog(ledgerStore(), nextSpecimens);
       }

@@ -354,7 +354,23 @@ export function startSessionCheckpoints({
 }: SessionCheckpointOptions = {}): SessionCheckpointController {
   const listeners = new Set<() => void>();
   let notice: CheckpointNotice | null = null;
+  /**
+   * Whether this tab may write, and the thing the shared ledgers now ask before they do.
+   *
+   * Mirrored into the store because the three ledgers — commendations, caseload, specimens — write
+   * straight to storage from the tick handler with no cross-tab guard of their own. A tab that had
+   * been told "another tab changed the saved session" went on incrementing their counters from a
+   * base it read at module load, and rolled another tab's casework from 900 back to 106.
+   *
+   * The player was being told this tab was not saving while it was in fact still writing three
+   * ledgers. Pushed rather than pulled because `sessionCheckpoint` imports the store and not the
+   * other way round.
+   */
   let canPersist = false;
+  const setCanPersist = (next: boolean) => {
+    canPersist = next;
+    useGameStore.setState({ ledgersWritable: next });
+  };
   let dirty = false;
   let expectedPrimaryRaw: string | null = null;
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -401,7 +417,7 @@ export function startSessionCheckpoints({
    * approve one thing and get the other.
    */
   const block = (message: string, operation: 'read' | 'write' = 'write', repairLabel?: string) => {
-    canPersist = false;
+    setCanPersist(false);
     repairAllowed = repairLabel !== undefined;
     if (timer !== undefined) clearTimeout(timer);
     timer = undefined;
@@ -457,7 +473,7 @@ export function startSessionCheckpoints({
     if (loaded.status === 'loaded') {
       restoreActiveSession(loaded.checkpoint, now());
       expectedPrimaryRaw = loaded.expectedPrimaryRaw;
-      canPersist = true;
+      setCanPersist(true);
       // Write straight back with a fresh timestamp. Without this, a reload before the first
       // debounced save would find the same savedAtMs still on disk and credit the same absence
       // a second time.
@@ -474,10 +490,10 @@ export function startSessionCheckpoints({
         requiresCharacterCreation = true;
         block(`${mostRecentRosterCharacter.error.message} Automatic checkpoints are paused.`, 'read');
       } else if (mostRecentRosterCharacter.value) {
-        canPersist = true;
+        setCanPersist(true);
         useGameStore.getState().startSession({ source: 'roster', character: mostRecentRosterCharacter.value });
       } else {
-        canPersist = true;
+        setCanPersist(true);
         requiresCharacterCreation = true;
       }
     } else if (loaded.status === 'recovered_lkg') {
@@ -584,7 +600,7 @@ export function startSessionCheckpoints({
         return;
       }
       expectedPrimaryRaw = result.value.raw;
-      canPersist = true;
+      setCanPersist(true);
       dirty = false;
       failureRecorded = false;
       repairAllowed = false;
