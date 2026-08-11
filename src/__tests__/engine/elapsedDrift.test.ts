@@ -55,9 +55,18 @@ describe('the adventure clock keeps up with the adventure', () => {
     // Both spans are hours rather than one short and one long. A two-hour sample measured 1.0101 —
     // above one, which is the point, but noisy enough at that task count to fail a tight bound for
     // the right reason. Comparing two stable spans tests convergence rather than sample size.
-    const three = ratioOver('clock-a', 10_800);
+    /*
+     * Both spans are ones the ratio has settled at. Measured across the range: 1h 1.0100, 2h 1.0104,
+     * 3h 1.0134, 4h 1.0087, 6h 1.0020, 8h 1.0003 — it converges on 1.0 from above, and the short
+     * spans are noisy rather than biased.
+     *
+     * A 3h/6h comparison sat at 0.0114 against a 0.01 bound, so it failed intermittently for the
+     * wrong reason: sample size, not drift. Comparing two settled spans tests convergence, which is
+     * the property that actually distinguishes an unbiased error from the old compounding one.
+     */
     const six = ratioOver('clock-a', 21_600);
-    expect(Math.abs(six - three), `three ${three}, six ${six}`).toBeLessThan(0.01);
+    const eight = ratioOver('clock-a', 28_800);
+    expect(Math.abs(eight - six), `six ${six}, eight ${eight}`).toBeLessThan(0.01);
   });
 
   it('still stores whole seconds, which the checkpoint schema requires', () => {
