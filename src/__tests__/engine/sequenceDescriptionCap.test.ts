@@ -67,6 +67,6 @@ describe('a pending description that fills the cap still fits once it is running
       progression: { experience: { currentSeconds: 0, maxSeconds: 100 }, completedTasks: 0, elapsedSeconds: 0 },
     };
     const advanced = advanceGame(state, 2500, new RandomGenerator('plain-run')).state.character;
-    expect(advanced.Task.description).toBe('Experiencing an enigmatic and foreboding night vision...');
+    expect(advanced.Task.description).toBe('Attending an induction session that will not be repeated...');
   });
 });

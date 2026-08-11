@@ -78,10 +78,10 @@ export function createNewCharacter(name: string, race: string, klass: string, se
       type: 'loading',
     },
     PendingTasks: [
-      { description: 'Experiencing an enigmatic and foreboding night vision', durationMs: 10_000, elapsedMs: 0, type: 'prologue' },
-      { description: "Much is revealed about that wise old bastard you'd underestimated", durationMs: 6000, elapsedMs: 0, type: 'prologue' },
-      { description: 'A shocking series of events leaves you alone and bewildered, but resolute', durationMs: 6000, elapsedMs: 0, type: 'prologue' },
-      { description: 'Drawing upon an unrealized reserve of determination, you set out on a long and dangerous journey', durationMs: 4000, elapsedMs: 0, type: 'prologue' },
+      { description: 'Attending an induction session that will not be repeated', durationMs: 10_000, elapsedMs: 0, type: 'prologue' },
+      { description: 'Much is revealed about the previous holder of this desk', durationMs: 6000, elapsedMs: 0, type: 'prologue' },
+      { description: 'A restructure leaves you alone, unbriefed, and formally accountable', durationMs: 6000, elapsedMs: 0, type: 'prologue' },
+      { description: 'Locating an unallocated reserve of determination and drawing against it', durationMs: 4000, elapsedMs: 0, type: 'prologue' },
       { description: 'Loading', durationMs: 2000, elapsedMs: 0, type: 'act_marker' },
     ],
   };
