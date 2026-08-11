@@ -125,18 +125,26 @@ export const CharacterSheetView: React.FC = () => {
       <ul className="equip-list equipment-list" aria-label="Equipment List">
         {EQUIP_SLOTS.map((slot: EquipSlot) => (
           <li className="equip-item" key={slot}>
-            <span className="equip-slot-icon" title={slot}>
+            {/*
+              The `sr-only` twin is gone. `ItemTooltip`'s accessible name is already "Weapon: Sharp
+              Sword", so repeating the slot here made a screen reader say the noun twice — the exact
+              duplication this file's own rule warns about, in the element that states it.
+              `title` stays for a sighted reader hovering a filled row, where the icon is the only
+              thing carrying the slot.
+            */}
+            <span className="equip-slot-icon" title={slot} aria-hidden="true">
               {React.createElement(SLOT_ICONS[slot], { size: 13, 'aria-hidden': true })}
-              <span className="sr-only">{slot}</span>
             </span>
             {/*
-              The dash is the visible placeholder and stays here, where it was chosen. The name
-              passed through is the real one, so the trigger can say which slot it belongs to —
-              nine of eleven of these are empty on a new character, and every one of them used to
-              announce as "dash, button" with nothing to tell them apart.
+              An empty slot names itself. The dash was the visible placeholder and it was chosen
+              deliberately — but nine of eleven rows are empty on a new character, so what shipped
+              was nine identical dashes beside eleven unnamed glyphs, and the slot names lived only
+              in `title` and `sr-only`, which is what this codebase calls unlabelled.
+              Naming only the empty rows is what makes that affordable: the filled rows already
+              carry a name, so no row gains a line and the one-screen layout does not move.
             */}
             <ItemTooltip kind="equipment" name={character.Equip[slot]} slot={slot}>
-              {character.Equip[slot] || '—'}
+              {character.Equip[slot] || <span className="equip-slot-empty">{slot}</span>}
             </ItemTooltip>
           </li>
         ))}

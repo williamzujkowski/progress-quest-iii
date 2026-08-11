@@ -669,6 +669,13 @@ input[type='radio']:checked::before { transform: scale(1); }
   font-size: 0.82rem;
 }
 
+/* An empty slot names itself, in the muted register so a filled row still reads as the louder one.
+   Nine of eleven slots are empty on a new character, so this is most of the panel on a first run. */
+.equip-slot-empty {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
 .equip-item {
   display: flex;
   justify-content: space-between;
