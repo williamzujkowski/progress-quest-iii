@@ -1434,18 +1434,26 @@ test.describe('Progress Quest III terminal dashboard', () => {
     await page.goto('/');
     await loadDenseDashboard(page);
 
-    const markers = await page.locator('.equip-slot-icon').evaluateAll((nodes) =>
-      nodes.map((node) => ({
-        spokenName: node.textContent?.trim(),
-        glyph: node.querySelector('svg')?.getAttribute('class'),
-      })));
+    const glyphs = await page.locator('.equip-slot-icon').evaluateAll((nodes) =>
+      nodes.map((node) => node.querySelector('svg')?.getAttribute('class')));
 
-    expect(markers).toHaveLength(11);
-    expect(markers.map((marker) => marker.spokenName)).toEqual(
+    expect(glyphs).toHaveLength(11);
+    expect(new Set(glyphs).size, 'slots share a glyph').toBe(11);
+
+    // The slot name is read off the row's own accessible name rather than the icon's text.
+    //
+    // It used to live in an `sr-only` span inside the icon, beside a trigger whose accessible name
+    // already began with the slot — so a screen reader said "Weapon" and then "Weapon: Sharp Rock".
+    // The duplicate went; the name did not. This asserts the same guarantee at the one place that
+    // still owns it, which is stricter than the old check: it fails if the trigger stops naming the
+    // slot, which the old assertion could not see.
+    const spokenNames = await page.locator('.equipment-list .equip-item [aria-label]').evaluateAll((nodes) =>
+      nodes.map((node) => (node.getAttribute('aria-label') ?? '').split(':')[0]?.trim()));
+
+    expect(spokenNames).toEqual(
       ['Weapon', 'Shield', 'Helm', 'Hauberk', 'Brassairts', 'Vambraces',
         'Gauntlets', 'Gambeson', 'Cuisses', 'Greaves', 'Sollerets'],
     );
-    expect(new Set(markers.map((marker) => marker.glyph)).size, 'slots share a glyph').toBe(11);
   });
 
   test('keeps the compact equipment grid on wide, short screens', async ({ page }) => {
