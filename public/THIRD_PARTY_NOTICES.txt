@@ -1,9 +1,22 @@
 PROGRESS QUEST III — THIRD-PARTY NOTICES
-Last updated: 2026-08-07
 
 This file ships with the PWA. It records direct production inputs; it does not
 change their licenses or resolve the legacy-web-source ambiguity documented at
 https://github.com/williamzujkowski/progress-quest-iii/blob/main/docs/content-provenance.md.
+
+It is written to stay true without being re-dated. Names, authors and license
+terms are recorded here because those are the durable facts. Which exact
+revision shipped is not a durable fact, so it is not copied here: a hand-kept
+"last updated" line reports when somebody last remembered to touch this file
+rather than when it was last correct, and a hand-copied version number goes
+quietly wrong on the next install — this file named a Lucide release that the
+bundle had already moved past. Both have one answer that cannot drift:
+
+  package-lock.json, which records exact versions, tarball URLs and integrity
+  https://github.com/williamzujkowski/progress-quest-iii/blob/main/package-lock.json
+
+and every edit to this file, with its date and its reason, is in the history:
+  https://github.com/williamzujkowski/progress-quest-iii/commits/main/public/THIRD_PARTY_NOTICES.txt
 
 PROJECT CREDIT
 
@@ -17,8 +30,21 @@ an editorial joke, not an authorship or provenance claim.
 PROGRESS QUEST
 
 Progress Quest was created by Eric Fredricksen, principal author of the
-separately retained web reference implementation. The official site publishes
-this license text at https://progressquest.com/license.txt:
+separately retained web reference implementation.
+
+Thank you. Progress Quest is the joke that turned into a genre: a role-playing
+game that plays itself, honestly and without you, and is funnier for keeping an
+entirely straight face about it. Every idle game since owes it something, and
+this one owes it more than most: the tasks, the loot, the unearned promotions,
+the whole shape of the thing. Fredricksen also released it under terms generous
+enough that a project like this one is permitted to exist, which is its own
+kindness and is reproduced in full below.
+
+The original is at https://progressquest.com/ and remains the definitive
+article. Play that one first.
+
+The official site publishes this license text at
+https://progressquest.com/license.txt:
 
 Progress Quest
 Copyright (c) 2002-2004 Eric Fredricksen
@@ -49,21 +75,21 @@ scope.
 
 DIRECT RUNTIME SOFTWARE
 
-- @williamzujkowski/oklch-terminal-themes 0.7.0 — MIT
+- @williamzujkowski/oklch-terminal-themes — MIT
   Copyright (c) 2026 William Zujkowski
-- React and React DOM 19.2.8 — MIT
+- React and React DOM — MIT
   Copyright (c) Meta Platforms, Inc. and affiliates.
-- remarque-tokens 0.26.0 — MIT
+- remarque-tokens — MIT
   Copyright (c) 2026 William Zujkowski
   The design-token stylesheet imported by src/index.css at its `core`
   entrypoint. Its custom properties are emitted into the production CSS
   bundle, so this is distributed material rather than a build-time tool.
   https://github.com/williamzujkowski/remarque
-- Scheduler 0.27.0 — MIT
+- Scheduler — MIT
   Copyright (c) Meta Platforms, Inc. and affiliates.
-- Zod 4.4.3 — MIT
+- Zod — MIT
   Copyright (c) 2025 Colin McDonnell
-- Zustand 5.0.14 — MIT
+- Zustand — MIT
   Copyright (c) 2019 Paul Henschel
 
 The MIT permission and warranty text for these packages is the same form
@@ -98,14 +124,15 @@ Exact source URLs and pinned upstream revisions are recorded by the package's
 NOTICE and per-theme metadata:
 https://github.com/williamzujkowski/oklch-terminal-themes
 
-The package currently installs APCA/color tooling that is not present in this
-application's audited production bundle. Package-boundary cleanup is tracked
-at https://github.com/williamzujkowski/oklch-terminal-themes/issues/169.
+The theme package's dependency graph reaches APCA/color tooling that is not
+present in this application's audited production bundle. Package-boundary
+cleanup is tracked at
+https://github.com/williamzujkowski/oklch-terminal-themes/issues/169.
 
-The installed theme dependency graph also contains Culori 4.0.2 (MIT,
-Copyright (c) 2018 Dan Burzo). No Culori, apca-w3, or colorparsley code was
-identified in the audited application bundle; #169 and the local #178 track a
-durable package boundary instead of treating one tree-shaking result as proof.
+That graph also contains Culori (MIT, Copyright (c) 2018 Dan Burzo). No Culori,
+apca-w3, or colorparsley code was identified in the audited application bundle;
+#169 and the local #178 track a durable package boundary instead of treating
+one tree-shaking result as proof.
 
 ALEA PSEUDORANDOM NUMBER GENERATOR
 
@@ -144,7 +171,7 @@ of it; the unused starter hero image and social-service sprite were removed
 earlier. None of those marks are present any longer, so no trademark permission
 is relied upon for the application's own identity.
 
-LUCIDE REACT 1.28.0
+LUCIDE REACT
 
 ISC License
 
@@ -186,14 +213,14 @@ SOFTWARE.
 
 BUNDLED FONTS
 
-Inter via @fontsource-variable/inter 5.3.0
+Inter via @fontsource-variable/inter
 Copyright 2016 The Inter Project Authors (https://github.com/rsms/inter)
 
-JetBrains Mono via @fontsource-variable/jetbrains-mono 5.3.0
+JetBrains Mono via @fontsource-variable/jetbrains-mono
 Copyright 2020 The JetBrains Mono Project Authors
 (https://github.com/JetBrains/JetBrainsMono)
 
-Newsreader via @fontsource-variable/newsreader 5.3.0
+Newsreader via @fontsource-variable/newsreader
 Copyright 2016-2024 The Newsreader Project Authors
 (https://github.com/productiontype/Newsreader)
 
