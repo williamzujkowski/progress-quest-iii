@@ -75,7 +75,9 @@ Verified by: `src/__tests__/state/gameStore.test.ts` and `e2e/app.spec.ts`.
 Owner: `src/state/sessionCheckpoint.ts`; schema owner: `src/state/schemas.ts`
 
 - The active session uses a strict `{ schemaVersion: 1, session }` envelope under `progquest_active_session_v1`; it never changes the roster or PQW v0 formats.
-- The checkpoint contains only the character sheet, exact Alea continuation, progression counters, bounded pending scheduler elapsed time, pause state, and the newest 50 activity strings. Diagnostics, preferences, wall-clock timestamps, functions, and offline catch-up are excluded.
+- The checkpoint contains only the character sheet, exact Alea continuation, progression counters, bounded pending scheduler elapsed time, pause state, the wall-clock instant it was written, and the newest 50 activity strings. Diagnostics, preferences and functions are excluded.
+- `savedAtMs` is that wall-clock instant, and it is what makes offline catch-up possible: on load, `creditClosedElapsed` turns `now - savedAtMs` into engine-spendable milliseconds, capped at `MAX_PENDING_ELAPSED_MS`, so a closed tab resumes where the clock would have taken it. Guarded against a missing field, a rolled-back clock, a non-finite clock and a paused session; the double-credit window is closed by re-flushing with a fresh stamp immediately after restore. Verified by: `closedElapsed.test.ts`, `sessionCheckpoint.test.ts`.
+  - This bullet said the opposite for some time — that wall-clock timestamps and offline catch-up were *excluded* — while both had been in the envelope and the schema throughout. It is recorded here rather than quietly corrected because the sentence read as a guarantee: someone deciding whether the save carries a timestamp, or whether the game advances while closed, would have come away wrong on both.
 - Activity rows receive monotonic runtime identities after the pure engine transition. Checkpoint v1 deliberately keeps its compatible `log: string[]`; hydration reconstructs identities before React mounts without consuming gameplay RNG.
 - Pending scheduler elapsed time preserves deterministic continuation when a tick reaches the 100-task work budget. New captures always write the finite nonnegative value; legacy v1 checkpoints that omit it normalize to zero. Older strict builds reject newly written checkpoints containing the field, a unanimously accepted one-way compatibility window for #164; portable PQW and roster formats are unchanged.
 - Formatted activity strings are truncated to the checkpoint description limit after presentation prefixes are applied; domain descriptions remain unchanged.
@@ -105,7 +107,13 @@ Owner: `src/engine/prng.ts`
 ## Quality gates
 
 After dependencies and the Chromium and WebKit Playwright browsers are installed,
-`npm run quality` is the canonical local, CI, and deployment gate. It runs full Nexus installation verification,
+Nexus installation verification is **not** part of it. `npm run agents:verify` runs as its own
+step in `ci.yml`, deliberately outside the gate, because `quality` is what the deploy job runs in
+the same job that builds and uploads the Pages artifact — and `nexus-agents` is half the lockfile.
+`scripts/test-deploy-tooling-boundary.mjs` keeps that separation true. This paragraph claimed the
+opposite while `AGENTS.md` stated the decision and a gate enforced it.
+
+`npm run quality` is the canonical local, CI, and deployment gate. It runs
 warning-clean modern lint, typecheck, unit and golden-master tests under enforced
 coverage floors, dependency
 audit at moderate severity plus registry signature verification, Playwright E2E,
