@@ -8,7 +8,7 @@ import { useFilingVelocity } from '../state/useFilingVelocity';
 import { useTrackProjection } from '../state/useTrackProjection';
 import { useTabTitle } from '../state/useTabTitle';
 import { formatDuration } from '../engine/text';
-import { ActLabel, GameNumber } from './GameNumber';
+import { ActLabel, GameNumber, CurrencyNumber } from './GameNumber';
 import { ItemTooltip } from './ItemTooltip';
 
 /**
@@ -147,7 +147,7 @@ export const HeroBanner: React.FC = () => {
         <div className="stat-pill gold-pill">
           <Coins size={16} aria-hidden="true" />
           <ItemTooltip kind="inventory" name="Gold" quantity={character.Gold}>
-            <GameNumber value={character.Gold} />{' '}<span className="stat-unit">GP</span>
+            <CurrencyNumber value={character.Gold} />{' '}<span className="stat-unit">GP</span>
           </ItemTooltip>
         </div>
 

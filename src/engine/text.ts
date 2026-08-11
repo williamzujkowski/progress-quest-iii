@@ -72,6 +72,39 @@ const spokenFormatter = new Intl.NumberFormat('en-US', {
   maximumSignificantDigits: 3,
 });
 
+/**
+ * The largest currency total still written in plain digits.
+ *
+ * Stated here rather than imported from `data/limits`, because this module has no imports and is a
+ * leaf on purpose. The value is the persisted ceiling; ordinary play never approaches it, since the
+ * equipment sink pins gold below 5L² — about 1.3e8 at the maximum finite level — so the exponent
+ * form is a guard against an imported save rather than something a player reaches.
+ */
+const CURRENCY_PLAIN_CEILING = 1_000_000_000;
+
+const groupedFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0, useGrouping: true });
+
+/**
+ * A currency total, in plain grouped digits for as long as it can be.
+ *
+ * `formatGameNumber` crosses into scientific notation at a million, and that threshold is right for
+ * the surface it was built for: an act of a million is an index, and `Loading Act 1.00e6...` reads
+ * correctly. A gold total is not an index — it is the reward for about twenty-seven days of play,
+ * and `1.16e6` is the smallest a million has ever looked.
+ *
+ * Diablo III made the same call for damage numbers, deliberately counting in millions rather than
+ * crossing into billions, on the grounds that seeing 1,000M tells a better story than 1B. The
+ * emotional size of a number is a design variable independent of its numeric size.
+ *
+ * Grouped, because plain digits alone are not an improvement: `127474005` is harder to read than
+ * the exponent it replaces, and `127,474,005` is not.
+ */
+export function formatCurrency(value: number): string {
+  if (!Number.isFinite(value) || Math.abs(value) > CURRENCY_PLAIN_CEILING) return formatGameNumber(value);
+  const grouped = groupedFormatter.format(value);
+  return grouped === '-0' ? '0' : grouped;
+}
+
 function ordinaryGameNumber(value: number): string {
   const formatted = ordinaryFormatter.format(value);
   return formatted === '-0' ? '0' : formatted;

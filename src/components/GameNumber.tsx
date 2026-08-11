@@ -1,5 +1,5 @@
 import React from 'react';
-import { describeGameNumber, formatGameNumber } from '../engine/text';
+import { describeGameNumber, formatCurrency, formatGameNumber } from '../engine/text';
 
 export const GameNumber: React.FC<{ value: number }> = ({ value }) => {
   const display = formatGameNumber(value);
@@ -12,6 +12,20 @@ export const GameNumber: React.FC<{ value: number }> = ({ value }) => {
     </span>
   );
 };
+
+/**
+ * A currency total, which stays in plain grouped digits far longer than an ordinary figure.
+ *
+ * Separate from `GameNumber` because the two answer different questions. An act ordinal is an index
+ * and reads correctly as `1.00e6`; a gold total is a reward, and the point at which it stops being
+ * legible is the point at which it stops being one.
+ *
+ * The spoken form is unchanged — a screen reader reads grouped digits correctly, so there is nothing
+ * for the `sr-only` twin to fix and adding one would say the number twice.
+ */
+export const CurrencyNumber: React.FC<{ value: number }> = ({ value }) => (
+  <span className="game-number">{formatCurrency(value)}</span>
+);
 
 export const ActLabel: React.FC<{ act: number }> = ({ act }) => act === 0
   ? <>Prologue</>
