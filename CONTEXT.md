@@ -75,7 +75,7 @@ The mechanically authoritative facts exposed for an item, kept separate from its
 _Avoid_: Flavor text
 
 **Equipment generation quality**:
-The sum of an equipment base, its named quality modifiers, and any residual numeric mark. It governs the prestige of newly awarded equipment near a character's level, but contributes no attack or mitigation because classic combat has neither calculation.
+The sum of an equipment base, its named quality modifiers, and any residual numeric mark. It governs the prestige of newly awarded equipment near a character's level, and since ADR 0008 it also shortens encounters: `encounterSpeedMultiplier(loadoutQuality(character))` divides every kill's duration. It contributes no attack or mitigation, because classic combat has neither calculation.
 _Avoid_: Attack rating, armor rating, damage
 
 **Spell rank**:
@@ -83,7 +83,9 @@ The number of times a spell has been learned. It is prestige recorded for legacy
 _Avoid_: Spell power, caster level
 
 **Combat contribution**:
-Whether an item changes encounter time. Equipment, spells, loot, and Gold have none; classic encounter time depends on opponent puissance and character level.
+Whether an item changes encounter time. Spells, loot and Gold have none. **Equipment does**, per ADR 0008 — better equipment shortens encounters without ever making one instant, on an asymptotic curve.
+
+This definition said equipment had none, and ADR 0008 declared it wrong in writing — "`CONTEXT.md` is now wrong in two places and is superseded here rather than silently left" — and then it stayed. Three surfaces each worked around it rather than fixing it: `itemDetails.ts` re-glosses the field as "damage is not modeled", `serviceRecord.ts` says "None contributed attack or mitigation; the schedule benefited regardless", and the world console was corrected the same way. `itemMechanics.ts` still types `EquipmentMechanics.combatContribution` as the literal `'none'`, which is the remaining consequence of the stale definition rather than a separate defect.
 _Avoid_: Hidden effect, abstract damage
 
 **Task count**:
