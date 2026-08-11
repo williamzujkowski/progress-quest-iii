@@ -61,7 +61,7 @@ Production dependencies at the audit commit:
 | `@williamzujkowski/oklch-terminal-themes` | 0.7.0 | MIT |
 | `remarque-tokens` | 0.26.0 | MIT |
 | `@fontsource-variable/newsreader` | 5.3.0 | SIL Open Font License 1.1; the masthead face, shipped like the other two |
-| `lucide-react` | 1.28.0 | ISC, with upstream Feather-derived icons under MIT |
+| `lucide-react` | 1.29.0 | ISC, with upstream Feather-derived icons under MIT |
 | `react`, `react-dom` (and bundled `scheduler`) | 19.2.8 (scheduler 0.27.0) | MIT |
 | `zod` | 4.4.3 | MIT |
 | `zustand` | 5.0.14 | MIT |
