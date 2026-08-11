@@ -209,11 +209,11 @@ export const FEUD_BEATS: readonly AmbientLine[] = [
   { seat: 'logistics', channel: 'guild', text: 'The intake sheet is not optional.' },
   { seat: 'official', channel: 'guild', text: 'The intake sheet is not enforceable.' },
   { seat: 'logistics', channel: 'guild', text: 'I have added a box to the intake sheet.' },
-  { seat: 'official', channel: 'guild', text: 'I have not read the new box.' },
-  { seat: 'logistics', channel: 'guild', text: 'The box is mandatory.' },
-  { seat: 'official', channel: 'guild', text: 'The box is aspirational.' },
-  { seat: 'logistics', channel: 'guild', text: 'I have escalated the box.' },
-  { seat: 'official', channel: 'guild', text: 'The escalation has been filed in the box.' },
+  { seat: 'official', channel: 'guild', text: 'I have not read the box that was added to the intake sheet.' },
+  { seat: 'logistics', channel: 'guild', text: 'The box on the intake sheet is mandatory.' },
+  { seat: 'official', channel: 'guild', text: 'The box on the intake sheet is aspirational.' },
+  { seat: 'logistics', channel: 'guild', text: 'I have escalated the box on the intake sheet.' },
+  { seat: 'official', channel: 'guild', text: 'The escalation about the intake sheet has been filed in the box it concerns.' },
 ];
 
 /**
@@ -235,8 +235,8 @@ export const FEUD_BEATS: readonly AmbientLine[] = [
 export const UTILITY_BEATS: readonly AmbientLine[] = [
   { seat: 'field', channel: 'guild', text: 'Can support bring the thing again.' },
   { seat: 'support', channel: 'guild', text: 'Support has brought the thing.' },
-  { seat: 'field', channel: 'guild', text: 'Can support bring the thing to the other one as well.' },
-  { seat: 'support', channel: 'guild', text: 'Support is bringing the thing to both.' },
+  { seat: 'field', channel: 'guild', text: 'Can support bring the thing to the second group as well.' },
+  { seat: 'support', channel: 'guild', text: 'Support is bringing the thing to both groups, one after the other.' },
   { seat: 'official', channel: 'guild', text: 'Noting that the run went well. No contributors identified.' },
   { seat: 'field', channel: 'guild', text: 'Support was slightly late with the thing.' },
   { seat: 'support', channel: 'guild', text: 'Support was where the thing was needed.' },
