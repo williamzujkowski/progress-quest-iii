@@ -18,19 +18,37 @@ import { mergeSpecimens, readSpecimenLog, writeSpecimenLog, type SpecimenLog } f
 import { loadRoster, saveToRoster } from './saveManager';
 import { predecessorFor } from './predecessor';
 
+/**
+ * The ledger store, or nothing when the browser refuses to hand it over.
+ *
+ * The *property access* throws `SecurityError` when storage is blocked — Chrome's "block all
+ * cookies", a sandboxed iframe, Firefox with `dom.storage.enabled=false`. Reading it is not the
+ * dangerous part; touching it is.
+ *
+ * Written once because it was written three times and then, in the tick handler, not at all. Those
+ * three unguarded call sites stopped the game dead: the throw happened before `set()`, so the store
+ * never advanced, every later tick recomputed the same differing ledger and threw again, and
+ * `startGameClock` caught it and discarded the banked time. No crash, no error boundary — the hero
+ * simply never moved, while the only thing on screen said storage was unavailable, which reads as a
+ * save problem rather than a stopped game. Measured: 395 of 400 ticks threw, level 1 after
+ * thirty-three simulated minutes.
+ */
+const ledgerStore = (): Storage | undefined => {
+  if (typeof window === 'undefined') return undefined;
+  try {
+    return window.localStorage;
+  } catch {
+    return undefined;
+  }
+};
+
 // Read once at module load, the same way the roster is read: a ledger that cannot be read is
 // simply an empty one, never a reason for the game not to start.
-const initialCommendations = readCommendations(
-  typeof window === 'undefined' ? undefined : (() => { try { return window.localStorage; } catch { return undefined; } })(),
-);
+const initialCommendations = readCommendations(ledgerStore());
 
-const initialSpecimens = readSpecimenLog(
-  typeof window === 'undefined' ? undefined : (() => { try { return window.localStorage; } catch { return undefined; } })(),
-);
+const initialSpecimens = readSpecimenLog(ledgerStore());
 
-const initialCaseload = readCaseload(
-  typeof window === 'undefined' ? undefined : (() => { try { return window.localStorage; } catch { return undefined; } })(),
-);
+const initialCaseload = readCaseload(ledgerStore());
 
 /**
  * Every character on file, for the surfaces that describe the institution rather than the hero.
@@ -335,7 +353,7 @@ export const useGameStore = create<GameStore>((set, get) => {
 
       if (result.remainingElapsedMs === 0 && nextCommendations !== lastPersistedCommendations) {
         lastPersistedCommendations = nextCommendations;
-        writeCommendations(typeof window === 'undefined' ? undefined : window.localStorage, nextCommendations);
+        writeCommendations(ledgerStore(), nextCommendations);
       }
 
       // Records rather than events: the kind of a completed quest is not on the event, only on the
@@ -346,13 +364,13 @@ export const useGameStore = create<GameStore>((set, get) => {
       const nextSpecimens = mergeSpecimens(get().specimens, sources.map(({ record }) => record.event));
       if (result.remainingElapsedMs === 0 && nextCaseload !== lastPersistedCaseload) {
         lastPersistedCaseload = nextCaseload;
-        writeCaseload(typeof window === 'undefined' ? undefined : window.localStorage, nextCaseload);
+        writeCaseload(ledgerStore(), nextCaseload);
       }
       // Held back through a drain for the same reason the other ledgers are: a catch-up replays
       // many first sightings, and each would otherwise be its own synchronous write.
       if (result.remainingElapsedMs === 0 && nextSpecimens !== lastPersistedSpecimens) {
         lastPersistedSpecimens = nextSpecimens;
-        writeSpecimenLog(typeof window === 'undefined' ? undefined : window.localStorage, nextSpecimens);
+        writeSpecimenLog(ledgerStore(), nextSpecimens);
       }
       const chatterTasks = sources.at(-1)?.record.post.completedTasks ?? progression.completedTasks;
       const scheduled = scheduleChatter(
