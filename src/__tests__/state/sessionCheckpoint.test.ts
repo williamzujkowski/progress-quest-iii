@@ -806,13 +806,36 @@ describe('a tab another tab took over', () => {
   it('says nothing when the other tab wrote what this one already had', () => {
     // The listener fires on every write to the key, including this tab's own. Treating an identical
     // value as a conflict would silence a tab that nothing had taken over.
+    /*
+     * The tab has to own a checkpoint before "identical" can mean anything.
+     *
+     * Without this the controller was still on its `missing` branch: it had written nothing
+     * synchronously and published no notice, so `same` read back `null`, the event carried
+     * `newValue: null`, and the closing expectation negatively matched `null` against a matcher it
+     * could never satisfy. The test passed without once reaching the case its name describes —
+     * narrowing the guard to `event.newValue === null` left it green, and that narrowing blocks a
+     * tab, and its three side ledgers, on a write that changed nothing.
+     *
+     * Seeded before the controller starts, the way the sibling takeover test does, so the bytes are
+     * ones the controller has adopted and recognises as its own. Written behind its back afterwards
+     * they are simply another tab's, and it is right to call that a conflict.
+     */
+    vi.useFakeTimers();
+    useGameStore.setState({ character: createNewCharacter('Owner', 'Half Daemon', 'Robot Monk', 731) });
+    const seeded = writeActiveCheckpoint(localStorage, captureActiveSession(FIXED_SAVED_AT), null);
+    if (!seeded.ok) throw new Error('Expected a seeded checkpoint');
+
     const controller = startSessionCheckpoints({
       now: () => FIXED_SAVED_AT, storage: localStorage, intervalMs: 1, pagehideTarget: window,
     });
     const same = localStorage.getItem(ACTIVE_CHECKPOINT_KEY);
+    expect(same, 'the tab must own a checkpoint before an identical write means anything').toBeTypeOf('string');
+
     window.dispatchEvent(new StorageEvent('storage', { key: ACTIVE_CHECKPOINT_KEY, newValue: same }));
 
-    expect(controller.getNotice()).not.toMatchObject({ repairLabel: 'Continue in this tab' });
+    // Asserted positively. `not.toMatchObject` against `null` is satisfied by the absence of a
+    // notice as readily as by the right one, which is how the original passed on nothing at all.
+    expect(controller.getNotice()).toBeNull();
     controller.dispose();
   });
 });

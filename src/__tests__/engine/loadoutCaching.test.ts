@@ -72,10 +72,20 @@ describe('the loadout caches answer the question they were asked', () => {
     // Two sheets alive at once is the roster's ordinary state, and a single-slot cache keyed on the
     // wrong thing would answer for whichever was asked last.
     const one = hero();
-    const two = wearing(createNewCharacter('Other', 'Double Tenant', 'Robot Monk', new RandomGenerator('other')), 'Weapon', 'Sharp Rock');
+    const two = wearing(createNewCharacter('Other', 'Double Tenant', 'Robot Monk', new RandomGenerator('other')), 'Weapon', '+9 Claw-Back');
 
     const first = loadoutQuality(one);
     const second = loadoutQuality(two);
+
+    /*
+     * The premise, and the reason the two sheets must differ.
+     *
+     * They used to be equipped `Stick` and `Sharp Rock`, neither of which is in `WEAPONS`, so
+     * `loadoutQuality` returned 0 for both — and `toBe` on numbers is value equality, so the exact
+     * cache this test exists to forbid, one keyed on the wrong thing and answering for whichever
+     * sheet was asked last, produced the same four zeros and passed.
+     */
+    expect(second, 'both sheets quote the same quality, so a leak would be invisible').not.toBe(first);
 
     expect(loadoutQuality(one)).toBe(first);
     expect(loadoutQuality(two)).toBe(second);
