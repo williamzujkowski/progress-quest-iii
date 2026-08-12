@@ -27,7 +27,6 @@
   --color-magic: var(--terminal-purple, oklch(0.617 0.108 309.8));
   --color-info: var(--terminal-cyan, oklch(0.595 0.102 194.8));
   --color-selection-bg: var(--terminal-selection, oklch(0.3 0.06 250));
-  --color-selection-fg: var(--color-fg);
   --color-focus-ring: var(--color-accent);
 
   /* Application aliases. Every game surface addresses colour through these names, so a
@@ -61,7 +60,6 @@
 
   --font-display: 'Newsreader Variable', 'Newsreader', Georgia, 'Times New Roman', serif;
   --font-family: 'Inter Variable', 'Inter', ui-sans-serif, system-ui, sans-serif;
-  --font-body: var(--font-family);
   --font-mono: 'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, monospace;
   --font-base-size: var(--text-body);
   color-scheme: dark;

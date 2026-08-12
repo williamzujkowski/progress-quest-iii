@@ -12,8 +12,8 @@ import type { CharacterSheet, EquipSlot, InventoryItem, ProgressTask, SpellItem,
 const NAME_PARTS_1 = ['Brog', 'Grim', 'Kael', 'Thor', 'Zar', 'Vex', 'Gor', 'Drak', 'Thul', 'Borg', 'Loth', 'Morg', 'Fizz', 'Wiz', 'Snag'];
 const NAME_PARTS_2 = ['nar', 'gath', 'dor', 'karn', 'rak', 'mar', 'vark', 'zog', 'thor', 'bluff', 'sout', 'fang', 'jaw', 'beard', 'gorm'];
 
-export function generateRandomName(rng?: RandomGenerator): string {
-  const r = rng || new RandomGenerator(Date.now());
+export function generateRandomName(): string {
+  const r = new RandomGenerator(Date.now());
   return r.pick(NAME_PARTS_1) + r.pick(NAME_PARTS_2);
 }
 
@@ -246,7 +246,12 @@ export function generateStatReward(rng: RandomGenerator, stats: StatsMap): keyof
     roll -= squares[index]! / scale;
     if (roll < 0) return stat;
   }
-  return PRIME_STATS.at(-1) ?? 'STR';
+  // The fall-through, which is reachable: an imported sheet with every stat at zero gives a weight
+  // of zero, `rng.random(0)` is `NaN`, and no comparison below succeeds. The last stat is the right
+  // answer there, and it is what `.at(-1)` returns on a table whose length is asserted elsewhere.
+  // This used to coalesce to `'STR'` — unreachable, and the *first* stat where the semantics are the
+  // last, so if it had ever fired it would have been wrong.
+  return PRIME_STATS.at(-1)!;
 }
 
 export function generateItemReward(rng: RandomGenerator, inventoryNames: readonly string[]): string {

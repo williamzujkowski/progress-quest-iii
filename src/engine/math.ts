@@ -19,8 +19,9 @@ export function roll3d6(rng: RandomGenerator): number {
  * Cubits the hero can carry: strength, a constant, and whatever the padding slot allows.
  *
  * The allowance is passed in rather than read off the sheet here, because this module knows about
- * numbers and not about equipment. Callers that have a loadout to hand pass `storageAllowance`;
- * callers reasoning about strength alone leave it out and get the original figure.
+ * numbers and not about equipment. Every shipping caller has a loadout to hand and passes
+ * `storageAllowance`; the default exists for tests that reason about strength alone, and describing
+ * it as a production affordance was a claim about callers that do not exist.
  */
 export function calculateEncumbranceMax(str: number, storageAllowance = 0): number {
   return str + 10 + storageAllowance;
