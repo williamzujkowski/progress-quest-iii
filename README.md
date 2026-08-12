@@ -54,8 +54,9 @@ If a cached shell ever becomes impressively confused, use the browser's site set
   spacing, saves, creator flows, installation, offline restart, explicit updates, rollback, and
   cache privacy.
 
-Nothing on any of those surfaces asserts a mechanic the engine does not model. Equipment, spells,
-and loot have no combat contribution at any quality, and the copy says so where it matters.
+Nothing on any of those surfaces asserts a mechanic the engine does not model. Spells and loot have
+no combat contribution at any quality; equipment shortens encounters, through one asymptotic
+multiplier on kill duration, and the copy says so where it matters.
 
 Existing `.pqw` saves and locally stored rosters remain compatible. The Roman numeral is branding, not an excuse to confiscate anybody's Sub-Subprocessor.
 
@@ -80,9 +81,12 @@ npm run quality
 ```
 
 The quality command fails on modern-code or GitHub Actions workflow findings and
-runs Nexus installation verification, lint, typecheck, unit and golden-master
+runs lint, typecheck, unit and golden-master
 tests under enforced coverage floors, dependency audit at moderate severity plus registry signature
-verification, browser E2E, and production PWA tests. The production build is not
+verification, browser E2E, and production PWA tests. Nexus installation
+verification runs as its own CI step, deliberately outside the gate: the deploy
+job runs `quality` in the same job that builds and uploads the Pages artifact,
+and the agent tooling is half the lockfile. The production build is not
 a separate step - it runs inside the PWA suite, which is last, so browser E2E
 exercises the dev server and only the PWA suite exercises the shipped bundle. Workflow lint uses the official actionlint v1.7.12 archive
 for the current platform, verifies its pinned release checksum before every
