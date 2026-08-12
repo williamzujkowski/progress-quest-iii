@@ -156,7 +156,7 @@ describe('advanceGame', () => {
       first: 'Your assignment is in sight, but an escalation bars your path...',
       pending: [
         'A protracted dispute opens with Oomuz the Helpdesk Hound',
-        'Oomuz the Helpdesk Hound appears to have the stronger paper trail',
+        'At correspondence, Oomuz the Helpdesk Hound appears to have the stronger paper trail',
         'Resolved in your favour: Oomuz the Helpdesk Hound is closed. Exhausted, you take the afternoon',
         'You come round in a breakout room, and the backlog is waiting',
         'Loading',
@@ -260,8 +260,8 @@ describe('advanceGame', () => {
     expect(result.state.character.Inventory).toContainEqual({ name: 'Soulbound Tariff of Governance', qty: 1 });
     expect(result.state.character.PendingTasks?.map(({ description }) => description)).toEqual([
       'A protracted dispute opens with Zouvjaen the Wrap-Up Wraith',
-      'Zouvjaen the Wrap-Up Wraith appears to have the stronger paper trail',
-      'Locked in grim correspondence with Zouvjaen the Wrap-Up Wraith',
+      'At correspondence, Zouvjaen the Wrap-Up Wraith appears to have the stronger paper trail',
+      'The matter of Zouvjaen the Wrap-Up Wraith has reached escalation. Neither party has conceded',
       'Resolved in your favour: Zouvjaen the Wrap-Up Wraith is closed. Exhausted, you take the afternoon',
       'You come round in a breakout room, and the backlog is waiting',
       'Loading',

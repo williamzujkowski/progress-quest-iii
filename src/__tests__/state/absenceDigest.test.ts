@@ -64,7 +64,9 @@ describe('the digest against a real drain', () => {
 
     const digests = useGameStore.getState().log.filter(({ message }) => message.startsWith('Backlog processed'));
     expect(digests).toHaveLength(1);
-    expect(digests[0]!.message).toMatch(/The absence produced .+, none of it witnessed\./);
+    // The closing clause now varies with magnitude, so this matches the figure-bearing half and the
+    // presence of a closing rather than one fixed sentence. `digestClosing` has its own cases.
+    expect(digests[0]!.message).toMatch(/The absence produced .+\. [A-Z].+\.$/);
 
     // And the counting stops: further ordinary play adds no second digest.
     for (let step = 0; step < 200; step += 1) useGameStore.getState().tick(50);

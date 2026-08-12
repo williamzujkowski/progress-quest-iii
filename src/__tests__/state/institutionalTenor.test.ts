@@ -42,7 +42,7 @@ describe('institutional tenor', () => {
     // tier may carry a bare figure or a unit of a thing that is not simulated.
     for (const act of [0, 2, 5, 12, 18, 26]) {
       for (const location of ['a', 'b', 'c', 'd', 'e', 'f']) {
-        const line = tenorLine({ act, location });
+        const line = tenorLine({ act, location, venue: 'town' });
         expect(line).not.toMatch(/\d/u);
         expect(line.toLowerCase()).not.toMatch(/\b(megawatt|kilowatt|watt|terabyte|petaflop|gigahertz|acres?|square (?:feet|metres|meters))\b/u);
       }
@@ -54,7 +54,7 @@ describe('institutional tenor', () => {
     // technique only, never its own expression.
     const serialized = JSON.stringify(TENOR_LABELS).toLowerCase()
       + [0, 2, 5, 12, 18, 26].flatMap((act) =>
-        ['a', 'b', 'c'].map((location) => tenorLine({ act, location }))).join(' ').toLowerCase();
+        ['a', 'b', 'c'].map((location) => tenorLine({ act, location, venue: 'town' }))).join(' ').toLowerCase();
     for (const forbidden of [
       'universal paperclips', 'paperclip', 'hypnodrone', 'von neumann', 'drifter',
       'erenshor', 'everquest', 'world of warcraft', 'kingdom of loathing',
@@ -70,18 +70,18 @@ describe('institutional tenor', () => {
   });
 
   it('holds its line still while the hero does', () => {
-    const context = { act: 6, location: 'the Auditable Wilds' };
+    const context = { act: 6, location: 'the Auditable Wilds', venue: 'town' } as const;
     expect(tenorLine(context)).toBe(tenorLine(context));
     // And moves when the surroundings do, or it would read as a fixed caption.
     const lines = new Set(
-      ['a', 'b', 'c', 'd', 'e', 'f'].map((location) => tenorLine({ act: 6, location })),
+      ['a', 'b', 'c', 'd', 'e', 'f'].map((location) => tenorLine({ act: 6, location, venue: 'town' })),
     );
     expect(lines.size).toBeGreaterThan(1);
   });
 
   it('says something different at every tier', () => {
     const acts = [0, 2, 5, 12, 18, 26];
-    const lines = acts.map((act) => tenorLine({ act, location: 'the same place' }));
+    const lines = acts.map((act) => tenorLine({ act, location: 'the same place', venue: 'town' }));
     expect(new Set(lines).size).toBe(acts.length);
   });
 

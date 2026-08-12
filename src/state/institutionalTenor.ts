@@ -75,10 +75,17 @@ export function tenorFor(context: Pick<WorldContext, 'act'>): InstitutionalTenor
  * the institution's opinion of it moves.
  */
 const TENOR_LINES: Record<InstitutionalTenor, readonly string[]> = {
+  // Six rather than three, and only here. `routine` is nearly all of what anybody ever sees --
+  // the next tier needs act two, which is several hours of credited time -- while the tiers above
+  // it are rationed on purpose and stay at three. Under-supplying the tier everybody lives in was
+  // the same mistake as over-supplying the ones almost nobody reaches.
   routine: [
     'Operating within normal parameters. No escalation is warranted.',
     'Caseload nominal. The filing continues at the expected rate.',
     'Nothing about this process has yet required a second signature.',
+    'A second signature was sought as a precaution and has not come back.',
+    'No exception has been requested here, and none has been refused.',
+    'A colleague was asked to confirm this was normal, and confirmed it.',
   ],
   noted: [
     'Sustained output has been noted by a department that does not usually notice.',
@@ -118,8 +125,12 @@ const TENOR_LINES: Record<InstitutionalTenor, readonly string[]> = {
  * hero does, and changes when the surroundings do. `stableIndex` is a pure hash rather than a
  * draw from the generator, which is what keeps this out of the RNG continuation entirely.
  */
-export function tenorLine(context: Pick<WorldContext, 'act' | 'location'>): string {
+export function tenorLine(context: Pick<WorldContext, 'act' | 'location' | 'venue'>): string {
   const tenor = tenorFor(context);
   const lines = TENOR_LINES[tenor];
-  return lines[stableIndex(`${tenor}:${context.location}`, lines.length)]!;
+  // Keyed on the venue as well as the location. A location holds still for a whole act's worth of
+  // town, so the one thing on this panel that changes by degree was, for the first several hours
+  // anybody watches, a single sentence that never moved. `venue` turns over constantly without
+  // changing which tier is in force, which is exactly the axis this line wants.
+  return lines[stableIndex(`${tenor}:${context.location}:${context.venue}`, lines.length)]!;
 }
