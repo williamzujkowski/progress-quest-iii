@@ -26,9 +26,11 @@ it is divided by ten and the count goes up, so:
 `GoldDecades` is optional in the schema and absent from every save written before this, so those
 read back as the numbers they always were. Nothing is migrated.
 
-The arithmetic lives in `src/engine/gold.ts` rather than using the `Magnitude` carrier from ADR 0008,
-because gold has a constraint that carrier does not: the figure must stay a whole number of coins.
-`Magnitude` normalises its mantissa to `[1, 10)`, which would turn a balance into a decimal.
+The arithmetic lives in `src/engine/gold.ts` rather than in a general mantissa-and-decade carrier of
+the kind ADR 0008 deferred under **Not included**, because gold has a constraint such a carrier does
+not: the figure must stay a whole number of coins. A carrier that normalised its mantissa to
+`[1, 10)` would turn a balance into a decimal. No such carrier exists yet, so this records why gold
+would not have used one rather than a comparison against shipped code.
 
 **Spending cannot shed decades back.** A purchase is priced in ordinary coins, so a player whose
 balance has shed decades can always afford one, and the count never falls. This is deliberate: no
