@@ -513,8 +513,20 @@ describe('the boundary between what a thing is and what it does', () => {
   });
 
   it('keeps every generated equipment effect to the mechanical shape', () => {
+    /*
+     * Armour bases come from the per-slot table, which is where the game gets them.
+     *
+     * This swept `ARMORS` instead, and shipped armour names have not come from there since the
+     * per-slot rename — `generateEquipUpgrade` calls `armourNameForSlot(slot, index)`. That mattered
+     * because `EQUIPMENT_EFFECT` is `$`-anchored and carries three optional clauses — padding,
+     * market terms, vitals — which `describeEquipment` produces only for names it can resolve
+     * through `armourTableForSlot`. Sweeping the wrong table meant those clauses were never
+     * generated, so the anchor was the only thing forbidding unmechanical prose in the effects
+     * column and it was aimed at names the game does not produce. Appending a stray sentence to
+     * either clause left the whole suite green.
+     */
     for (const slot of EQUIP_SLOTS) {
-      for (const [base] of slot === 'Weapon' ? WEAPONS : slot === 'Shield' ? SHIELDS : ARMORS) {
+      for (const [base] of slot === 'Weapon' ? WEAPONS : slot === 'Shield' ? SHIELDS : armourTableForSlot(slot)) {
         for (const [modifier] of [...OFFENSE_ATTRIB, ...DEFENSE_ATTRIB, ...OFFENSE_BAD, ...DEFENSE_BAD]) {
           expect(describeEquipment(`${modifier} ${base}`, slot).effect).toMatch(EQUIPMENT_EFFECT);
         }
