@@ -67,4 +67,53 @@ describe('Web Audio Synthesizer', () => {
       'Sound effects are unavailable. Questing will continue in dignified silence.',
     ]);
   });
+  it('reports success and stays unmuted against a context whose nodes work', async () => {
+    /*
+     * Every other case in this file hands `SoundFX` a factory that returns null, throws, rejects on
+     * resume, or whose `createOscillator` throws — so both success returns, in `play` and in
+     * `prepare`, were never reached. Replacing each of them with a failure left the whole suite
+     * green: a build in which every healthy browser reports its own sound system broken and mutes
+     * itself, with nothing red.
+     *
+     * The stub is the smallest thing `probePlayback` actually touches, so it asserts the contract
+     * rather than the implementation: two nodes that connect, a gain that can be scheduled, and a
+     * start and stop that do not throw.
+     */
+    const started: number[] = [];
+    const scheduled: number[] = [];
+    const working = () => ({
+      state: 'running',
+      currentTime: 0,
+      destination: {},
+      createOscillator: () => ({
+        frequency: { setValueAtTime: () => undefined, exponentialRampToValueAtTime: () => undefined },
+        type: 'sine',
+        connect: () => undefined,
+        start: (when: number) => started.push(when),
+        stop: () => undefined,
+      }),
+      createGain: () => ({
+        gain: {
+          setValueAtTime: (value: number) => scheduled.push(value),
+          exponentialRampToValueAtTime: () => undefined,
+          linearRampToValueAtTime: () => undefined,
+        },
+        connect: () => undefined,
+      }),
+    } as unknown as AudioContext);
+
+    const failures: AudioFailure[] = [];
+    const healthy = new SoundFX(working, (failure) => failures.push(failure));
+
+    await expect(healthy.prepare()).resolves.toEqual({ ok: true });
+    await expect(healthy.playLevelUp()).resolves.toEqual({ ok: true });
+    await expect(healthy.playQuestComplete()).resolves.toEqual({ ok: true });
+
+    // Not merely `{ ok: true }`: the muted early return in `play` answers that too, which is what
+    // made the existing success assertion in this file measure nothing.
+    expect(healthy.getMuted(), 'a working context should not have muted itself').toBe(false);
+    expect(failures, 'a working context reported a failure').toEqual([]);
+    expect(started.length, 'no oscillator was ever started').toBeGreaterThan(0);
+    expect(scheduled, 'the probe did not schedule its silent gain').toContain(0);
+  });
 });
