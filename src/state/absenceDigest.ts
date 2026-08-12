@@ -63,6 +63,21 @@ export function isEmptyDigest(digest: AbsenceDigest): boolean {
 }
 
 /**
+ * The closing clause, by how much of it happened.
+ *
+ * The escalation register is earned here and almost nowhere else: the magnitude of the absence is a
+ * truthful fact this function already holds, and a two-week absence used to get the same shrug as a
+ * five-minute one. The default clause is what nearly every absence gets, so escalation stays rare
+ * rather than becoming the voice. Every closing below is true of the digest that selected it.
+ */
+function digestClosing(digest: AbsenceDigest): string {
+  if (digest.acts >= 3) return 'Asked who authorised the interval, the department has replied in writing that it was already under way.';
+  if (digest.acts >= 1) return 'An act closed to a quorum of nobody. The minutes record it as carried.';
+  if (digest.levels >= 3) return 'The promotions were conferred in absentia and stand. Nobody has been told, the holder included.';
+  return 'None of it was witnessed.';
+}
+
+/**
  * The line, or null when the absence produced nothing worth a sentence.
  *
  * A drain that credits no event at all is a real outcome — a short absence, or one spent entirely
@@ -78,5 +93,5 @@ export function describeDigest(digest: AbsenceDigest): string | null {
   if (digest.acts > 0) parts.push(`${formatGameNumber(digest.acts)} ${digest.acts === 1 ? 'act' : 'acts'}`);
   if (digest.gold > 0) parts.push(`${formatGameNumber(digest.gold)} gold`);
 
-  return `Backlog processed. The absence produced ${parts.join(', ')}, none of it witnessed.`;
+  return `Backlog processed. The absence produced ${parts.join(', ')}. ${digestClosing(digest)}`;
 }

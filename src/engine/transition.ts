@@ -141,10 +141,29 @@ function namedMonster(rng: RandomGenerator, level: number): string {
   return `${generateName(rng)} the ${best.name}`;
 }
 
-function nemesisRoundTask(nemesis: string, advantageMod3: number): SequenceTask {
-  if (advantageMod3 === 0) return sequenceTask(`Locked in grim correspondence with ${nemesis}`, 2);
-  if (advantageMod3 === 1) return sequenceTask(`${nemesis} appears to have the stronger paper trail`, 2);
-  return sequenceTask(`You appear to gain the procedural advantage over ${nemesis}`, 2);
+/**
+ * The venues a dispute climbs, in order, ending where every dispute ends.
+ *
+ * Indexed by round with a clamp rather than drawn, so it consumes no randomness and the cursor's
+ * replay arithmetic is untouched -- which is what lets this table have any length at all. A duel
+ * that runs long simply stops finding new rooms, which is both the true ending and the funny one.
+ */
+const NEMESIS_VENUES = ['correspondence', 'escalation', 'formal review', 'arbitration', 'a standing working group'] as const;
+
+/**
+ * One beat of the duel.
+ *
+ * This is the longest uninterrupted set-piece in the game and it fires at every act boundary, for up
+ * to thirteen consecutive rounds at act twelve -- drawn from three strings, so it repeated itself
+ * verbatim where a watcher is most likely to be looking. A bureaucratic duel's whole comedy is that
+ * it climbs venues while achieving nothing, and the round number was already to hand at both call
+ * sites, so saying which room this is costs no new state.
+ */
+function nemesisRoundTask(nemesis: string, advantageMod3: number, round = 0): SequenceTask {
+  const venue = NEMESIS_VENUES[Math.min(round, NEMESIS_VENUES.length - 1)]!;
+  if (advantageMod3 === 0) return sequenceTask(`The matter of ${nemesis} has reached ${venue}. Neither party has conceded`, 2);
+  if (advantageMod3 === 1) return sequenceTask(`At ${venue}, ${nemesis} appears to have the stronger paper trail`, 2);
+  return sequenceTask(`You appear to gain the procedural advantage over ${nemesis}, at ${venue}`, 2);
 }
 
 function replayNemesisRound(cursor: NemesisSequenceCursor, rng: RandomGenerator): { task?: SequenceTask; cursor?: NemesisSequenceCursor } {
@@ -152,7 +171,7 @@ function replayNemesisRound(cursor: NemesisSequenceCursor, rng: RandomGenerator)
   if (cursor.round > rng.random(cursor.rollLimit)) return {};
   const advantageMod3 = (cursor.advantageMod3 + 1 + rng.random(2)) % 3;
   return {
-    task: nemesisRoundTask(cursor.nemesis, advantageMod3),
+    task: nemesisRoundTask(cursor.nemesis, advantageMod3, cursor.round),
     cursor: {
       ...cursor,
       round: cursor.round + 1,
@@ -199,7 +218,7 @@ function finishInterplotCinematic(rng: RandomGenerator, act: number, level: numb
         ];
       }
       advantageMod3 = (advantageMod3 + 1 + rng.random(2)) % 3;
-      materializedRounds.push(nemesisRoundTask(nemesis, advantageMod3));
+      materializedRounds.push(nemesisRoundTask(nemesis, advantageMod3, round - 1));
     }
     const ending = [
       sequenceTask(`Victory! ${nemesis} is slain! Exhausted, you lose consciousness`, 3),

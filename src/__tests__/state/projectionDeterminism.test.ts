@@ -48,7 +48,7 @@ const PROJECTIONS: ReadonlyArray<readonly [string, () => unknown]> = [
   ['namedEras', () => namedEras(CASELOAD)],
   ['eraAt', () => eraAt(CASELOAD, 5)],
   ['tenorFor', () => tenorFor({ act: 14 })],
-  ['tenorLine', () => tenorLine({ act: 14, location: 'Ashfield' })],
+  ['tenorLine', () => tenorLine({ act: 14, location: 'Ashfield', venue: 'town' })],
   ['citationsFor', () => citationsFor({ caseload: CASELOAD, commendations: EMPTY_COMMENDATIONS, specimens: EMPTY_SPECIMEN_LOG })],
   ['venueBulletin', () => venueBulletin({ venue: 'town', location: 'Ashfield', act: 3 })],
   ['standingFor', () => standingFor(31)],
