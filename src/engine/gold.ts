@@ -11,10 +11,11 @@ import { MAX_PERSISTED_GOLD, MAX_PERSISTED_VALUE } from '../data/limits';
  * and a count of powers of ten carries the scale. Which is the joke: the number gets bigger because
  * zeros are appended, not because anything computed a bigger number. See ADR 0009.
  *
- * The arithmetic lives here rather than in `magnitude.ts` because gold has a constraint that
- * carrier does not: the mantissa must stay a whole number of coins. A player with `4.2 × 10^12`
- * gold has an exact integer of gold, and `Magnitude` normalises to `[1, 10)`, which would turn a
- * balance into a decimal.
+ * The arithmetic lives here rather than in a general mantissa-and-decade carrier, of the kind ADR
+ * 0008 deferred, because gold has a constraint such a carrier does not: the mantissa must stay a
+ * whole number of coins. A player with `4.2 × 10^12` gold has an exact integer of gold, and a
+ * carrier normalising to `[1, 10)` would turn a balance into a decimal. No such carrier is in the
+ * tree — this says why gold would not share one, not that it declined to use something that exists.
  */
 
 /** Gold carried as an exact figure plus the decades it has shed. */
