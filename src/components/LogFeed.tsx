@@ -1,4 +1,5 @@
 import { Scroll } from 'lucide-react';
+import { ALL_STATS } from '../data/traits';
 import { ENCOUNTER_SECONDS_PRECISION } from '../engine/loadoutFiling';
 import { MAX_WORLD_NOTICES } from '../data/limits';
 import React, { useId, useLayoutEffect, useRef, useState } from 'react';
@@ -11,6 +12,16 @@ import { venueBulletin } from '../state/venueBulletin';
 import { attendanceLabel, raidMuster } from '../state/raidMuster';
 import { ActLabel } from './GameNumber';
 import { ChatterFeed } from './ChatterFeed';
+
+/**
+ * A stat award, which the adapter renders with the same "Gained" verb as a piece of loot.
+ *
+ * Derived from the stat table rather than written out, so a stat added there cannot quietly start
+ * being filed as loot. Anchored at both ends because the tail is the whole discriminator: the
+ * quantity form is `Gained 6 HP Maxes` and the singular is `Gained an INT`, while a drop is
+ * `Gained a nit tail` — an unanchored match would claim any item whose name contained a stat.
+ */
+const STAT_GAIN = new RegExp(`^Gained (?:an? |[\\d,.e+]+ )(?:${ALL_STATS.join('|')})(?:s|es)?$`);
 
 function formatElapsed(totalSeconds: number): string {
   if (totalSeconds >= 1_000_000) return `${formatGameNumber(totalSeconds)}s`;
@@ -125,11 +136,24 @@ export const LogFeed: React.FC = () => {
   };
 
   const getLogTag = (entry: string) => {
-    if (entry.startsWith('Defeated monster and looted ') || entry.startsWith('Item ')) return <span className="log-tag tag-loot">Loot</span>;
-    if (entry.startsWith('Quest completed:')) return <span className="log-tag tag-quest">Quest</span>;
-    if (entry.startsWith('LEVEL UP!') || entry.startsWith('Act ')) return <span className="log-tag tag-levelup">Level</span>;
-    if (entry.startsWith('Negotiated purchase:')) return <span className="log-tag tag-market">Market</span>;
-    if (entry.startsWith('Defeated ') || entry.startsWith('Executing ')) return <span className="log-tag tag-combat">Combat</span>;
+    // Matched against what `describeGameEvent` emits, which is the only producer of these strings.
+    //
+    // The previous vocabulary was not: it looked for "LEVEL UP!", "Act ", "Item " and "Defeated
+    // monster and looted ", none of which any branch of the adapter can return. So the two
+    // categories a watcher most wants to pick out of a scrolling feed — the loot, which is the
+    // commonest line there is, and the level, which is the one genuinely exciting event — were
+    // tagged zero times in ordinary play, and gold, equipment, quest starts and act completions
+    // went untagged beside them. Three of the five colours were decorating nothing.
+    //
+    // Order is load-bearing twice over. Level and the stat lines are tested before the general
+    // `Gained ` fallback, or a promotion would be filed as loot; and `STAT_GAIN` is anchored at
+    // both ends so an item that merely happens to contain "CON" is not mistaken for a stat.
+    if (entry.startsWith('Gained a Level') || STAT_GAIN.test(entry)) return <span className="log-tag tag-levelup">Level</span>;
+    if (entry.startsWith('Completed ')) return <span className="log-tag tag-levelup">Act</span>;
+    if (entry.startsWith('Quest completed:') || entry.startsWith('Commencing quest:')) return <span className="log-tag tag-quest">Quest</span>;
+    if (entry.startsWith('Negotiated purchase:') || entry.startsWith('Got paid ')) return <span className="log-tag tag-market">Market</span>;
+    if (entry.startsWith('Executing ')) return <span className="log-tag tag-combat">Combat</span>;
+    if (entry.startsWith('Gained ')) return <span className="log-tag tag-loot">Loot</span>;
     return null;
   };
 
