@@ -8,7 +8,7 @@
     "build": "node scripts/generate-theme-boot.mjs && node scripts/generate-app-icons.mjs && tsc -b && NODE_ENV=production vite build && node scripts/generate-service-worker.mjs && node scripts/verify-production-build.mjs",
     "lint": "oxlint --deny-warnings",
     "lint:workflows": "node scripts/run-actionlint.mjs",
-    "test": "vitest run --coverage && node --test scripts/test-actionlint.mjs scripts/test-ci-gate-coverage.mjs scripts/test-production-notices.mjs scripts/test-production-csp.mjs scripts/test-editorial-contract.mjs scripts/test-theme-boot.mjs scripts/test-app-icons.mjs scripts/test-content-boundary.mjs scripts/test-css-tokens.mjs scripts/test-deploy-tooling-boundary.mjs scripts/test-markdown-links.mjs scripts/test-evergreen-comments.mjs scripts/test-coverage-exclusions.mjs scripts/verify-theme-dependency-boundary.mjs scripts/test-service-worker-message.mjs scripts/test-audit-signatures.mjs",
+    "test": "vitest run --coverage && node --test scripts/test-actionlint.mjs scripts/test-ci-gate-coverage.mjs scripts/test-production-notices.mjs scripts/test-production-csp.mjs scripts/test-editorial-contract.mjs scripts/test-theme-boot.mjs scripts/test-app-icons.mjs scripts/test-content-boundary.mjs scripts/test-css-tokens.mjs scripts/test-deploy-tooling-boundary.mjs scripts/test-markdown-links.mjs scripts/test-evergreen-comments.mjs scripts/test-coverage-exclusions.mjs scripts/verify-theme-dependency-boundary.mjs scripts/test-service-worker-message.mjs scripts/test-audit-signatures.mjs scripts/test-dist-digests.mjs",
     "test:goldens": "vitest run src/__tests__/goldens",
     "test:e2e": "playwright test --project=chromium --project=mobile-chrome",
     "test:pwa": "npm run build && playwright test --config playwright.pwa.config.ts",

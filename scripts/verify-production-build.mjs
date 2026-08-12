@@ -1,8 +1,10 @@
-import { access, readdir, readFile } from 'node:fs/promises';
+import { access, readdir, readFile, writeFile } from 'node:fs/promises';
+import { DIST_DIGEST_FILE, digestTree } from './dist-digests.mjs';
 import { verifyProductionCsp } from './production-csp.mjs';
 import { verifyProductionNotices } from './production-notices.mjs';
 
-const assetDirectory = new URL('../dist/assets/', import.meta.url);
+const distDirectory = new URL('../dist/', import.meta.url);
+const assetDirectory = new URL('assets/', distDirectory);
 const documentUrl = new URL('../dist/index.html', import.meta.url);
 const noticeUrl = new URL('../dist/THIRD_PARTY_NOTICES.txt', import.meta.url);
 const workerUrl = new URL('../dist/sw.js', import.meta.url);
@@ -94,5 +96,11 @@ const manifest = JSON.parse(await readFile(new URL('../package.json', import.met
 // the other is what makes a new dependency visible here at all.
 const productionDependencies = Object.keys(manifest.dependencies ?? {});
 verifyProductionNotices(notices, worker, productionDependencies);
+
+// Taken last, so it records the directory exactly as the checks above left it. The deploy job
+// re-checks it immediately before upload: everything between here and there -- the PWA suite, and
+// the browsers it downloads at run time -- can write to this directory, and an attestation over
+// bytes that moved afterwards would be true and useless.
+await writeFile(new URL(`../${DIST_DIGEST_FILE}`, import.meta.url), `${JSON.stringify(await digestTree(distDirectory.pathname), null, 2)}\n`);
 
 console.log(`Verified ${fontUrls.length} local font asset(s) across ${cssFiles.length} production CSS asset(s), within size budget.`);

@@ -60,6 +60,14 @@ jobs:
           retention-days: 90
           if-no-files-found: error
 
+      # What gets attested has to be what passed the checks, not merely what is on disk when the job
+      # ends. `npm run quality` builds dist/ and verifies it, then runs the PWA suite over that same
+      # directory with browsers fetched at run time from an unpinned download; `--ignore-scripts`
+      # covers install-time execution and says nothing about that. This re-reads the digests taken
+      # at verification time and refuses a directory that moved since.
+      - name: Re-verify the published directory
+        run: node scripts/verify-dist-unchanged.mjs
+
       - name: Setup Pages
         uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
 
