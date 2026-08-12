@@ -487,18 +487,31 @@ export function applyQuestReward(rng: RandomGenerator, character: CharacterSheet
  * them until one did — at which point the only way to check them was to duplicate the list, which is
  * the failure mode that guard exists to catch.
  *
- * Also the last vocabulary in the game inherited rather than rewritten: high-fantasy register in a
- * compute-industrial world. Worth knowing about separately from whether it names anything real.
+ * Rewritten into the register the rest of the world uses. This was the last vocabulary in the game
+ * inherited rather than written — high-fantasy words in a compute-industrial setting, and the ones
+ * a player reads most often, since they decorate the task caption on every kill. "a teenage
+ * Compliance Audit" was a collision that lands once; "a probationary Regulator" is the game's own
+ * joke.
+ *
+ * The lengths are fixed at 5/5/5/5/5/2 and must stay so: `prefix` indexes these positionally, by
+ * magnitude, and never draws from them. That is what makes an in-place swap free — no `rng.random`
+ * reads their length, so the generator lands in exactly the same place afterwards.
+ *
+ * `undernourished` stays at `sick[4]` because a recorded fixture says "Executing an undernourished
+ * Nomination...". It is the only one of the twenty-two that any golden names.
+ *
+ * Severity still climbs in the direction each group is read: `sick` and `young` index `5 - |m|`, so
+ * position 0 is the extreme; `big` and `special` index `|m| - 1`, so position 4 is.
  */
 export const MONSTER_PREFIXES = {
-  sick: ['dead', 'comatose', 'crippled', 'sick', 'undernourished'],
-  young: ['foetal', 'baby', 'preadolescent', 'teenage', 'underage'],
-  big: ['greater', 'massive', 'enormous', 'giant', 'titanic'],
-  special: ['veteran', 'cursed', 'warrior', 'undead', 'demon'],
+  sick: ['decommissioned', 'unfunded', 'deprecated', 'understaffed', 'undernourished'],
+  young: ['unscoped', 'draft', 'provisional', 'probationary', 'unbadged'],
+  big: ['escalated', 'consolidated', 'load-bearing', 'enterprise', 'company-wide'],
+  special: ['tenured', 'unbudgeted', 'weaponised', 'zombie', 'board-mandated'],
   /** The same five, joined without a space for a single-word creature. */
-  specialJoined: ['Battle-', 'cursed ', 'Were-', 'undead ', 'demon '],
+  specialJoined: ['Sub-', 'unbudgeted ', 'weaponised ', 'zombie ', 'board-mandated '],
   /** Applied whole rather than by magnitude, at the two ends of the range. */
-  remote: ['imaginary', 'messianic'],
+  remote: ['notional', 'messianic'],
 } as const;
 
 function generateMonsterTask(rng: RandomGenerator, character: CharacterSheet): { description: string; durationMs: number; loot: NonNullable<ProgressTask['loot']>; opponents: number; questTarget?: true } {
