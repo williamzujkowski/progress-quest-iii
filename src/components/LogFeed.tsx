@@ -171,9 +171,17 @@ export const LogFeed: React.FC = () => {
           <Scroll size={18} />
           <h2 id="log-heading">World Console</h2>
         </div>
-        {/* Named for what it silences, not for "mute", which the Navbar already uses for sound. */}
+        {/*
+          `btn btn-compact`, which is the class pair this card's header already styles. The first
+          version invented `btn-icon`, a class that does not exist -- so the control rendered
+          unstyled, inherited white text, and landed on the ProgrOS silver at 1.81:1 against a 4.5
+          floor. A class name is not a style; an unstyled button is a contrast failure wearing a
+          tidy attribute.
+
+          Named for what it silences rather than "mute", which the Navbar already uses for sound.
+        */}
         <button
-          className="btn-icon"
+          className="btn btn-compact"
           type="button"
           aria-pressed={announcementsMuted}
           onClick={() => {
