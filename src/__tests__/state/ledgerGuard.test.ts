@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { useGameStore } from '../../state/gameStore';
 import { createNewCharacter } from '../../engine/sim';
 import { readCaseload } from '../../state/caseload';
+import { readSpecimenLog } from '../../state/specimenLog';
 
 /**
  * A tab that has stopped saving stops writing the shared ledgers too.
@@ -58,7 +59,24 @@ describe('a paused tab does not overwrite what another tab filed', () => {
     });
     play(400);
 
-    expect(localStorage.getItem('progquest_caseload_v1'), 'nothing was written at all').toBeTruthy();
+    /*
+     * Compared against what the tab is holding, rather than merely asserted to exist.
+     *
+     * `toBeTruthy` on the raw string was the only statement this suite made about *what* the tick
+     * handler persists, and `"{...}"` is truthy whatever is inside it. A handler rewritten to file
+     * an empty ledger over the player's casework — the exact damage described at the top of this
+     * file, a tab rolling another tab's work backwards — passed it. So did deleting the specimen
+     * write outright, because nothing here read that key back at all.
+     */
+    const filed = readCaseload(localStorage);
+    const held = useGameStore.getState().caseload;
+    expect(filed.kinds, 'the tab filed a ledger that is not the one it is holding').toEqual(held.kinds);
+    expect(Object.values(filed.kinds).reduce((sum, count) => sum + count, 0), 'filed an empty ledger').toBeGreaterThan(0);
+
+    // The third ledger, which had no assertion of any kind. Its write can be deleted outright and
+    // every other test in this file stays green.
+    expect(readSpecimenLog(localStorage).specimens, 'the specimen log was never written')
+      .toEqual(useGameStore.getState().specimens.specimens);
   });
 
   it('keeps counting in memory while it is not writing', () => {

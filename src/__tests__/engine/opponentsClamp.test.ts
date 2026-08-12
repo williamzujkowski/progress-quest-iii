@@ -94,12 +94,33 @@ describe('the monster count stays inside what a sheet can hold', () => {
      * invariant — `targetLevel` drifts above the hero's own level, so 36 opponents at level 33 is
      * ordinary rather than a symptom.
      */
+    const highest = new Map<number, number>();
     for (const level of [1, 5, 33, 51, 200]) {
       const character = hostile(level);
       for (let attempt = 0; attempt < 200; attempt += 1) {
         const task = generateTaskDescription(new RandomGenerator(`ordinary-${level}-${attempt}`), character);
-        expect(task.opponents ?? 1, `level ${level}`).toBeLessThan(MAX_PERSISTED_VALUE);
+        const opponents = task.opponents ?? 1;
+        expect(opponents, `level ${level}`).toBeLessThan(MAX_PERSISTED_VALUE);
+        highest.set(level, Math.max(highest.get(level) ?? 0, opponents));
       }
     }
+
+    /*
+     * And the other end, which the ceiling alone cannot say.
+     *
+     * `MAX_PERSISTED_VALUE` is a billion; the counts here are one to sixty-seven. Bounding them
+     * only from above left seven orders of magnitude of room, and a clamp rewritten to
+     * `Math.min(10, ...)` passed every assertion above while changing kill duration for most of
+     * the tasks at level 200 — which is precisely the balance-change-wearing-a-bug-fix this test
+     * says it exists to refuse.
+     *
+     * Measured at these fixed seeds, so the figures are deterministic rather than sampled: the
+     * maximum is 1 at levels 1 and 5, 9 at 33, 14 at 51, and 67 at 200, with a median of 15 and
+     * 148 of 200 tasks above ten opponents at the top. Thirty-two is chosen to sit well clear of
+     * both — under the real maximum with room for ordinary drift, and above any clamp small
+     * enough to be felt in play.
+     */
+    expect(highest.get(200), 'ordinary counts should scale with level, not sit on a small clamp').toBeGreaterThan(32);
+    expect(highest.get(200)!).toBeGreaterThan(highest.get(5)!);
   });
 });

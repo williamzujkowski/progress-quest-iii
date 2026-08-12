@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MONSTERS, SPELLS } from '../../data/traits';
+import { MONSTERS } from '../../data/traits';
 import { indefinite, plural } from '../../engine/text';
 
 /**
@@ -44,11 +44,34 @@ describe('an article matches the word that follows it', () => {
      * the fix for it is to break the data.
      */
     const SOUNDS_LIKE_YOU = /^(uni|use|usu|uti|utu|euro|eula|ubiq)/;
-    for (const { name, item } of MONSTERS) {
-      const drop = `${name} ${item}`.toLowerCase();
-      if (!SOUNDS_LIKE_YOU.test(drop)) continue;
-      expect(indefinite(drop), drop).not.toMatch(/^an /);
-    }
+
+    /*
+     * Stated as a property of the table, because that is where the fix lives.
+     *
+     * The loop this replaces read `if (!SOUNDS_LIKE_YOU.test(drop)) continue;` and then asserted.
+     * Zero of the 232 monsters match — `Unicorn Hire` was the only one that ever did, and it was
+     * renamed away — so every iteration hit the `continue`, the test executed no assertions at all,
+     * and it would have passed with `indefinite` deleted outright while still reading in the report
+     * as a guarantee about consonantal U.
+     *
+     * Rewritten as an emptiness claim rather than a conditional sweep, it says the true thing and
+     * cannot go quiet: a drop noun that sounds like "you" must not be in the table, and adding one
+     * fails here by name rather than by silence.
+     */
+    const offenders = MONSTERS
+      .map(({ name, item }) => `${name} ${item}`.toLowerCase())
+      .filter((drop) => SOUNDS_LIKE_YOU.test(drop));
+    expect(offenders, 'the article rule is a letter test, so these have to be kept out of the table').toEqual([]);
+
+    /*
+     * And the limitation itself, recorded rather than assumed.
+     *
+     * `indefinite` still answers "an unicorn hire blood". That is deliberate — the note above says
+     * the name moved rather than the rule gaining an exception list nothing else needs — so pinning
+     * it is what keeps the guard above honest. If someone teaches the rule about /juː/, this fails,
+     * and the emptiness claim can then be relaxed on purpose instead of by accident.
+     */
+    expect(indefinite('unicorn hire blood')).toBe('an unicorn hire blood');
   });
 
   it('leaves the vowels that are genuinely vowels alone', () => {
@@ -68,7 +91,12 @@ describe('a drop noun can be counted', () => {
     }
   });
 
-  it('has spells to check, so the sweep is not empty', () => {
-    expect(SPELLS.length).toBeGreaterThan(20);
+  it('has drops to check, so the sweep is not empty', () => {
+    // Pointed at the table this file actually sweeps. It used to assert `SPELLS.length`, and there
+    // is no spell sweep here — `SPELLS` was imported for that line alone, so the guard against a
+    // vacuous sweep was itself measuring the wrong thing and could not have caught the empty one
+    // above it.
+    expect(MONSTERS.length).toBeGreaterThan(20);
+    expect(MONSTERS.every(({ item }) => item.length > 0)).toBe(true);
   });
 });
