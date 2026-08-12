@@ -12,6 +12,13 @@ import { advanceGame, type GameTransitionState } from '../../engine/transition';
  * written it. Six hours is long enough for the ratio to be stable; the figures below were re-taken
  * at these spans.
  *
+ * They also carry an explicit timeout, which is the third telling of this story. Alone these run in
+ * about 2.6 s; under a full-suite run on a loaded machine one of them took 5.56 s and tripped the
+ * 5 s default. Shortening the spans again is the wrong lever -- six hours is what makes the ratio
+ * stable, so trading it for headroom would weaken the measurement to protect the clock around it.
+ * A generous explicit timeout costs nothing when the test passes and is the idiom already used by
+ * `itemDetails.test.ts`.
+ *
  * `elapsedSeconds` accrued `Math.floor(progressDelta)` once per completed task, discarding every
  * task's fractional second — about 0.368 s each. The loss is systematic and one-directional, so it
  * compounds: measured over twelve simulated hours the clock read **0.9152 to 0.9161** of real task
@@ -38,7 +45,7 @@ const ratioOver = (seed: string, seconds: number) => {
 };
 
 describe('the adventure clock keeps up with the adventure', () => {
-  it('stays within a fraction of a percent of real task time', () => {
+  it('stays within a fraction of a percent of real task time', { timeout: 30_000 }, () => {
     // 0.9971 to 0.9994 when written, against 0.9152 to 0.9161 before. The bound is generous enough
     // to absorb a task-mix change and far tighter than the one-directional loss it replaces.
     for (const seed of ['clock-a', 'clock-b', 'clock-c']) {
@@ -48,7 +55,7 @@ describe('the adventure clock keeps up with the adventure', () => {
     }
   });
 
-  it('does not drift further the longer it runs, which is what made it compound', () => {
+  it('does not drift further the longer it runs, which is what made it compound', { timeout: 30_000 }, () => {
     // The old loss grew with task count, so a longer run was further behind. An unbiased error does
     // not: two spans agree, which is the property that actually matters.
     //
@@ -69,7 +76,7 @@ describe('the adventure clock keeps up with the adventure', () => {
     expect(Math.abs(eight - six), `six ${six}, eight ${eight}`).toBeLessThan(0.01);
   });
 
-  it('still stores whole seconds, which the checkpoint schema requires', () => {
+  it('still stores whole seconds, which the checkpoint schema requires', { timeout: 30_000 }, () => {
     // Carrying the remainder would be more exact and fails `boundedInteger` on the next write.
     let state: GameTransitionState = {
       character: createNewCharacter('Whole', 'Half Daemon', 'Robot Monk', new RandomGenerator('whole')),
