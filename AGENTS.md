@@ -14,7 +14,7 @@ Build and maintain a modern, fully-typed, responsive, and tested web application
 - **Modernization Goals:**
   1. **Strict TypeScript & Modular Engine:** Decouple core game simulation logic (`src/engine/`) from UI rendering (`src/components/`). Zero UI dependencies in engine code.
   2. **Modern Web UI & Design System:** Implement a responsive visual design system (supporting retro ProgrOS / Windows classic themes alongside sleek modern dark/light modes) with smooth animations and progress bars.
-  3. **Robust State & Save Management:** Implement safe local storage (IndexedDB/LocalStorage) with Zod schema validation, base64 save import/export compatibility, and multi-character roster support.
+  3. **Robust State & Save Management:** Implement safe local storage (`localStorage`) with Zod schema validation, base64 save import/export compatibility, and multi-character roster support.
   4. **Comprehensive Test Suite:** Unit-test all RPG math curves, stat rolling, inventory encumbrance, and quest generation logic via Vitest, backed by Playwright end-to-end browser tests.
   5. **Offline & PWA Support:** Web App Manifest and Service Worker support for offline play on mobile and desktop.
 
@@ -118,9 +118,9 @@ Always follow this layout — do not create duplicate or parallel module structu
 | :--- | :--- | :--- |
 | **Behavioural Goldens** | `src/__tests__/goldens/`, `src/__tests__/fixtures/goldens/` | Recorded output of the original web build, plus the harness that replays it against this engine. Not regenerable. |
 | **Game Engine** | `src/engine/` | Pure JS/TS game logic: tick clock, character stats, inventory, quest generator, equipment, monster encounters, EXP & leveling curves. Zero UI dependencies. |
-| **Game Data & Config** | `src/data/` | Data tables for races, classes, traits, spell names, equipment prefixes/suffixes, quest templates (`config.js` port). |
-| **State & Storage** | `src/state/` | Game loop state machine, character store, save game serialization/deserialization, LocalStorage/IndexedDB persistence. |
-| **UI Components** | `src/components/` | Modular UI components (`CharacterSheet`, `QuestLog`, `PlotBar`, `InventoryList`, `EquipmentView`, `Roster`, `CharacterCreator`). |
+| **Game Data & Config** | `src/data/` | Data tables for races, classes, traits, spell names, equipment prefixes/suffixes, and quest templates. The words are original; the ordering and numeric fields remain positionally derived from the retired legacy `config.js`. See `docs/content-provenance.md`. |
+| **State & Storage** | `src/state/` | Game loop state machine, character store, save game serialization/deserialization, `localStorage` persistence. |
+| **UI Components** | `src/components/` | Modular UI components (`CharacterSheet`, `QuestLog`, `InventoryView`, `ItemTooltip`, `SaveModal`, `CharacterCreatorModal`, `HeroBanner`, `LogFeed`). |
 | **Styles & Assets** | `src/App.css`, `src/index.css`, `public/` | Modern & retro CSS styles, ProgrOS theme, images, sound effects. |
 | **Tests** | `src/__tests__/`, `e2e/`, `e2e-pwa/` | Unit tests for engine math/RNG and state persistence integration in `src/__tests__/`; Playwright browser suites in `e2e/` and `e2e-pwa/`. |
 
