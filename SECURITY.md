@@ -35,6 +35,33 @@ first response within a couple of weeks.
   analysis convention in issue #132 for how that judgement is recorded.
 - Anything requiring an attacker to already control the user's browser or filesystem.
 
+## A boundary this project does not control
+
+The deployment shares an origin with everything else published from
+`williamzujkowski.github.io`. GitHub Pages user sites serve every project of an account from one
+host, and the browser's isolation is per origin, not per path — so `localStorage`, `CacheStorage`,
+and the `'self'` in this project's Content Security Policy all cover the whole account, not
+`/progress-quest-iii/`.
+
+Two consequences are worth stating plainly, because the rest of this file reads tighter than they
+are:
+
+- **`connect-src 'self'` is broader than it looks.** It permits the origin, not the subpath. The
+  claim that nothing is sent anywhere rests on this being a static host with no endpoint to send
+  to, rather than on the policy forbidding it.
+- **Script execution anywhere on that origin reaches this app's data.** Anything with script on a
+  sibling project — or on the blog served from `/` — can read and write every `progquest_*` key
+  directly, and can write into the shell cache. Because precached assets are served cache-first, an
+  entry poisoned that way is served in preference to the network until a new build id ships and
+  `activate` rotates the cache. The cache name is derivable: it is the build id, printed in the
+  served `sw.js`.
+
+This is not a defect in the code here and there is no fix inside this repository; a custom domain or
+a project-dedicated origin is what removes it. It is recorded because the alternative is a threat
+model that quietly assumes an isolation the deployment does not provide. Reports that depend on
+already having script on that origin fall under the exclusion above — but the *consequences* of
+such a foothold are worse than the usual same-origin case, and that is the part worth knowing.
+
 ## Supported versions
 
 Only the currently deployed `main` is supported. There are no released versions to backport to.
