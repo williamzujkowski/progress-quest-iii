@@ -1,5 +1,6 @@
 import type { z } from './zod';
 import { MAX_STORED_PAYLOAD_LENGTH } from '../data/limits';
+import { carriesProtoKey } from './schemas';
 
 /**
  * The read and write every side ledger shares.
@@ -46,7 +47,11 @@ export function readLedger<Schema extends z.ZodTypeAny>(
   if (raw.length > MAX_STORED_PAYLOAD_LENGTH) return empty;
 
   try {
-    const parsed = schema.safeParse(JSON.parse(raw));
+    const decoded: unknown = JSON.parse(raw);
+    // Fails closed to empty like every other unreadable ledger here, rather than being accepted
+    // with the key quietly removed.
+    if (carriesProtoKey(decoded)) return empty;
+    const parsed = schema.safeParse(decoded);
     return parsed.success ? normalise(parsed.data) : empty;
   } catch {
     return empty;

@@ -19,6 +19,33 @@ const readableText = <T extends z.ZodType<string>>(schema: T) =>
     message: 'Text may not contain control or bidirectional formatting characters.',
   });
 
+/**
+ * The one unknown key `.strict()` accepts, refused here instead.
+ *
+ * `docs/contracts/state-and-save.md` says every object boundary is strict, so unknown fields "fail
+ * closed instead of being silently discarded". That holds for every key but this one. Zod skips
+ * `__proto__` before its unrecognised-key collection — `for (const key in input) { if (key ===
+ * "__proto__") continue; ... }` — so `.strict()` never sees it, and a payload carrying it is
+ * accepted with the key silently dropped. Measured: an ordinary unknown key is rejected; a
+ * `__proto__` key parses `ok`.
+ *
+ * No pollution follows today, because zod builds a fresh object rather than assigning into one. The
+ * problem is that the contract's guarantee rests on that internal detail rather than on the check
+ * the contract describes, and the difference between "refused" and "silently dropped" is exactly the
+ * distinction `readableText` above exists to preserve. A zod refactor toward `Object.keys` plus a
+ * spread would change the answer without failing any gate here.
+ *
+ * Applied at the trust boundaries rather than woven into every object: this is a property of
+ * attacker-supplied bytes, and there are four places those enter — an imported `.pqw`, the roster,
+ * the active checkpoint, and the side ledgers. Recursive because the key is legal JSON at any depth.
+ */
+export function carriesProtoKey(value: unknown): boolean {
+  if (Array.isArray(value)) return value.some((entry) => carriesProtoKey(entry));
+  if (typeof value !== 'object' || value === null) return false;
+  if (Object.hasOwn(value, '__proto__')) return true;
+  return Object.values(value).some((entry) => carriesProtoKey(entry));
+}
+
 const shortText = readableText(z.string().max(200));
 const description = readableText(z.string().max(MAX_PERSISTED_DESCRIPTION_LENGTH));
 const boundedInteger = z.number().int().min(0).max(MAX_PERSISTED_VALUE);

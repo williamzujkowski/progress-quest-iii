@@ -1,7 +1,7 @@
 import { z } from './zod';
 import type { CharacterSheet } from '../engine/types';
 import { isDOMExceptionNamed } from './diagnostics';
-import { characterNameSchema, characterSheetSchema, type PersistedCharacterSheet } from './schemas';
+import { carriesProtoKey, characterNameSchema, characterSheetSchema, type PersistedCharacterSheet } from './schemas';
 
 const ROSTER_STORAGE_KEY = 'progquest_roster_v1';
 const ROSTER_RECENCY_STORAGE_KEY = 'progquest_roster_recent_v1';
@@ -95,6 +95,11 @@ export function decodePQWSave(pqwString: string): SaveResult<PersistedCharacterS
   } catch {
     return saveFailure('invalid_json', 'Save file contains invalid JSON data.');
   }
+  // Refused rather than dropped, for the reason `readableText` gives: a boundary that silently
+  // edits what the player handed it and then persists the edit is the shape of a data loss.
+  if (carriesProtoKey(parsed)) {
+    return saveFailure('invalid_schema', 'Save data contains an unsupported field name.');
+  }
 
   const result = characterSheetSchema.safeParse(parsed);
   if (!result.success) {
@@ -182,7 +187,12 @@ function readRoster(storage: Storage): SaveResult<RosterRead> {
       const check = characterSheetSchema.safeParse(value);
       // A key that disagrees with the name inside it is corruption of the same kind, and is kept
       // for the same reason — this build cannot use the entry, and cannot prove it is worthless.
-      if (!check.success || key !== check.data.Traits.Name) {
+      //
+      // The `__proto__` check applies to the sheet, never to the key. At this level the key is a
+      // character *name*, and a hero called `__proto__` is a legitimate save that round-trips as an
+      // ordinary own key — `emptyRoster()` is `Object.create(null)` precisely so it can. Inside the
+      // sheet the same string is an unknown field, which is the thing `.strict()` fails to refuse.
+      if (!check.success || key !== check.data.Traits.Name || carriesProtoKey(value)) {
         unreadable[key] = value;
         continue;
       }

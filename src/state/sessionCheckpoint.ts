@@ -1,6 +1,6 @@
 import { DEFAULT_CHECKPOINT_INTERVAL_MS, MAX_PENDING_ELAPSED_MS, MAX_STORED_PAYLOAD_LENGTH } from '../data/limits';
 import { useGameStore } from './gameStore';
-import { activeCheckpointV1Schema, type ActiveCheckpointV1 } from './schemas';
+import { activeCheckpointV1Schema, carriesProtoKey, type ActiveCheckpointV1 } from './schemas';
 import { diagnostics, isDOMExceptionNamed } from './diagnostics';
 import { loadMostRecentRosterCharacter } from './saveManager';
 
@@ -93,6 +93,9 @@ function parseCheckpoint(raw: string): CheckpointResult<ActiveCheckpointV1> & { 
     parsed = JSON.parse(raw);
   } catch {
     return failure('storage_corrupt', 'The saved session is unreadable. Automatic checkpoints are paused.');
+  }
+  if (carriesProtoKey(parsed)) {
+    return failure('storage_corrupt', 'The saved session contains an unsupported field name. Automatic checkpoints are paused.');
   }
   if (typeof parsed === 'object' && parsed !== null && 'schemaVersion' in parsed && parsed.schemaVersion !== 1) {
     return { ...failure('storage_corrupt', 'This saved session uses an unsupported version. Automatic checkpoints are paused.'), unsupported: true };
