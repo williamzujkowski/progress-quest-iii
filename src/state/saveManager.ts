@@ -143,6 +143,17 @@ interface RosterRead {
  * the app could not clear the thing that was blocking it — so no character could ever be saved
  * again, with no in-app way back.
  *
+ * The entry cap preserved that failure verbatim after the per-entry case was fixed: it counted
+ * unreadable entries toward the limit and refused the whole map on the hundred-and-first key. So a
+ * crafted value of about four kilobytes — well under both size guards, so neither fires — hid every
+ * real character and blocked Delete, the only control that could have cleared it.
+ *
+ * The cap now counts characters rather than keys. An unreadable entry is not a character; it is
+ * precisely the thing the player needs to remove, and letting it fill the count is what turned junk
+ * into a wedge. A roster holding more than `MAX_ROSTER_ENTRIES` real characters is still refused
+ * whole, unchanged, because that is a decision about how large a roster this build will read and
+ * not a question of recovering from a bad one.
+ *
  * `readLedger` in `ledgerStorage.ts` already faces this and fails closed to empty. A roster is a
  * map of independent records; one corrupt value is not evidence about the others.
  */
@@ -168,17 +179,19 @@ function readRoster(storage: Storage): SaveResult<RosterRead> {
     const validRoster = emptyRoster();
     const unreadable: Record<string, unknown> = emptyRoster();
     for (const [key, value] of Object.entries(parsed)) {
-      // Counts both, because the cap bounds how much this has to hold, and an unreadable entry
-      // occupies a slot just as surely as a readable one.
-      if (Object.keys(validRoster).length + Object.keys(unreadable).length >= MAX_ROSTER_ENTRIES) {
-        return saveFailure('storage_corrupt', 'The saved roster has too many characters. Nothing was changed.');
-      }
       const check = characterSheetSchema.safeParse(value);
       // A key that disagrees with the name inside it is corruption of the same kind, and is kept
       // for the same reason — this build cannot use the entry, and cannot prove it is worthless.
       if (!check.success || key !== check.data.Traits.Name) {
         unreadable[key] = value;
         continue;
+      }
+      // The cap counts characters, not keys. An unreadable entry is not a character — it is the
+      // thing the player needs to delete — so letting it fill the count is what turned junk into a
+      // wedge. Real characters past the cap are still refused wholesale, which is the existing
+      // decision and is unchanged.
+      if (Object.keys(validRoster).length >= MAX_ROSTER_ENTRIES) {
+        return saveFailure('storage_corrupt', 'The saved roster has too many characters. Nothing was changed.');
       }
       validRoster[key] = check.data;
     }
