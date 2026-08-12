@@ -50,7 +50,7 @@ export const CharacterCreatorModal: React.FC<CharacterCreatorModalProps> = ({ is
 
   if (!isOpen) return null;
 
-  const totalStats = PRIME_STATS.reduce((sum, stat) => sum + (stats[stat] || 0), 0);
+  const totalStats = PRIME_STATS.reduce((sum, stat) => sum + stats[stat], 0);
 
   const getTotalTone = (total: number) => {
     if (total >= 81) return 'badge-danger';
