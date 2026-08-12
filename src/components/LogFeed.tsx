@@ -1,4 +1,4 @@
-import { Scroll } from 'lucide-react';
+import { Scroll, Volume2, VolumeX } from 'lucide-react';
 import { ALL_STATS } from '../data/traits';
 import { ENCOUNTER_SECONDS_PRECISION } from '../engine/loadoutFiling';
 import { MAX_WORLD_NOTICES } from '../data/limits';
@@ -12,6 +12,7 @@ import { venueBulletin } from '../state/venueBulletin';
 import { attendanceLabel, raidMuster } from '../state/raidMuster';
 import { ActLabel } from './GameNumber';
 import { ChatterFeed } from './ChatterFeed';
+import { readAnnouncementsMuted, writeAnnouncementsMuted } from '../state/announcements';
 
 /**
  * A stat award, which the adapter renders with the same "Gained" verb as a piece of loot.
@@ -109,6 +110,12 @@ export const LogFeed: React.FC = () => {
     pendingTabFocus.current = null;
   }, [activeView]);
 
+  /*
+   * Read once on mount rather than on every render, so a storage failure cannot make the control
+   * flicker, and so the panel keeps working when storage is unavailable entirely.
+   */
+  const [announcementsMuted, setAnnouncementsMuted] = useState(readAnnouncementsMuted);
+
   const jumpToLatestActivity = () => {
     if (feedRef.current) {
       feedRef.current.scrollTop = feedRef.current.scrollHeight;
@@ -164,6 +171,20 @@ export const LogFeed: React.FC = () => {
           <Scroll size={18} />
           <h2 id="log-heading">World Console</h2>
         </div>
+        {/* Named for what it silences, not for "mute", which the Navbar already uses for sound. */}
+        <button
+          className="btn-icon"
+          type="button"
+          aria-pressed={announcementsMuted}
+          onClick={() => {
+            const next = !announcementsMuted;
+            setAnnouncementsMuted(next);
+            writeAnnouncementsMuted(next);
+          }}
+        >
+          {announcementsMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+          {announcementsMuted ? 'Announcements off' : 'Announcements on'}
+        </button>
       </div>
 
       {/*
@@ -177,9 +198,26 @@ export const LogFeed: React.FC = () => {
         The right announcement already exists: `describeDigest` lands the one-line summary when the
         drain finishes, and it was being read out *after* the sixty lines it summarises. Suppressing
         until then makes the digest the announcement rather than the postscript.
+
+        Silent too when the listener has muted it, which is the control this panel was missing.
+        Announcing every three seconds forever with no off switch left a screen-reader user one
+        remedy: silence their whole reader, losing everything else they were doing. That is what
+        made it hostile rather than merely talkative.
+
+        Deliberately *not* gated on which tab is selected. That was tried -- it looks like the
+        obvious fix, since the visible Chatter panel is `aria-live="off"` and this one speaks while
+        hidden -- and it is wrong here for a specific reason: Chatter is the default view, so gating
+        on selection silences this region for everyone by default, including `describeDigest`, the
+        one line a returning listener actually needs. This panel is the authoritative record and the
+        fictional one is deliberately quiet; the answer to "it never stops" is a stop button, not
+        making the real channel conditional on looking at it.
+
+        The region stays mounted and keeps its label when muted, because removing and re-adding a
+        live region makes announcements unreliable across readers -- it is the content that goes
+        quiet, the same idiom the drain suppression above already uses.
       */}
       <div className="sr-only" role="status" aria-label="Latest activity" aria-live="polite" aria-atomic="true">
-        {latest?.id === initialLatestId.current || pendingElapsedMs > 0 ? '' : latest?.message}
+        {announcementsMuted || latest?.id === initialLatestId.current || pendingElapsedMs > 0 ? '' : latest?.message}
       </div>
 
       <section className="world-context" role="region" aria-label="Current world context">

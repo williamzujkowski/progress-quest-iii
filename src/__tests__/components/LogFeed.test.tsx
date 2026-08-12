@@ -223,4 +223,42 @@ describe('Activity Log accessibility', () => {
     expect(spokenContext?.textContent).toContain('Prologue');
     expect(spokenContext?.textContent).not.toContain('Act 0');
   });
+  it('gives the listener a stop button, and remembers it', () => {
+    /*
+     * The control the panel was missing. It announced its newest line roughly every three seconds,
+     * forever, and a screen-reader user's only remedy was to silence their whole reader -- the
+     * browser and the reader both offer a global mute and nothing narrower, because only the app
+     * can decide what lands in its own region.
+     *
+     * Asserted on the region's *content*, not on its presence: muting empties the region and leaves
+     * it mounted and labelled, since removing and re-adding a live region makes announcements
+     * unreliable across readers.
+     */
+    localStorage.removeItem('progquest_announcements_muted_v1');
+    const log = [{ id: 1, message: 'Event 2' }, { id: 0, message: 'Event 1' }];
+    useGameStore.setState({ isPaused: true, log, nextActivityId: 2 });
+    render(<LogFeed />);
+
+    act(() => useGameStore.setState({ log: [{ id: 2, message: 'Event 3' }, ...log], nextActivityId: 3 }));
+    expect(screen.getByRole('status', { name: 'Latest activity' }).textContent).toBe('Event 3');
+
+    const stop = screen.getByRole('button', { name: /Announcements/ });
+    expect(stop.getAttribute('aria-pressed')).toBe('false');
+    fireEvent.click(stop);
+
+    expect(stop.getAttribute('aria-pressed')).toBe('true');
+    // Still there, still named, and now saying nothing.
+    expect(screen.getByRole('status', { name: 'Latest activity' })).not.toBeNull();
+    expect(screen.getByRole('status', { name: 'Latest activity' }).textContent).toBe('');
+
+    act(() => useGameStore.setState({ log: [{ id: 3, message: 'Event 4' }, ...log], nextActivityId: 4 }));
+    expect(screen.getByRole('status', { name: 'Latest activity' }).textContent, 'a muted region spoke').toBe('');
+
+    // And the preference outlives the panel, or it is a button that forgets every reload.
+    cleanup();
+    render(<LogFeed />);
+    expect(screen.getByRole('button', { name: /Announcements/ }).getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByRole('status', { name: 'Latest activity' }).textContent).toBe('');
+    localStorage.removeItem('progquest_announcements_muted_v1');
+  });
 });
