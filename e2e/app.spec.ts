@@ -680,17 +680,29 @@ test.describe('Progress Quest III terminal dashboard', () => {
     await appReady(page);
     await page.evaluate(async () => {
       const { useGameStore } = await import('/src/state/gameStore.ts');
+      const { describeGameEvent } = await import('/src/state/gameEventAdapter.ts');
+      // Built by the adapter, not written by hand.
+      //
+      // This step used to inject strings chosen to match the classifier — "LEVEL UP!", "Act 2
+      // Unlocked!", "Defeated monster and looted a bent fork." — none of which any branch of
+      // `describeGameEvent` can return. So it went green against a vocabulary the engine had
+      // stopped producing, and the two most common tags in the panel were dead in real play with
+      // nothing red. Driving the adapter is what makes this test able to notice that again.
       const messages = [
         'Activity 50',
         'Resting at the inn.',
-        'Welcome to Progress Quest III! Krg sets out on an adventure.',
-        'Act 2 Unlocked!',
-        'LEVEL UP! Advanced to level 2!',
-        'Quest completed: Find the lost stapler',
-        'Defeated monster and looted a bent fork.',
-        'Got paid 10 gold pieces',
-        'Negotiated purchase: Equipped Tax Hat in Helm slot!',
-        'Executing a passing pigeon...',
+        ...([
+          { type: 'act_completed', act: 2 },
+          { type: 'level_gained', level: 2 },
+          { type: 'stat_gained', stat: 'HP Max', amount: 6 },
+          { type: 'quest_completed', description: 'Find the lost stapler' },
+          { type: 'quest_started', description: 'Locate the missing lanyard' },
+          { type: 'item_gained', name: 'bent fork', quantity: 1 },
+          { type: 'equipment_gained', name: 'Tax Hat', slot: 'Helm' },
+          { type: 'gold_received', amount: 10 },
+          { type: 'equipment_purchased', name: 'Tax Hat', slot: 'Helm' },
+          { type: 'task_started', task: { description: 'Executing a passing pigeon...' } },
+        ] as Parameters<typeof describeGameEvent>[0][]).map(describeGameEvent),
       ];
       useGameStore.setState({
         isPaused: true,
@@ -704,12 +716,15 @@ test.describe('Progress Quest III terminal dashboard', () => {
     const tagFor = (message: string) => log.locator('.log-entry', { hasText: message }).locator('.log-tag');
     await expect(tagFor('Activity 50')).toHaveCount(0);
     await expect(tagFor('Resting at the inn.')).toHaveCount(0);
-    await expect(tagFor('Welcome to Progress Quest III! Krg sets out on an adventure.')).toHaveCount(0);
-    await expect(tagFor('Act 2 Unlocked!')).toHaveText('Level');
-    await expect(tagFor('LEVEL UP! Advanced to level 2!')).toHaveText('Level');
+    await expect(tagFor('Completed Act 2')).toHaveText('Act');
+    await expect(tagFor('Gained a Level')).toHaveText('Level');
+    // The stat award shares its verb with a drop, and is the reason the loot fallback is tested last.
+    await expect(tagFor('Gained 6 HP Maxes')).toHaveText('Level');
     await expect(tagFor('Quest completed: Find the lost stapler')).toHaveText('Quest');
-    await expect(tagFor('Defeated monster and looted a bent fork.')).toHaveText('Loot');
-    await expect(tagFor('Got paid 10 gold pieces')).toHaveCount(0);
+    await expect(tagFor('Commencing quest: Locate the missing lanyard')).toHaveText('Quest');
+    await expect(tagFor('Gained a bent fork')).toHaveText('Loot');
+    await expect(tagFor('Gained Tax Hat for the Helm slot')).toHaveText('Loot');
+    await expect(tagFor('Got paid 10 gold pieces')).toHaveText('Market');
     await expect(tagFor('Negotiated purchase: Equipped Tax Hat in Helm slot!')).toHaveText('Market');
     await expect(tagFor('Executing a passing pigeon...')).toHaveText('Combat');
   });
