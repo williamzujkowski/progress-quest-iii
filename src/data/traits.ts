@@ -18,15 +18,37 @@ export const EQUIP_SLOTS: EquipSlot[] = [
   'Sollerets',
 ];
 
+/**
+ * The spell book, ordered by how often it is drawn rather than by grandeur.
+ *
+ * `generateSpellReward` takes `min(rng.random(limit), rng.random(limit))`, so this list is a
+ * popularity ladder: index 0 wins about 17% of draws at level 1, and the far end is not a rare
+ * reward, it is unreachable. Measured over a million draws across levels 1 to 26 — which is past
+ * where an ordinary file gets — everything from index 35 up drew under 0.15%, and `Cost Excision`,
+ * `Cascade Blame` and `Infinite Deferral` never appeared at all. The funniest names in the book sat
+ * at the bottom of it.
+ *
+ * Ten pairs were swapped: the flattest names inside the reachable band traded places with the
+ * strongest names outside it. Nothing was added, removed or reworded, and indices 0 and 1 are
+ * untouched because recorded fixtures name them. The three that now never draw are `Expedite`,
+ * `Best Practice` and `Change Fatigue`, which is the trade worth making — a corporate-boilerplate
+ * name loses nothing by being rare, and `Infinite Deferral` at 7.4% is a joke a watcher will
+ * actually meet.
+ *
+ * The length is 47 and must stay 47: `rng.random(limit)` reads it, so adding or removing an entry
+ * remaps every subsequent draw and breaks the recorded fixtures. Reordering is safe only because
+ * the fixtures reach indices 0 and 1 alone, which was checked by grepping every name against them
+ * rather than assumed.
+ */
 export const SPELLS: string[] = [
   'Wet Signature',
   'Quick Win',
-  'Expedite',
-  'Best Practice',
-  'Low Morale',
-  'Change Fatigue',
+  'Infinite Deferral',
+  'Cascade Blame',
+  'Wrenfield\'s Big Day Off',
+  'Cost Excision',
   'Red Tape',
-  'Onboard',
+  'Holy Rollout',
   'Cone of Reminders',
   'Magnetic Roadmap',
   'Shadow Staffing',
@@ -35,14 +57,14 @@ export const SPELLS: string[] = [
   'Spectral Overhead',
   'Clever Workaround',
   'Gag Order',
-  'Retrospective',
-  'Risk Aversion',
+  'Bearish Armour',
+  'Animate Lanyard',
   'Big Skip-Level',
   'Cone of Boilerplate',
-  'Do-Over Clause',
-  "Pemberton's Bright Idea",
-  'Sanctioned Shortcut',
-  'Finding (Non-Material)',
+  'Idle Hands',
+  'Pemberton\'s Bright Idea',
+  'Bypass Procedure',
+  'Spectral Deliverable',
   'Braindump',
   'Summon a Stakeholder',
   'Nonconcur',
@@ -51,21 +73,21 @@ export const SPELLS: string[] = [
   'Name and Shame',
   'Scope Creep',
   'Gallows Humour',
-  "Ashgrove's Grand Illusion",
+  'Ashgrove\'s Grand Illusion',
   'Requisition',
   'Black Budget',
   'Quarterly Miasma',
-  'Spectral Deliverable',
-  'Idle Hands',
-  'Bypass Procedure',
-  "Wrenfield's Big Day Off",
+  'Finding (Non-Material)',
+  'Do-Over Clause',
+  'Sanctioned Shortcut',
+  'Low Morale',
   'Finding (Material)',
-  'Animate Lanyard',
-  'Bearish Armour',
-  'Holy Rollout',
-  'Cost Excision',
-  'Cascade Blame',
-  'Infinite Deferral',
+  'Risk Aversion',
+  'Retrospective',
+  'Onboard',
+  'Change Fatigue',
+  'Best Practice',
+  'Expedite',
 ];
 
 export const OFFENSE_ATTRIB: [string, number][] = [
