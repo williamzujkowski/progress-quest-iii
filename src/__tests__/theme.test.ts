@@ -42,7 +42,7 @@ describe('theme contract', () => {
     expect(variables['--terminal-background']).toMatch(/^oklch\(/);
     expect(variables['--terminal-foreground']).toMatch(/^oklch\(/);
     expect(variables['--terminal-bright-blue']).toMatch(/^oklch\(/);
-    expect(variables['--terminal-accent']).toBe(remarqueDark.accent.oklchCss);
+    expect(variables['--terminal-accent']).toBe(remarqueDark.accent?.oklchCss);
     expect(Object.keys(variables)).toHaveLength(21);
   });
 

@@ -71,7 +71,8 @@
   font-size: 0.7rem;
   font-weight: 700;
   margin-right: 0.5rem;
-  font-variant-caps: all-small-caps;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-caps);
 }
 
 .tag-loot { background: var(--panel-bg); color: var(--accent-success); }
@@ -172,8 +173,8 @@
   font-size: 0.65rem;
   font-weight: 700;
   line-height: 1.2;
-  letter-spacing: 0.12em;
-  font-variant-caps: all-small-caps;
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
 }
 
 .brand-tagline a {
