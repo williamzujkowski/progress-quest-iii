@@ -36,3 +36,8 @@ updates:
       day: monday
       time: '06:23'
     open-pull-requests-limit: 5
+    groups:
+      # init and analyze must run the same CodeQL release. Bumped in separate PRs (#861,
+      # #864), each PR paired a new half with an old one, and both Analyze jobs failed.
+      codeql-action:
+        patterns: ['github/codeql-action/*']
