@@ -363,7 +363,6 @@ export const LogFeed: React.FC = () => {
           id={chatterTabId}
           type="button"
           role="tab"
-          aria-label="Chatter"
           aria-describedby={chatterTruthId}
           aria-selected={activeView === 'chatter'}
           aria-controls={chatterPanelId}
@@ -372,14 +371,13 @@ export const LogFeed: React.FC = () => {
           onKeyDown={(event) => onTabKeyDown(event, 'chatter')}
         >
           <span>Chatter</span>
-          <small id={chatterTruthId}>Fictional · automated · zero online</small>
+          <small id={chatterTruthId} aria-hidden="true">Fictional · automated · zero online</small>
         </button>
         <button
           ref={activityTabRef}
           id={activityTabId}
           type="button"
           role="tab"
-          aria-label="Activity"
           aria-describedby={activityTruthId}
           aria-selected={activeView === 'activity'}
           aria-controls={activityPanelId}
@@ -388,7 +386,7 @@ export const LogFeed: React.FC = () => {
           onKeyDown={(event) => onTabKeyDown(event, 'activity')}
         >
           <span>Activity</span>
-          <small id={activityTruthId}>Authoritative record</small>
+          <small id={activityTruthId} aria-hidden="true">Authoritative record</small>
         </button>
       </div>
 
