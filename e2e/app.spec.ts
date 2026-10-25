@@ -1851,7 +1851,8 @@ test.describe('Progress Quest III terminal dashboard', () => {
     // The document is about the incoming character...
     expect(text).toContain('Beta, Double Tenant Robot Monk');
     // ...and cites the outgoing one, by name, under its own heading.
-    expect(text).toContain('Precedent');
+    // innerText reflects `text-transform: uppercase` on the heading, so match the word, not its case.
+    expect(text).toMatch(/precedent/i);
     // Level 22, not the level Alpha was at its last explicit save. That difference is the whole of
     // `preserveOutgoingCharacter`: without it the switch banks nothing and this reads the older
     // sheet. An earlier version of this test asserted only the name, and a mutation deleting that
