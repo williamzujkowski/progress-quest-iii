@@ -23,7 +23,9 @@ import { z } from '../../state/zod';
  * `Object.keys` plus a spread would have changed the answer without failing any gate.
  *
  * The first case below pins the dependency's behaviour so the reason this guard exists stays visible
- * if zod ever fixes it upstream. The rest are the boundaries.
+ * if zod ever fixes it upstream. zod 4.6 did: `.strict()` now refuses `__proto__` like any other
+ * unknown key. The boundary guards stay, now belt-and-braces, so the contract still rests on this
+ * repo's own check rather than on a dependency's internals. The rest are the boundaries.
  */
 
 const PROTO = '"__proto__":{"evil":1}';
@@ -34,13 +36,14 @@ const hero = () => createNewCharacter('Prototype', 'Half Daemon', 'Robot Monk', 
 const hero2 = () => createNewCharacter('Clean', 'Half Daemon', 'Robot Monk', new RandomGenerator('clean'));
 
 describe('a __proto__ key is refused, not dropped', () => {
-  it('is still the one key zod strict mode lets through', () => {
-    // Recorded rather than assumed. If this starts failing, zod has fixed it and the guards below
-    // become belt-and-braces rather than the only thing standing there.
+  it('is refused by zod strict mode too, since zod 4.6', () => {
+    // Recorded rather than assumed. Until zod 4.6 this was the one key `.strict()` let through;
+    // it failed here when zod fixed it, as this case was written to. If it ever passes `true`
+    // again, the guards below are once more the only thing standing there.
     const strict = z.object({ a: z.string() }).strict();
 
     expect(strict.safeParse(JSON.parse('{"a":"x","zzz":1}')).success, 'an ordinary unknown key').toBe(false);
-    expect(strict.safeParse(JSON.parse(`{"a":"x",${PROTO}}`)).success, '__proto__').toBe(true);
+    expect(strict.safeParse(JSON.parse(`{"a":"x",${PROTO}}`)).success, '__proto__').toBe(false);
     // And it really is an own enumerable key on the parsed object, not something JSON.parse discards.
     expect(Object.keys(JSON.parse(`{"a":"x",${PROTO}}`))).toContain('__proto__');
   });
@@ -56,8 +59,8 @@ describe('a __proto__ key is refused, not dropped', () => {
   it('refuses an imported save that carries it', () => {
     const sheet = JSON.parse(JSON.stringify(hero())) as Record<string, unknown>;
     const raw = JSON.stringify(sheet).replace(/^\{/, `{${PROTO},`);
-    // The schema accepts it, which is the whole problem — the refusal has to come from the boundary.
-    expect(characterSheetSchema.safeParse(JSON.parse(raw)).success).toBe(true);
+    // zod 4.6+ refuses it at the schema too; the boundary below must refuse it regardless.
+    expect(characterSheetSchema.safeParse(JSON.parse(raw)).success).toBe(false);
 
     const encoded = btoa(String.fromCharCode(...new TextEncoder().encode(raw)));
 
@@ -121,8 +124,8 @@ describe('a __proto__ key is refused, not dropped', () => {
     expect(activeCheckpointV1Schema.safeParse(JSON.parse(valid)).success, 'baseline must be valid').toBe(true);
 
     const tampered = valid.replace(/^\{/, `{${PROTO},`);
-    // The schema still accepts it, which is exactly the hole: the refusal must come from the boundary.
-    expect(activeCheckpointV1Schema.safeParse(JSON.parse(tampered)).success).toBe(true);
+    // zod 4.6+ refuses it at the schema too; the boundary below must refuse it regardless.
+    expect(activeCheckpointV1Schema.safeParse(JSON.parse(tampered)).success).toBe(false);
     localStorage.setItem('progquest_active_session_v1', tampered);
 
     const loaded = loadActiveCheckpoint(localStorage);
