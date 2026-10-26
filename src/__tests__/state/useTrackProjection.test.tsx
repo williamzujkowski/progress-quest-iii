@@ -1,17 +1,19 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, render } from '@testing-library/react';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useGameStore } from '../../state/gameStore';
 import { useTrackProjection } from '../../state/useTrackProjection';
 
-let shown: number | null | undefined;
+// Written from an effect, after commit, rather than assigned while the probe renders.
+const reading: { value: number | null | undefined } = { value: undefined };
 const Probe: React.FC<{ now: () => number }> = ({ now }) => {
-  shown = useTrackProjection('experience', now);
+  const value = useTrackProjection('experience', now);
+  useEffect(() => { reading.value = value; }, [value]);
   return null;
 };
 
-afterEach(() => { vi.useRealTimers(); shown = undefined; });
+afterEach(() => { vi.useRealTimers(); reading.value = undefined; });
 
 // elapsedSeconds is the game's clock and the projection's denominator; it advances with play,
 // so the fixture advances it alongside the track rather than leaving it still.
@@ -32,11 +34,11 @@ describe('promotion projection sampling', () => {
     setExperience(0, 1000, 0);
     let clock = 0;
     render(<Probe now={() => clock} />);
-    expect(shown).toBeNull();
+    expect(reading.value).toBeNull();
 
     clock = 10_000;
     act(() => { setExperience(50, 1000, 10); vi.advanceTimersByTime(10_000); });
-    expect(shown).toBeNull();
+    expect(reading.value).toBeNull();
   });
 
   it('reports a projection once the track has been observed moving', () => {
@@ -53,7 +55,7 @@ describe('promotion projection sampling', () => {
     }
 
     // 30 earned across 60 elapsed seconds; 970 remain at 0.5/s, so 1940 seconds of play.
-    expect(shown).toBe(1940);
+    expect(reading.value).toBe(1940);
   });
 
   it('stops sampling when unmounted', () => {
@@ -62,10 +64,10 @@ describe('promotion projection sampling', () => {
     let clock = 0;
     const { unmount } = render(<Probe now={() => clock} />);
     unmount();
-    const before = shown;
+    const before = reading.value;
     clock = 600_000;
     act(() => { setExperience(900, 1000, 900); vi.advanceTimersByTime(600_000); });
-    expect(shown).toBe(before);
+    expect(reading.value).toBe(before);
   });
 
   it('keeps its timer across host re-renders when no clock is supplied', () => {
@@ -90,9 +92,12 @@ describe('switching which track is projected', () => {
     let clock = 0;
     const now = () => clock;
     let seen: number | null | undefined;
-    const Switchable: React.FC<{ track: 'experience' | 'plot' }> = ({ track }) => {
-      seen = useTrackProjection(track, now);
+    const Reader: React.FC<{ value: number | null }> = ({ value }) => {
+      useEffect(() => { seen = value; }, [value]);
       return null;
+    };
+    const Switchable: React.FC<{ track: 'experience' | 'plot' }> = ({ track }) => {
+      return <Reader value={useTrackProjection(track, now)} />;
     };
 
     useGameStore.setState({
