@@ -26,6 +26,11 @@ updates:
         update-types: [version-update:semver-major]
       - dependency-name: react-dom
         update-types: [version-update:semver-major]
+      # Held at 1.77 (package.json pins it exactly): 1.89 enables React Compiler-style hook
+      # rules that flag 20 sites under --deny-warnings. Remove this entry, and the exact pin,
+      # once #885 has refactored those sites.
+      - dependency-name: oxlint
+        versions: ['>=1.78.0']
 
   # Actions are pinned to full SHAs, which is what makes this entry necessary rather than
   # optional: a pinned SHA never floats, so nothing updates it without Dependabot.

@@ -42,7 +42,7 @@
     "@vitest/coverage-v8": "^4.1.12",
     "jsdom": "^30.0.1",
     "nexus-agents": "^14.0.0",
-    "oxlint": "^1.77.0",
+    "oxlint": "1.77.0",
     "typescript": "~7.0.2",
     "vite": "^8.2.1",
     "vitest": "^4.1.12"
