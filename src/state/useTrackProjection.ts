@@ -41,7 +41,6 @@ const readTrack = (track: ProjectedTrack) => {
  */
 export function useTrackProjection(track: ProjectedTrack, nowMs: () => number = systemNowMs): number | null {
   const samples = useRef<TrackSample[]>([]);
-  const sampledTrack = useRef<ProjectedTrack>(track);
   const [seconds, setSeconds] = useState<number | null>(null);
 
   // Discarded when the track changes, and only then. The buffer is a ref, so it would otherwise
@@ -53,10 +52,13 @@ export function useTrackProjection(track: ProjectedTrack, nowMs: () => number = 
   // when the clock function's identity changes, which happens on every render for any caller
   // passing an inline arrow — clearing there would empty the buffer continuously and the readout
   // would never have enough samples to say anything.
-  if (sampledTrack.current !== track) {
-    sampledTrack.current = track;
+  //
+  // Done in an effect of its own, declared ahead of the sampling effect so it runs first on the
+  // commit where the track changed: the buffer is empty before the first sample of the new track
+  // lands, exactly as when it was cleared during render.
+  useEffect(() => {
     samples.current = [];
-  }
+  }, [track]);
 
   useEffect(() => {
     const sample = () => {
