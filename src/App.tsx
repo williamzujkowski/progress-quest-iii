@@ -21,7 +21,6 @@ const THEME_WRITE_FAILURE = 'Theme changed, but this browser could not remember 
 interface ThemeSelection {
   id: ThemeId;
   status: string;
-  persistPending: boolean;
 }
 
 interface AppProps {
@@ -39,24 +38,48 @@ const SessionCheckpointStatus: React.FC<{ controller: SessionCheckpointControlle
   );
 };
 
+const recordThemeWriteFailure = (error: unknown) => {
+  diagnostics.record({
+    code: 'theme_write_failed',
+    severity: 'warning',
+    subsystem: 'theme',
+    operation: 'write',
+    outcome: 'failed',
+    source: 'theme-preference',
+    error,
+  });
+};
+
 const App: React.FC<AppProps> = ({ sessionCheckpoints }) => {
-  const initialThemeReadError = useRef<unknown>(undefined);
-  const [themeSelection, setThemeSelection] = useState<ThemeSelection>(() => {
+  // The stored preference is read once, in a lazy initializer, and the read error travels with the
+  // selection in state rather than through a ref, so nothing is written to a ref during render.
+  const [initialTheme] = useState(() => {
     const storedTheme = readThemePreference();
-    if (!storedTheme.ok) initialThemeReadError.current = storedTheme.error;
     return {
-      id: resolveInitialTheme(storedTheme.ok ? storedTheme.value : null, window.matchMedia('(prefers-color-scheme: dark)').matches),
-      status: storedTheme.ok ? '' : THEME_READ_FAILURE,
-      persistPending: false,
+      selection: {
+        id: resolveInitialTheme(storedTheme.ok ? storedTheme.value : null, window.matchMedia('(prefers-color-scheme: dark)').matches),
+        status: storedTheme.ok ? '' : THEME_READ_FAILURE,
+      } satisfies ThemeSelection,
+      readError: storedTheme.ok ? undefined : storedTheme.error,
     };
   });
+  const [themeSelection, setThemeSelection] = useState<ThemeSelection>(initialTheme.selection);
+  const themeReadErrorReported = useRef(false);
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
   const [requiresCharacterCreation, setRequiresCharacterCreation] = useState(sessionCheckpoints?.requiresCharacterCreation ?? false);
   const [isCharacterCreatorOpen, setIsCharacterCreatorOpen] = useState(requiresCharacterCreation);
   const tick = useGameStore((state) => state.tick);
 
+  // Persisting the choice is a consequence of the click, so it happens in the click handler rather
+  // than in an effect that reacts to the new selection and then sets state again.
+  const changeTheme = (id: ThemeId) => {
+    const writeResult = writeThemePreference(id);
+    if (!writeResult.ok) recordThemeWriteFailure(writeResult.error);
+    setThemeSelection({ id, status: writeResult.ok ? '' : THEME_WRITE_FAILURE });
+  };
+
   useLayoutEffect(() => {
-    if (initialThemeReadError.current) {
+    if (initialTheme.readError && !themeReadErrorReported.current) {
       diagnostics.record({
         code: 'theme_read_failed',
         severity: 'warning',
@@ -64,30 +87,15 @@ const App: React.FC<AppProps> = ({ sessionCheckpoints }) => {
         operation: 'read',
         outcome: 'failed',
         source: 'theme-preference',
-        error: initialThemeReadError.current,
+        error: initialTheme.readError,
       });
-      initialThemeReadError.current = undefined;
     }
+    themeReadErrorReported.current = true;
+  }, [initialTheme.readError]);
+
+  useLayoutEffect(() => {
     applyTheme(document.documentElement, themeSelection.id);
-    if (!themeSelection.persistPending) return;
-    const writeResult = writeThemePreference(themeSelection.id);
-    if (!writeResult.ok) {
-      diagnostics.record({
-        code: 'theme_write_failed',
-        severity: 'warning',
-        subsystem: 'theme',
-        operation: 'write',
-        outcome: 'failed',
-        source: 'theme-preference',
-        error: writeResult.error,
-      });
-    }
-    setThemeSelection((current) => {
-      if (current.id !== themeSelection.id) return current;
-      const status = writeResult.ok ? current.status : THEME_WRITE_FAILURE;
-      return { ...current, status, persistPending: false };
-    });
-  }, [themeSelection.id, themeSelection.persistPending]);
+  }, [themeSelection.id]);
 
   // Main 50ms tick game loop timer
   useEffect(() => {
@@ -112,7 +120,7 @@ const App: React.FC<AppProps> = ({ sessionCheckpoints }) => {
       <Navbar
         theme={themeSelection.id}
         themeStatus={themeSelection.status}
-        onThemeChange={(id) => setThemeSelection({ id, status: '', persistPending: true })}
+        onThemeChange={changeTheme}
         onOpenSaveModal={() => setIsSaveModalOpen(true)}
         onOpenCharacterCreator={() => setIsCharacterCreatorOpen(true)}
       />
