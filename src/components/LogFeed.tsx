@@ -68,9 +68,18 @@ export const LogFeed: React.FC = () => {
   const pendingTabFocus = useRef<'chatter' | 'activity' | null>(null);
   const latest = log[0];
   const latestId = latest?.id;
-  const initialLatestId = useRef(latest?.id);
-  const [activeView, setActiveView] = useState<'chatter' | 'activity'>('chatter');
-  const [showActivityJump, setShowActivityJump] = useState(false);
+  // Captured once, in state, so that render can compare against it without reading a ref. It is
+  // the entry that was already newest when this panel mounted, which is history, not news.
+  const [initialLatestId] = useState(() => log[0]?.id);
+  // The selected tab and the jump button's visibility each remember the session they were set in,
+  // and read as their defaults once `sessionGeneration` has moved on. A fresh session therefore
+  // lands on Chatter with no jump button without an effect having to notice and set state again.
+  const [viewSelection, setViewSelection] = useState<{ view: 'chatter' | 'activity'; generation: number }>({ view: 'chatter', generation: sessionGeneration });
+  const activeView = viewSelection.generation === sessionGeneration ? viewSelection.view : 'chatter';
+  const setActiveView = (view: 'chatter' | 'activity') => setViewSelection({ view, generation: sessionGeneration });
+  const [activityJump, setActivityJump] = useState({ shown: false, generation: sessionGeneration });
+  const showActivityJump = activityJump.shown && activityJump.generation === sessionGeneration;
+  const setShowActivityJump = (shown: boolean) => setActivityJump({ shown, generation: sessionGeneration });
   const consoleId = useId();
   const chatterTabId = `${consoleId}-chatter-tab`;
   const activityTabId = `${consoleId}-activity-tab`;
@@ -79,29 +88,33 @@ export const LogFeed: React.FC = () => {
   const chatterTruthId = `${consoleId}-chatter-truth`;
   const activityTruthId = `${consoleId}-activity-truth`;
 
+  // An empty log has nothing to jump to. Adjusting this state while rendering, guarded so it settles
+  // in one extra pass, avoids an effect whose only job is to set it back.
+  if (latestId === undefined && showActivityJump) setShowActivityJump(false);
+
+  // Only the scroll position is synchronised here. Whether the jump button shows is decided where
+  // `activityFollowingLatest` changes — the scroll handler and `jumpToLatestActivity` — so it needs
+  // no setState from an effect.
   useLayoutEffect(() => {
     if (latestId === undefined) {
       activityFollowingLatest.current = true;
-      setShowActivityJump(false);
       return;
     }
     if (activeView !== 'activity') return;
-    if (activityFollowingLatest.current) {
-      if (feedRef.current) feedRef.current.scrollTop = feedRef.current.scrollHeight;
-      setShowActivityJump(false);
-    } else {
-      setShowActivityJump(true);
+    if (activityFollowingLatest.current && feedRef.current) {
+      feedRef.current.scrollTop = feedRef.current.scrollHeight;
     }
   }, [activeView, latestId]);
 
+  // The tab and the jump button reset themselves by deriving from `sessionGeneration` above; what is
+  // left for the effect is the part that has to look at the DOM. The Activity tab and panel are only
+  // hidden, never unmounted, so focus is still where the player left it when this runs.
   useLayoutEffect(() => {
     const focused = document.activeElement;
     if (focused === activityTabRef.current || (focused instanceof Node && activityPanelRef.current?.contains(focused))) {
       pendingTabFocus.current = 'chatter';
     }
-    setActiveView('chatter');
     activityFollowingLatest.current = true;
-    setShowActivityJump(false);
   }, [sessionGeneration]);
 
   useLayoutEffect(() => {
@@ -225,7 +238,7 @@ export const LogFeed: React.FC = () => {
         quiet, the same idiom the drain suppression above already uses.
       */}
       <div className="sr-only" role="status" aria-label="Latest activity" aria-live="polite" aria-atomic="true">
-        {announcementsMuted || latest?.id === initialLatestId.current || pendingElapsedMs > 0 ? '' : latest?.message}
+        {announcementsMuted || latest?.id === initialLatestId || pendingElapsedMs > 0 ? '' : latest?.message}
       </div>
 
       <section className="world-context" role="region" aria-label="Current world context">

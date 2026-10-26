@@ -55,18 +55,22 @@ export const ChatterFeed: React.FC<{ readonly active?: boolean }> = ({ active = 
     setShowJump(false);
   };
 
+  // An empty feed has nothing to jump to. Adjusting this state while rendering, guarded so it
+  // settles in one extra pass, avoids an effect whose only job is to set it back.
+  if (!latestVisibleId && showJump) setShowJump(false);
+
+  // Only the scroll position is synchronised here. Whether the jump button shows is decided where
+  // `followingLatest` changes — the scroll handler and `jumpToLatest` — so it needs no setState from
+  // an effect.
   useLayoutEffect(() => {
     if (!latestVisibleId) {
       followingLatest.current = true;
-      setShowJump(false);
       return;
     }
     if (!active) return;
-    if (followingLatest.current) {
-      if (messagesRef.current) messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
-      setShowJump(false);
+    if (followingLatest.current && messagesRef.current) {
+      messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
     }
-    else if (latestVisibleId) setShowJump(true);
   }, [active, latestVisibleId]);
 
   return (
