@@ -1,13 +1,15 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import { act, render } from '@testing-library/react';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useGameStore } from '../../state/gameStore';
 import { useFilingVelocity } from '../../state/useFilingVelocity';
 
-let shown: number | null | undefined;
+// Written from an effect, after commit, rather than assigned while the probe renders.
+const reading: { value: number | null | undefined } = { value: undefined };
 const Probe: React.FC<{ now: () => number }> = ({ now }) => {
-  shown = useFilingVelocity(now);
+  const value = useFilingVelocity(now);
+  useEffect(() => { reading.value = value; }, [value]);
   return null;
 };
 
@@ -15,7 +17,7 @@ const startSession = () => useGameStore.getState().startSession({
   source: 'creation', name: 'Velocity Subject', race: 'Half Daemon', klass: 'Incident Paladin', seed: 77,
 });
 
-afterEach(() => { vi.useRealTimers(); shown = undefined; });
+afterEach(() => { vi.useRealTimers(); reading.value = undefined; });
 
 describe('filing velocity sampling', () => {
   it('reports nothing until the sampled window is wide enough', () => {
@@ -23,12 +25,12 @@ describe('filing velocity sampling', () => {
     startSession();
     let clock = 0;
     render(<Probe now={() => clock} />);
-    expect(shown).toBeNull();
+    expect(reading.value).toBeNull();
 
     // One further sample, but only ten seconds of span — still too narrow to mean anything.
     clock = 10_000;
     act(() => { vi.advanceTimersByTime(10_000); });
-    expect(shown).toBeNull();
+    expect(reading.value).toBeNull();
   });
 
   it('reports a rate once enough time has been sampled', () => {
@@ -46,8 +48,8 @@ describe('filing velocity sampling', () => {
       });
     }
 
-    expect(typeof shown).toBe('number');
-    expect(shown!).toBeGreaterThan(0);
+    expect(typeof reading.value).toBe('number');
+    expect(reading.value!).toBeGreaterThan(0);
   });
 
   it('stops sampling when unmounted', () => {
@@ -56,11 +58,11 @@ describe('filing velocity sampling', () => {
     let clock = 0;
     const { unmount } = render(<Probe now={() => clock} />);
     unmount();
-    const before = shown;
+    const before = reading.value;
     clock = 600_000;
     act(() => { vi.advanceTimersByTime(600_000); });
     // No further renders, so the last reported value stands.
-    expect(shown).toBe(before);
+    expect(reading.value).toBe(before);
   });
 
   it('keeps its timer across host re-renders when no clock is supplied', () => {

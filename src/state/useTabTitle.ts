@@ -21,7 +21,10 @@ interface TabTitleOptions {
  */
 export function useTabTitle({ velocity, documentTarget }: TabTitleOptions): void {
   const velocityRef = useRef(velocity);
-  velocityRef.current = velocity;
+  // Kept current in an effect rather than during render; the rotate timer reads it later anyway.
+  useEffect(() => {
+    velocityRef.current = velocity;
+  });
 
   useEffect(() => {
     const target = documentTarget ?? (typeof document === 'undefined' ? undefined : document);

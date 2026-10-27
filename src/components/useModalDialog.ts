@@ -3,7 +3,11 @@ import { useLayoutEffect, useRef } from 'react';
 export const useModalDialog = (isOpen: boolean, onClose: () => void) => {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
+  // Kept current in an effect rather than during render. Effects run in order, so the ref is
+  // updated before the cancel listener below can ever fire.
+  useLayoutEffect(() => {
+    onCloseRef.current = onClose;
+  });
 
   useLayoutEffect(() => {
     const dialog = dialogRef.current;

@@ -32,7 +32,7 @@ export const CharacterCreatorModal: React.FC<CharacterCreatorModalProps> = ({ is
 
   // Stat Rolling state
   const [seedHistory, setSeedHistory] = useState<number[]>([]);
-  const [currentSeed, setCurrentSeed] = useState<number>(Date.now());
+  const [currentSeed, setCurrentSeed] = useState<number>(() => Date.now());
   const [stats, setStats] = useState<StatsMap>(() => generateInitialStats(new RandomGenerator(currentSeed), race, klass));
   /**
    * What the last roll produced, for the status region.

@@ -18,44 +18,57 @@ function recordRosterFailure(code: 'roster_read_failed' | 'roster_write_failed' 
 
 const isClipboardDenied = (error: unknown): boolean => isDOMExceptionNamed(error, 'NotAllowedError');
 
-export const SaveModal: React.FC<SaveModalProps> = ({ isOpen, onClose }) => {
-  const dialogRef = useModalDialog(isOpen, onClose);
+type Feedback = { kind: 'status' | 'alert'; message: string } | null;
+
+/**
+ * What the dialogue shows the moment it opens: the live sheet, its save text and the roster.
+ *
+ * Read once, when the dialogue mounts, rather than by an effect that runs after the first paint and
+ * sets state again. A sheet the importer would refuse yields no save text and says why, rather than
+ * filling the box with a string that cannot be imported anywhere. An unreadable roster wins over
+ * that message, because it is the one the player can act on.
+ */
+const readOpeningState = () => {
+  const character = useGameStore.getState().character;
+  const encoded = encodePQWSave(character);
+  const rosterResult = loadRoster();
+  let feedback: Feedback = encoded.ok ? null : { kind: 'alert', message: encoded.error.message };
+  if (!rosterResult.ok) feedback = { kind: 'alert', message: rosterResult.error.message };
+  return {
+    name: character.Traits.Name,
+    pqw: encoded.ok ? encoded.value : '',
+    roster: rosterResult.ok ? rosterResult.value : null,
+    rosterReadFailed: !rosterResult.ok,
+    feedback,
+  };
+};
+
+/**
+ * Renders nothing while closed, and mounts the dialogue afresh on every open.
+ *
+ * Mounting is what resets the import box, the copy state and the feedback line, so no effect has to
+ * notice the change of `isOpen` and clear them. This wrapper subscribes to nothing, so a closed
+ * modal still renders on none of the game ticks.
+ */
+export const SaveModal: React.FC<SaveModalProps> = ({ isOpen, onClose }) => (
+  isOpen ? <SaveModalDialog onClose={onClose} /> : null
+);
+
+const SaveModalDialog: React.FC<{ onClose: () => void }> = ({ onClose }) => {
+  const dialogRef = useModalDialog(true, onClose);
   const startSession = useGameStore((state) => state.startSession);
-  const [roster, setRoster] = useState<Record<string, CharacterSheet> | null>({});
+  const [opening] = useState(readOpeningState);
+  const [roster, setRoster] = useState<Record<string, CharacterSheet> | null>(opening.roster);
   const [importInput, setImportInput] = useState('');
-  const [currentName, setCurrentName] = useState('');
-  const [currentPQW, setCurrentPQW] = useState('');
+  const [currentName, setCurrentName] = useState(opening.name);
+  const [currentPQW, setCurrentPQW] = useState(opening.pqw);
   const [isCopying, setIsCopying] = useState(false);
-  const [feedback, setFeedback] = useState<{ kind: 'status' | 'alert'; message: string } | null>(null);
+  const [feedback, setFeedback] = useState<Feedback>(opening.feedback);
   const copyOperation = useRef(0);
 
-  const refreshRoster = (): void => {
-    const result = loadRoster();
-    if (!result.ok) {
-      recordRosterFailure('roster_read_failed', 'read');
-      setRoster(null);
-      setFeedback({ kind: 'alert', message: result.error.message });
-      return;
-    }
-    setRoster(result.value);
-  };
-
   useEffect(() => {
-    copyOperation.current += 1;
-    setIsCopying(false);
-    if (isOpen) {
-      const character = useGameStore.getState().character;
-      setCurrentName(character.Traits.Name);
-      // A sheet the importer would refuse yields no save text and says why, rather than filling the
-      // box with a string that cannot be imported anywhere.
-      const encoded = encodePQWSave(character);
-      setCurrentPQW(encoded.ok ? encoded.value : '');
-      setFeedback(encoded.ok ? null : { kind: 'alert', message: encoded.error.message });
-      refreshRoster();
-    }
-  }, [isOpen]);
-
-  if (!isOpen) return null;
+    if (opening.rosterReadFailed) recordRosterFailure('roster_read_failed', 'read');
+  }, [opening]);
 
   const handleSaveCurrent = () => {
     const character = useGameStore.getState().character;

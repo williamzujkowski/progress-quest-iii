@@ -1,6 +1,6 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
-import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { describeEquipment, describeInventoryItem, describeSpell } from '../data/itemDetails';
 import { useGameStore } from '../state/gameStore';
 import type { EquipSlot } from '../engine/types';
@@ -60,6 +60,20 @@ export const ItemTooltip: React.FC<TooltipProps> = (props) => {
       ? describeSpell(props.name, props.level)
       : describeInventoryItem(props.name, props.quantity, act, level);
 
+  // Declared before the effects that call it, so no closure reads it before it is initialized. It
+  // has no dependencies that change: `setOpen` is stable, and the module-level `openTooltip` and
+  // the `hideRef` object are read at call time.
+  const hide = useCallback(() => {
+    if (openTooltip === hideRef) openTooltip = null;
+    setOpen(false);
+  }, []);
+  // Registered by ref rather than by function, so the shared closer can recognise this tooltip as
+  // the open one by identity. The ref object outlives every render this component has. It is
+  // assigned in an effect rather than during render, which is where React allows ref writes.
+  useEffect(() => {
+    hideRef.current = hide;
+  }, [hide]);
+
   useLayoutEffect(() => {
     if (!open || !triggerRef.current || !tooltipRef.current) return;
 
@@ -91,18 +105,9 @@ export const ItemTooltip: React.FC<TooltipProps> = (props) => {
     };
     document.addEventListener('keydown', dismiss);
     return () => document.removeEventListener('keydown', dismiss);
-  }, [open]);
+  }, [open, hide]);
 
   useEffect(() => () => window.clearTimeout(closeTimerRef.current), []);
-
-  const hide = () => {
-    if (openTooltip === hideRef) openTooltip = null;
-    setOpen(false);
-  };
-  // Registered by ref rather than by function: `hide` is a new identity every render, so
-  // comparing the functions themselves would stop recognising this tooltip as the open one the
-  // first time anything re-renders it. The ref object outlives every render this component has.
-  hideRef.current = hide;
 
   const show = () => {
     window.clearTimeout(closeTimerRef.current);
