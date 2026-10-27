@@ -74,8 +74,13 @@ verifyProductionCsp(await readFile(documentUrl, 'utf8'));
  * This is here to catch a dependency arriving by accident or a catalogue being embedded whole,
  * not to make a legitimate feature argue for its own bytes. A budget tight enough to trip on
  * ordinary work gets raised reflexively until it means nothing.
+ *
+ * Re-baselined on 2026-10-27: main measured 554,564 bytes, 99% of the original 560,000. React
+ * 19.3.1 adds 29,289 (react-dom itself grew about 10%), and lucide-react 1.61 adds 3,013, for
+ * 586,866. That is upstream growth, not an accidental dependency or catalogue, so the budget goes
+ * back to a quarter above it.
  */
-const BUDGETS = { js: 560_000, css: 48_000 };
+const BUDGETS = { js: 735_000, css: 48_000 };
 
 for (const [kind, files] of [['js', jsFiles], ['css', cssFiles]]) {
   const total = (await Promise.all(files.map(async (name) =>
